@@ -1,0 +1,215 @@
+/* ===== Split layout ===== */
+.authSplit {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    background: #f6f8fb;
+  }
+  
+  .authLeft {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 32px;
+  }
+  
+  .authRight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 36px;
+  }
+  
+  /* ===== Card ===== */
+  .authCard {
+    --ctrl-width: 360px;
+    --ctrl-height: 46px;
+    --ctrl-radius: 10px;
+    --ctrl-font: 15px;
+  
+    width: 440px;
+    max-width: 100%;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+    padding: 28px 28px 26px;
+    box-sizing: border-box;
+  }
+  
+  .authTitle {
+    margin: 2px 0 6px;
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: left;
+  }
+  
+  .authSubtitle {
+    margin: 0 0 16px;
+    color: #6b7280;
+    text-align: left;
+  }
+  
+  /* ===== Form ===== */
+  .authForm {
+    max-width: var(--ctrl-width);
+    margin: 0 auto;
+    display: grid;
+    gap: 12px;
+    text-align: left;
+  }
+  
+  .authLabel {
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 2px;
+  }
+  
+  .authForm :is(.authInput, .btnDark) {
+    width: 100%;
+    height: var(--ctrl-height);
+    border-radius: var(--ctrl-radius);
+    font-size: var(--ctrl-font);
+    box-sizing: border-box;
+  }
+  
+  .authInput {
+    padding: 0 12px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .authInput.pill {
+    border-radius: var(--ctrl-radius);
+  }
+  .authInput::placeholder {
+    color: #9ca3af;
+  }
+  .authInput:focus {
+    outline: 0;
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.25);
+  }
+  
+  /* ===== Submit button ===== */
+  .btnDark {
+    padding: 0 12px;
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    background: #60a5fa;
+    color: #fff;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.04s ease;
+  }
+  .btnDark:hover {
+    filter: brightness(0.96);
+  }
+  .btnDark:active {
+    transform: translateY(1px);
+  }
+  .btnDark:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+  
+  /* ===== Footer ===== */
+  .authFoot {
+    margin-top: 12px;
+    color: #6b7280;
+    text-align: center;
+    font-size: 14px;
+  }
+  .authFoot .link {
+    border: 0;
+    background: transparent;
+    color: #0ea5a4;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  
+  /* ===== Message ===== */
+  .authMessage {
+    margin-top: 10px;
+    text-align: center;
+    color: #dc2626;
+  }
+  
+  /* ===== Right panel ===== */
+  .authArt {
+    width: 620px;
+    max-width: 100%;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 16px 40px rgba(2, 6, 23, 0.2);
+    background: #e5e7eb;
+  }
+  .authArtImg {
+    height: 420px;
+    background:
+      radial-gradient(120px 120px at 0% 10%, #fff 35%, transparent 36%) left 20px top 0 / auto 100% no-repeat,
+      linear-gradient(120deg, #cbd5e1, #a5b4fc 40%, #60a5fa 80%);
+  }
+  .authArtCaption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 18px 18px 20px;
+    color: #fff;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.35) 55%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+  }
+  .authArtCaption h3 {
+    margin: 0 0 6px;
+    font-weight: 800;
+  }
+  .authArtCaption p {
+    margin: 0 0 10px;
+    color: #e5e7eb;
+  }
+  .authChips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    backdrop-filter: blur(2px);
+  }
+  
+  /* ===== Responsive ===== */
+  @media (max-width: 1080px) {
+    .authSplit {
+      grid-template-columns: 1fr;
+    }
+    .authRight {
+      order: -1;
+      padding-top: 24px;
+    }
+    .authArt {
+      width: 100%;
+    }
+  }
+  @media (max-width: 480px) {
+    .authCard {
+      --ctrl-width: 92vw;
+      width: 92vw;
+      padding: 22px;
+    }
+  }
+  

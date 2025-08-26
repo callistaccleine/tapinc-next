@@ -54,6 +54,13 @@
     font-weight: 500;
     font-size: 1rem;
   }
+
+  .navbarCta,
+  .navbarCta:link,
+  .navbarCta:visited {
+    color: white;
+    text-decoration: none;
+    }
   
   .avatarProfile {
     width: 28px;
