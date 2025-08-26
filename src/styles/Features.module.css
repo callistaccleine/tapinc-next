@@ -1,0 +1,47 @@
+.featuresSection {
+    padding: 40px 24px;
+    font-family: 'Manrope';
+    background-color: #fff; 
+  }
+  
+  .featuresTitle {
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #111;
+  }
+  
+  .featuresSlider {
+    display: flex;
+    overflow-x: scroll;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    gap: 24px;
+    padding-bottom: 12px;
+    scrollbar-width: none;
+    touch-action: pan-x; /* ✅ enables native horizontal swiping */
+  }
+  
+  .featuresSlider::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .featureCard {
+    scroll-snap-align: start;
+    flex: 0 0 calc(33.33% - 16px);
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    min-width: 300px;
+    color: black;
+  }
+  
+  .featureImage {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+  

@@ -112,14 +112,11 @@ export default function Navbar() {
           </li>
         ) : (
           // ✅ Logged out
-          <li>
-            <button
-              className={styles.navbarCta}
-              onClick={() => router.push("/auth")}
-            >
-              Login
-            </button>
-          </li>
+        <li>
+            <Link href="/signup" className={styles.navbarCta}>
+                Register
+            </Link>
+        </li>
         )}
       </ul>
     </nav>
