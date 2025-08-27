@@ -1,0 +1,105 @@
+/* ---------- Product Card ---------- */
+.productsCard {
+    position: relative;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding-bottom: 60px; /* space for Add to Cart button */
+  }
+  
+  .productsCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  }
+  
+  /* Image */
+  .productsMedia {
+    position: relative;
+  }
+  
+  .productsImage {
+    width: 100%;
+    display: block;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  /* Meta wrapper */
+  .productsMeta {
+    padding: 12px 10px 0;
+  }
+  
+  /* Title + badge row */
+  .productsHeaders {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .productsTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    text-align: left;
+  }
+  
+  .productsBadge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #227f88 0%, #57c1bd 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  
+  /* Price on its own row under title */
+  .productsPrice {
+    display: block;
+    text-align: left;
+    margin-top: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #374151;
+  }
+  
+  /* ---------- Add to Cart button ---------- */
+  .addToCartBtn {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  
+  .productsCard:hover .addToCartBtn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    .productsTitle {
+      font-size: 1rem;
+    }
+    .productsPrice {
+      font-size: 0.9rem;
+    }
+    .addToCartBtn {
+      padding: 8px 14px;
+      font-size: 0.9rem;
+    }
+  }
+  

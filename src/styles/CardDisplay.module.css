@@ -43,4 +43,56 @@
     height: auto;
     border-radius: 8px;
   }
+
+  /* Card container */
+.profileCardOption {
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 16px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* Hover effect */
+  .profileCardOption:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    border-color: #d1d5db;
+  }
+  
+  /* Selected state */
+  .selected {
+    border-color: #3b82f6; /* blue highlight */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+  
+  /* Title */
+  .title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  /* Subtitle */
+  .subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+  
+  /* Card image */
+  .cardImage {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 8px;
+    object-fit: cover;
+  }
+  
   

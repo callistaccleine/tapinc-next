@@ -1,0 +1,83 @@
+.sidebar {
+  background: linear-gradient(180deg, #0f2034 0%, #0c1b2c 100%);
+  color: white;
+  padding: 20px 16px;
+  position: sticky;
+  top: 0; /* stays fixed */
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: inset -1px 0 0 #1b3556;
+}
+
+/* brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+}
+.brandLogo {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: radial-gradient(120% 120% at 0% 0%, #6da8ff, #3b82f6);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
+}
+.brandName {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* nav list */
+.navList {
+  list-style: none;
+  padding: 6px 0;
+  margin: 0;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin: 4px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #b9c5d6;
+  transition: background 0.2s ease;
+}
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.navItem.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #fff;
+  font-weight: 600;
+}
+
+.navIcon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: #7284a3;
+}
+
+.navLabel {
+  flex: 1;
+  font-size: 15px;
+}
+
+.navChevron {
+  font-size: 16px;
+  opacity: 0.7;
+  transform: translateX(2px);
+}
+
+.divider {
+  height: 1px;
+  background: #1b3556;
+  margin: 16px 0;
+}

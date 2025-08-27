@@ -1,0 +1,213 @@
+/* ---------- Layout / Header ---------- */
+.siteHeader {
+  height: 64px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 50; /* keep above sidebar */
+}
+
+.pageContent {
+  padding: 16px;
+  background: #f9fafb;
+  min-height: calc(100vh - 64px);
+}
+
+.pageLoading {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* ---------- Header buttons ---------- */
+.iconBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.iconBtn:hover {
+  background: #f3f4f6;
+}
+
+/* ---------- Primary button override (inside dashboard) ---------- */
+.btnPrimary {
+  width: auto;
+  max-width: max-content;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 10px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.btnPrimary:hover {
+  background: #2563eb;
+}
+
+/* ---------- User chip ---------- */
+.userChip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+
+.avatarProfile {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  transition: background 0.2s ease;
+}
+
+.avatarProfile:hover {
+  background-color: #dbeafe;
+}
+
+.avatarProfile svg {
+  width: 16px;
+  height: 16px;
+  color: #374151;
+}
+
+/* ---------- User text ---------- */
+.userText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.userName {
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.userEmailBtn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  text-align: left;
+}
+
+.userEmailBtn:focus {
+  outline: 2px solid #94a3b8;
+  outline-offset: 2px;
+}
+
+/* ---------- Dropdown menu ---------- */
+.userMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 200px;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(16,24,40,.12);
+  padding: 8px;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity .12s ease, transform .12s ease, visibility 0s linear .12s;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.userMenu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity .12s ease, transform .12s ease;
+  pointer-events: auto;
+}
+
+/* ---------- Dropdown items ---------- */
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #0f172a;
+  text-align: left;
+  font-size: 14px;
+  transition: background 0.15s ease;
+}
+
+.menuItem:hover {
+  background: #f8fafc;
+}
+
+.menuItem.logout {
+  color: #ef4444;
+}
+
+.miIcon {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+}
+
+.miLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #10b98122;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.menuSep {
+  height: 1px;
+  background: #eef2f7;
+  margin: 6px 0;
+}
