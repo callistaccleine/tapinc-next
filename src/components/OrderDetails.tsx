@@ -87,8 +87,11 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
   return (
     <div className={styles.orderDetails}>
       {/* Header */}
-      <h2 className={styles.title}>Order #{order.order_number}</h2>
-      <p className={styles.date}>Created: {new Date(order.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <button onClick={() => router.push(`/dashboard`)} className={styles.backBtn}>
+        ← 
+    </button>
+      <h2 className={styles.title}>Order ID: {order.order_number}</h2>
+      <p className={styles.date}>Order date: {new Date(order.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       <span className={`${styles.statusBadge} ${styles[order.status.toLowerCase()]}`}>
         {order.status}
       </span>
@@ -132,7 +135,7 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
       <section className={styles.section}>
         <h3>Payment Summary</h3>
         <p>Subtotal: ${subtotal.toFixed(2)}</p>
-        <p>Shipping: ${shippingCost.toFixed(2)}</p>
+        <p>Shipping Fee: ${shippingCost.toFixed(2)}</p>
         <p>Tax: ${tax.toFixed(2)}</p>
         <br />
         <strong>Total: ${total.toFixed(2)}</strong>
@@ -141,12 +144,12 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
 
       <br />
 
-      <button
+      {/* <button
         className={styles.payBtn}
         onClick={() => router.push(`/checkout?order_id=${order.id}`)}
         >
         Pay Now
-        </button>
+        </button> */}
 
       {/* Action Buttons */}
       <div className={styles.actions}>

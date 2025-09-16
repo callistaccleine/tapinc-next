@@ -113,30 +113,51 @@ export default function Products() {
       </header>
 
       <div className={styles.productsToolbar}>
-        <button
-          className={`${styles.pricingButton} ${showFilters ? styles.isOpen : ""}`}
-          onClick={() => setShowFilters((v) => !v)}
-          aria-expanded={showFilters}
-          aria-controls="filters-panel"
-        >
-          {showFilters ? "Hide filters" : "Show filters"}
-        </button>
-      </div>
+        <div className={styles.filterDropdown}>
+          <button
+            className={styles.filterButton}
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+            aria-controls="filters-panel"
+          >
+            {showFilters ? "Filters" : " Filters"}
+          </button>
 
-      {showFilters && (
-        <div id="filters-panel" className={styles.filtersPanel}>
-          <label>
-            Sort by:{" "}
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {showFilters && (
+            <div id="filters-panel" className={styles.dropdownPanel}>
+              <ul className={styles.optionList}>
+                {sortOptions.map((opt) => (
+                  <li
+                    key={opt.value}
+                    className={`${styles.optionItem} ${
+                      sortBy === opt.value ? styles.selected : ""
+                    }`}
+                    onClick={() => setSortBy(opt.value)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={sortBy === opt.value}
+                      readOnly
+                    />
+                    <span>{opt.label}</span>
+                    {sortBy === opt.value && (
+                      <button
+                        className={styles.removeBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSortBy("default"); // reset filter
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div className={styles.productsGrid}>
         {sorted.map((p) => (

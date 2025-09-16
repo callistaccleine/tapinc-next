@@ -49,7 +49,7 @@ export default function Pricing() {
             `
             id, category, name, desc, price, period, features,
             popular, action, cta_label, cta_url,
-            product_id, gocardless_price_id, sort_order, is_active
+            product_id, sort_order, is_active
           `
           );
 
