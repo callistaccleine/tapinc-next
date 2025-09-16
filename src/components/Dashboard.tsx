@@ -15,6 +15,7 @@ interface Profile {
   id: string;
   firstname: string | null;
   surname: string | null;
+  email: string | null;
   company: string | null;
   title: string | null;
   bio: string | null;
@@ -145,7 +146,7 @@ export default function Dashboard() {
 
                         {/* Product */}
                         <td>
-                        <span className={styles.productBadge}>Tapt Custom</span>
+                        <span className={styles.productBadge}>TapInc Custom</span>
                         </td>
 
                         {/* Edit */}
