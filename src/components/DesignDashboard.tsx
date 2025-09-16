@@ -3,6 +3,8 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import styles from "@/styles/DesignDashboard.module.css";
 import { supabase } from "@/lib/supabaseClient";
+import Select from 'react-select'
+import React from 'react'
 
 interface Link {
   title: string;
@@ -28,6 +30,12 @@ export default function DesignDashboard() {
   const [newLink, setNewLink] = useState<Link>({ title: "", url: "" });
   const [headerStyle, setHeaderStyle] = useState("minimal");
   const [headerBanner, setHeaderBanner] = useState<string | null>(null);
+
+  const options = [
+    { value: 'She/Her', label: 'She/Her' },
+    { value: 'He/Him', label: 'He/Him' },
+    { value: 'They/Them', label: 'They/Them' }
+  ]
 
   // ✅ Load profile from Supabase
   useEffect(() => {
@@ -89,6 +97,7 @@ export default function DesignDashboard() {
       id: user.id,
       firstname,
       surname,
+      pronouns,
       phone,
       company,
       title,
@@ -101,11 +110,11 @@ export default function DesignDashboard() {
     });
 
     if (error) {
-      console.error("Supabase error:", error.message, error.details);
+      console.error("Supabase error:", error);
       alert("Error saving profile: " + error.message);
     } else {
       alert("Profile saved!");
-    }
+    }    
   };
 
   const handleFileUpload = (
@@ -182,10 +191,11 @@ export default function DesignDashboard() {
 
             <div className={styles.field}>
               <label>Pronouns</label>
-              <input
-                type="text"
-                value={pronouns}
-                onChange={(e) => setPronouns(e.target.value)}
+              <Select
+                options={options}
+                onChange={(selectedOption) =>
+                  setPronouns(selectedOption?.value || "")
+                }
               />
             </div>
 

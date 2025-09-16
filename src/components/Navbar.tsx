@@ -13,7 +13,7 @@ export default function Navbar() {
   const chipRef = useRef<HTMLLIElement>(null);
   const router = useRouter();
 
-  // ✅ Check session on load
+  // Check session on load
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) console.error("getSession error:", error);
