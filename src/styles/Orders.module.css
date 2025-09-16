@@ -1,0 +1,149 @@
+.ordersContainer {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .pageTitle {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: black;
+  }
+  
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: black;
+  }
+  
+  .filterBtn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .filterBtn:hover {
+    background: #e9ecef;
+  }
+  
+  .active {
+    border-color: #0066cc;
+    background: #e6f0ff;
+  }
+  
+  /* Order Card */
+  .orderCard {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #fff;
+  }
+  
+  .orderHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 12px;
+
+  }
+
+  .orderNumber{
+    color: black;
+  }
+
+  .orderDate{
+    color: black;
+  }
+  
+  .statusBadge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+  
+  .delivered {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .shipped {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .cancelled {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .returned {
+    background: #e2e3e5;
+    color: #383d41;
+  }
+  
+  .orderBody {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: black;
+  }
+  
+  .productImage {
+    width: 60px;
+    height: 60px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid #ddd;
+  }
+  
+  .orderInfo {
+    flex: 1;
+  }
+  
+  .productName {
+    font-weight: 500;
+  }
+  
+  .productPrice {
+    font-size: 13px;
+    color: #666;
+  }
+  
+  .orderTotal {
+    font-weight: bold;
+    margin-top: 4px;
+  }
+  
+  .orderFooter {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .detailsBtn {
+    padding: 6px 12px;
+    border: 1px solid #0066cc;
+    border-radius: 4px;
+    background: #0066cc;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  
+  .detailsBtn:hover {
+    background: #0056b3;
+  }
+  
+  .emptyMessage {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+  }
+  

@@ -1,0 +1,144 @@
+"use client"
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { supabase } from "@/lib/supabaseClient";
+import styles from "@/styles/OrderDetails.module.css";
+import { useParams } from "next/navigation";
+
+interface Order {
+  id: string;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  created_at: string;
+  shipping_address: string;
+  user_id: string;
+}
+
+interface OrderItem {
+  id: string;
+  product_name: string;
+  product_image: string;
+  quantity: number;
+  price: number;
+}
+
+const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
+  const { id } = useParams();  
+  const [order, setOrder] = useState<any>(null);
+  const [items, setItems] = useState<OrderItem[]>([]);
+  const [customer, setCustomer] = useState<{ name?: string; email?: string }>({});
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchOrder = async () => {
+      // Fetch order
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (orderError) {
+        console.error("Error fetching order:", orderError.message);
+        return;
+      }
+
+      setOrder(orderData);
+
+      // Fetch order items
+      const { data: itemData, error: itemError } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", id);
+
+      if (!itemError && itemData) setItems(itemData);
+
+      // Fetch customer info from auth.users
+      if (orderData?.user_id) {
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(orderData.user_id);
+        if (!userError && userData?.user) {
+          setCustomer({
+            name: userData.user.user_metadata.display_name,
+            email: userData.user.email,
+          });
+        }
+      }
+    };
+
+    fetchOrder();
+  }, [id]);
+
+  if (!order) return <p className={styles.loading}>Loading order details...</p>;
+
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shippingCost = 14; // static demo value
+  const tax = 2; // static demo value
+  const total = subtotal + shippingCost + tax;
+
+  return (
+    <div className={styles.orderDetails}>
+      {/* Header */}
+      <h2 className={styles.title}>Order #{order.order_number}</h2>
+      <p className={styles.date}>Created: {new Date(order.created_at).toLocaleString()}</p>
+      <span className={`${styles.statusBadge} ${styles[order.status.toLowerCase()]}`}>
+        {order.status}
+      </span>
+
+      {/* Customer Info */}
+      <section className={styles.section}>
+        <h3>Customer</h3>
+        <p>{customer.name || "N/A"}</p>
+        <p>{customer.email || "N/A"}</p>
+        <p>{order.shipping_address || "No shipping address"}</p>
+      </section>
+
+      {/* Items */}
+      <section className={styles.section}>
+        <h3>Items</h3>
+        {items.length === 0 ? (
+          <p>No items found for this order.</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className={styles.item}>
+              <img
+                src={item.product_image}
+                alt={item.product_name}
+                className={styles.itemImage}
+              />
+              <div>
+                <p className={styles.itemName}>{item.product_name}</p>
+                <p className={styles.itemMeta}>
+                  ${item.price} x {item.quantity}
+                </p>
+              </div>
+              <p className={styles.itemTotal}>
+                ${(item.price * item.quantity).toFixed(2)}
+              </p>
+            </div>
+          ))
+        )}
+      </section>
+
+      {/* Payment Summary */}
+      <section className={styles.section}>
+        <h3>Payment Summary</h3>
+        <p>Subtotal: ${subtotal.toFixed(2)}</p>
+        <p>Shipping: ${shippingCost.toFixed(2)}</p>
+        <p>Tax: ${tax.toFixed(2)}</p>
+        <strong>Total: ${total.toFixed(2)}</strong>
+      </section>
+
+      {/* Action Buttons */}
+      <div className={styles.actions}>
+        <button>Invoice</button>
+        <button>Refund</button>
+        <button>Edit</button>
+      </div>
+    </div>
+  );
+};
+
+export default OrderDetails;
