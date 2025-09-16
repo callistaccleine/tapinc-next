@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/OrderDetails.module.css";
 import { useParams } from "next/navigation";
@@ -26,6 +26,7 @@ interface OrderItem {
 
 const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
   const { id } = useParams();  
+  const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [customer, setCustomer] = useState<{ name?: string; email?: string }>({});
@@ -37,9 +38,10 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
       // Fetch order
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
-        .select("*")
+        .select("*, order_items(*)")
         .eq("id", id)
         .single();
+
 
       if (orderError) {
         console.error("Error fetching order:", orderError.message);
@@ -56,16 +58,20 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
 
       if (!itemError && itemData) setItems(itemData);
 
+      setCustomer({
+        name: orderData.customer_name,
+        email: orderData.customer_email,});
+
       // Fetch customer info from auth.users
-      if (orderData?.user_id) {
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(orderData.user_id);
-        if (!userError && userData?.user) {
-          setCustomer({
-            name: userData.user.user_metadata.display_name,
-            email: userData.user.email,
-          });
-        }
-      }
+    //   if (orderData?.user_id) {
+    //     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(orderData.user_id);
+    //     if (!userError && userData?.user) {
+    //       setCustomer({
+    //         name: userData.user.user_metadata.display_name,
+    //         email: userData.user.email,
+    //       });
+    //     }
+    //   }
     };
 
     fetchOrder();
@@ -74,15 +80,15 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
   if (!order) return <p className={styles.loading}>Loading order details...</p>;
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = 14; // static demo value
-  const tax = 2; // static demo value
+  const shippingCost = 15; // static demo value
+  const tax = subtotal * 0.1; 
   const total = subtotal + shippingCost + tax;
 
   return (
     <div className={styles.orderDetails}>
       {/* Header */}
       <h2 className={styles.title}>Order #{order.order_number}</h2>
-      <p className={styles.date}>Created: {new Date(order.created_at).toLocaleString()}</p>
+      <p className={styles.date}>Created: {new Date(order.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       <span className={`${styles.statusBadge} ${styles[order.status.toLowerCase()]}`}>
         {order.status}
       </span>
@@ -128,14 +134,23 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
         <p>Subtotal: ${subtotal.toFixed(2)}</p>
         <p>Shipping: ${shippingCost.toFixed(2)}</p>
         <p>Tax: ${tax.toFixed(2)}</p>
+        <br />
         <strong>Total: ${total.toFixed(2)}</strong>
+
       </section>
+
+      <br />
+
+      <button
+        className={styles.payBtn}
+        onClick={() => router.push(`/checkout?order_id=${order.id}`)}
+        >
+        Pay Now
+        </button>
 
       {/* Action Buttons */}
       <div className={styles.actions}>
         <button>Invoice</button>
-        <button>Refund</button>
-        <button>Edit</button>
       </div>
     </div>
   );

@@ -22,6 +22,12 @@ const Orders: React.FC = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
+      const {data: {user}} = await supabase.auth.getUser();
+      if (!user){
+        console.error('No user found')
+        return;
+      }
+
       const { data, error } = await supabase
         .from("orders")
         .select(`
@@ -36,6 +42,7 @@ const Orders: React.FC = () => {
             quantity
           )
         `)
+        .eq("user_id", user.id) 
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -97,7 +104,7 @@ const Orders: React.FC = () => {
                   {order.status}
                 </span>
                 <span className={styles.orderDate}>
-                  {new Date(order.created_at).toLocaleString()}
+                  {new Date(order.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
                 <span className={styles.orderNumber}>
                   Order No: {order.order_number}

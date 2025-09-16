@@ -66,6 +66,8 @@
     border-radius: 12px;
     font-weight: bold;
     font-size: 12px;
+    color: black;
+    background-color: #e2e3e5;
   }
   
   .delivered {
@@ -129,16 +131,16 @@
   
   .detailsBtn {
     padding: 6px 12px;
-    border: 1px solid #0066cc;
+    border: 1px solid #0073e6;
     border-radius: 4px;
-    background: #0066cc;
+    background: #0073e6;
     color: #fff;
     font-size: 13px;
     cursor: pointer;
   }
   
   .detailsBtn:hover {
-    background: #0056b3;
+    background: #0073e6;
   }
   
   .emptyMessage {

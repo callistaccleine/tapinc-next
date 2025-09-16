@@ -1,11 +1,11 @@
 html,body{
     background-color: white;
     color: black;
+    font-family: 'Roboto', sans-serif;
 }
 
 .orderDetails {
     padding: 20px;
-    font-family: Arial, sans-serif;
   }
   
   .title {
@@ -25,6 +25,7 @@ html,body{
     border-radius: 12px;
     font-size: 12px;
     font-weight: bold;
+    background-color: #e2e3e5;
   }
   
   .delivered {
@@ -94,5 +95,13 @@ html,body{
     background: #f8f9fa;
     border-radius: 4px;
     cursor: pointer;
+  }
+
+  .payBtn{
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #0073e6;
+    color: white;
   }
   
