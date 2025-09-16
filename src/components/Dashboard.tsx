@@ -151,8 +151,11 @@ export default function Dashboard() {
 
                         {/* Edit */}
                         <td>
-                        <button className={styles.iconBtn}>
-                            ✏️
+                        <button
+                          className={styles.iconBtn}
+                          onClick={() => router.push("/design")}
+                        >
+                          Edit
                         </button>
                         </td>
 
