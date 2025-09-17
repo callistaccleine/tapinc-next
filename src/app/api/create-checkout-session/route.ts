@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SANBOX_SECRET_KEY as string, {
   apiVersion: "2025-08-27.basil",
 });
+
+const DOMAIN = "http://localhost:3000";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -13,7 +15,7 @@ export async function POST(req: Request) {
       ui_mode: "embedded",
       line_items: body.line_items, 
       mode: "payment",
-      return_url: `${process.env.NEXT_PUBLIC_DOMAIN}/orders/confirmation?session_id={CHECKOUT_SESSION_ID}`,
+      return_url: `${DOMAIN}/orders/confirmation?session_id={CHECKOUT_SESSION_ID}`,
     });
 
     return NextResponse.json({ clientSecret: session.client_secret });

@@ -24,7 +24,11 @@ export default function ReturnPage() {
   if (status === "complete")
     return (
       <section>
-        <p>✅ Thanks! A confirmation email was sent to {customerEmail}.</p>
+        <p>
+            Thanks! A confirmation email was sent to {customerEmail}.
+
+            If you have any questions, please email <a href="mailto:tapinc.io.au@gmail.com">tapinc.io.au@gmail.com</a>.
+        </p>
       </section>
     );
 

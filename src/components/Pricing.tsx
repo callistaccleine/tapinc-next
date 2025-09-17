@@ -20,7 +20,7 @@ type Plan = {
   cta_label?: string;
   cta_url?: string;
   product_id?: string;
-  gocardless_price_id?: string;
+  price_id?: string; 
   sort_order?: number;
   is_active?: boolean;
 };
@@ -34,8 +34,6 @@ export default function Pricing() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
-  const handleContact = () => setShowContact(true);
 
   // Load plans
   useEffect(() => {
@@ -67,7 +65,6 @@ export default function Pricing() {
   const norm = (s: string | null | undefined) =>
     String(s || "").trim().toLowerCase();
 
-  // 👇 Only show plans for the active tab (+ optional active flag)
   const visiblePlans = useMemo(() => {
     return (plans ?? [])
       .filter(
@@ -88,16 +85,32 @@ export default function Pricing() {
       const ctaText =
         p.cta_label || (p.action === "contact" ? "Contact Us" : "Get Started");
 
-      const buttonAction = () => {
-        if (p.action === "contact") return setShowContact(true);
-        if (p.action === "link" && p.cta_url)
-          return window.open(p.cta_url, "_blank", "noopener,noreferrer");
-        if (p.product_id) return router.push(`/payment?productId=${p.product_id}`);
-        if (p.gocardless_price_id) {
-          return alert("Payment handler for gocardless_price_id not wired yet");
-        }
-        alert("Plan is not configured for checkout yet.");
-      };
+        const buttonAction = async () => {
+          if (p.action === "contact") return setShowContact(true);
+          if (p.action === "link" && p.cta_url)
+            return window.open(p.cta_url, "_blank", "noopener,noreferrer");
+        
+          if (p.product_id) {
+            try {
+              const res = await fetch("/api/create-checkout-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ price: p.price_id, quantity: 1 }),
+              });
+        
+              const data = await res.json();
+              if (data.url) {
+                window.location.href = data.url; 
+              } else {
+                alert("Checkout session failed.");
+              }
+            } catch (err) {
+              console.error("Checkout error:", err);
+              alert("Unable to start checkout.");
+            }
+          }
+        };
+        
 
       return {
         id: p.id,

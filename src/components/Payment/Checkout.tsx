@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
-const stripePromise = loadStripe(process.env.STRIPE_SECRET_KEY!);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function Checkout({ orderId }: { orderId: string }) {
   const [clientSecret, setClientSecret] = useState("");
@@ -16,7 +16,7 @@ export default function Checkout({ orderId }: { orderId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         line_items: [
-          { price: "price_1S7rAdJSicpM5t4BK2udQ3Sj", quantity: 1 }, // Replace with real price IDs
+          { price: "price_1S7rAdJSicpM5t4BK2udQ3Sj", quantity: 1 },
         ],
       }),
     })

@@ -12,19 +12,11 @@ type ProductsCardProps = {
 };
 
 export default function ProductsCard({ id, image, title, price, badge }: ProductsCardProps) {
-  const router = useRouter();
-
-  const handleCheckout = () => {
-    router.push(`/payment?productId=${id}`);
-  };
 
   return (
     <article className={styles.productsCard} role="group" aria-label={`${title} card`}>
       <div className={styles.productsMedia}>
         <img src={image} alt={title} className={styles.productsImage} loading="lazy" />
-        <button type="button" className={styles.addToCartBtn} onClick={handleCheckout}>
-          + Add to Cart
-        </button>
       </div>
 
       <header className={styles.productsMeta}>
