@@ -94,7 +94,7 @@ const AddProfiles = () => {
 
       <div className={styles.quantityControls}>
         <div className={styles.quantityBox}>
-          <button onClick={() => handleQuantity(-1)}>−</button>
+          <button onClick={() => handleQuantity(-1)}>-</button>
           <span>{quantity}</span>
           <button onClick={() => handleQuantity(1)}>+</button>
         </div>

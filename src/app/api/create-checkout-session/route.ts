@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SANBOX_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-08-27.basil",
 });
 
@@ -13,8 +13,13 @@ export async function POST(req: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       ui_mode: "embedded",
-      line_items: body.line_items, 
-      mode: "payment",
+      mode: "subscription",
+      line_items: [
+        {
+          price: body.price_id, 
+          quantity: body.quantity || 1,
+        },
+      ],
       return_url: `${DOMAIN}/orders/confirmation?session_id={CHECKOUT_SESSION_ID}`,
     });
 
@@ -23,3 +28,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

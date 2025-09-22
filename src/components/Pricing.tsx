@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-// import ContactForm from "./ContactForm";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "../styles/Pricing.module.css";
-
 
 type Plan = {
   id: string | number;
@@ -47,7 +45,7 @@ export default function Pricing() {
             `
             id, category, name, desc, price, period, features,
             popular, action, cta_label, cta_url,
-            product_id, sort_order, is_active
+            product_id, price_id, sort_order, is_active
           `
           );
 
@@ -85,32 +83,51 @@ export default function Pricing() {
       const ctaText =
         p.cta_label || (p.action === "contact" ? "Contact Us" : "Get Started");
 
-        const buttonAction = async () => {
-          if (p.action === "contact") return setShowContact(true);
-          if (p.action === "link" && p.cta_url)
-            return window.open(p.cta_url, "_blank", "noopener,noreferrer");
+      const buttonAction = async () => {
+        if (p.action === "contact") {
+          return setShowContact(true);
+        }
         
-          if (p.product_id) {
-            try {
-              const res = await fetch("/api/create-checkout-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ price: p.price_id, quantity: 1 }),
-              });
-        
-              const data = await res.json();
-              if (data.url) {
-                window.location.href = data.url; 
-              } else {
-                alert("Checkout session failed.");
-              }
-            } catch (err) {
-              console.error("Checkout error:", err);
-              alert("Unable to start checkout.");
+        if (p.action === "link" && p.cta_url) {
+          return window.open(p.cta_url, "_blank", "noopener,noreferrer");
+        }
+
+        // Handle checkout action
+        if (p.action === "checkout" && p.price_id) {
+          try {
+            const res = await fetch("/api/create-checkout-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                price_id: p.price_id, 
+                quantity: 1 
+              }),
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) {
+              throw new Error(data.error || "Failed to create checkout session");
             }
+
+            if (data.clientSecret) {
+              // For embedded checkout, redirect to checkout page
+              router.push(`/checkout?client_secret=${encodeURIComponent(data.clientSecret)}`);
+            } else if (data.url) {
+              // For hosted checkout, redirect directly
+              window.location.href = data.url;
+            } else {
+              throw new Error("No checkout URL or client secret received");
+            }
+          } catch (err: any) {
+            console.error("Checkout error:", err);
+            alert(`Unable to start checkout: ${err.message}`);
           }
-        };
-        
+        } else if (!p.price_id) {
+          console.warn("No price_id found for plan:", p.name);
+          alert("This plan is not available for checkout. Please contact us.");
+        }
+      };
 
       return {
         id: p.id,
@@ -128,84 +145,85 @@ export default function Pricing() {
 
   return (
     <div className={styles.pricingContainer}>
-    <div className={styles.pricingHeader}>
+      <div className={styles.pricingHeader}>
         <h1>Choose Your Plan</h1>
         <p>Select the perfect plan for your needs</p>
 
         <div className={styles.pricingToggle}>
-        {["individual", "teams", "enterprise", "event"].map((cat) => (
+          {["individual", "teams", "enterprise", "event"].map((cat) => (
             <button
-            key={cat}
-            className={`${styles.toggleButton} ${
+              key={cat}
+              className={`${styles.toggleButton} ${
                 activeCategory === cat ? styles.toggleButtonActive : ""
-            }`}
-            onClick={() =>
+              }`}
+              onClick={() =>
                 setActiveCategory(
-                cat as "individual" | "teams" | "enterprise" | "event"
+                  cat as "individual" | "teams" | "enterprise" | "event"
                 )
-            }
-            type="button"
+              }
+              type="button"
             >
-            {cat[0].toUpperCase() + cat.slice(1)}
+              {cat[0].toUpperCase() + cat.slice(1)}
             </button>
-        ))}
+          ))}
         </div>
-    </div>
+      </div>
 
-    <div className={styles.pricingGrid}>
+      {loading && <div>Loading plans...</div>}
+      {err && <div style={{ color: 'red' }}>Error: {err}</div>}
+
+      <div className={styles.pricingGrid}>
         {renderedPlans.map((plan) => (
-        <div
+          <div
             key={plan.id}
             className={`${styles.pricingCard} ${plan.popular ? styles.popular : ""}`}
-        >
+          >
             {plan.popular && (
-            <div className={styles.popularBadge}>Most Popular</div>
+              <div className={styles.popularBadge}>Most Popular</div>
             )}
 
             <div className={styles.planHeader}>
-            <h3>{plan.name}</h3>
-            <div className={styles.price}>
+              <h3>{plan.name}</h3>
+              <div className={styles.price}>
                 <span className={styles.amount}>{plan.priceText}</span>
                 <span className={styles.period}>/{plan.period}</span>
-            </div>
+              </div>
             </div>
 
             <div className={styles.desc}>
-                <span className={styles.descText}>{plan.desc}</span>
+              <span className={styles.descText}>{plan.desc}</span>
             </div>
 
-
             <ul className={styles.featuresList}>
-            {plan.features.map((feature, i) => (
+              {plan.features.map((feature, i) => (
                 <li key={i}>
-                <span className={styles.checkmark}>✓</span>
-                {feature}
+                  <span className={styles.checkmark}>✓</span>
+                  {feature}
                 </li>
-            ))}
+              ))}
             </ul>
 
             <button
-            className={styles.pricingButton}
-            onClick={plan.buttonAction}
-            type="button"
+              className={styles.pricingButton}
+              onClick={plan.buttonAction}
+              type="button"
             >
-            {plan.ctaText}
+              {plan.ctaText}
             </button>
-        </div>
+          </div>
         ))}
-    </div>
+      </div>
 
-    <div className={styles.pricingFooter}>
+      <div className={styles.pricingFooter}>
         <div>Need more information?</div>
         <button
-        className={styles.linkButton}
-        onClick={() => setShowContact(true)}
-        type="button"
+          className={styles.linkButton}
+          onClick={() => setShowContact(true)}
+          type="button"
         >
-        Contact us
+          Contact us
         </button>
+      </div>
     </div>
-    </div>  
-        
   );
 }
