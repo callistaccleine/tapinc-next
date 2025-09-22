@@ -37,7 +37,7 @@ const AddProfiles = () => {
     if (!selected) return;
     setLoading(true);
 
-    // ✅ Get logged-in user
+    // Get logged-in user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       alert("You must be logged in to add profiles");
@@ -45,14 +45,14 @@ const AddProfiles = () => {
       return;
     }
 
-    // ✅ Find profile option selected
+    // Find profile option selected
     const option = profileOptions.find((o) => o.id === selected);
     if (!option) {
       setLoading(false);
       return;
     }
 
-    // ✅ Insert into profiles table
+    //  Insert into profiles table
     const { error } = await supabase.from("profiles").insert([
       {
         user_id: user.id,             // link to auth user
@@ -94,7 +94,7 @@ const AddProfiles = () => {
 
       <div className={styles.quantityControls}>
         <div className={styles.quantityBox}>
-          <button onClick={() => handleQuantity(-1)}>−</button>
+          <button onClick={() => handleQuantity(-1)}>-</button>
           <span>{quantity}</span>
           <button onClick={() => handleQuantity(1)}>+</button>
         </div>

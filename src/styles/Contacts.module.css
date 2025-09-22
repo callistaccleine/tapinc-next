@@ -1,0 +1,253 @@
+
+.contactsContainer {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    color: black;
+}
+
+/* Search Row Styles */
+.searchRow {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.searchInput {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex: 1;
+    font-size: 14px;
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.sortSelect {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.sortSelect:focus {
+    outline: none;
+    border-color: #0066cc;
+}
+
+.exportBtn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.exportBtn:hover {
+    background-color: #e9ecef;
+}
+
+/* Table Container */
+.tableContainer {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: white;
+}
+
+/* Table Styles */
+.contactsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.tableHeader {
+    background-color: #f8f9fa;
+}
+
+.tableHeader th {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    font-weight: 500;
+}
+
+.checkboxColumn {
+    width: 40px;
+}
+
+.nameColumn {
+    min-width: 250px;
+}
+
+.statusColumn {
+    width: 100px;
+}
+
+.memberColumn {
+    width: 120px;
+}
+
+.tagsColumn {
+    width: 200px;
+}
+
+/* Table Row Styles */
+.tableRow {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.tableRow:hover {
+    background-color: #f8f9fa;
+}
+
+.tableRow:last-child {
+    border-bottom: none;
+}
+
+/* Table Cell Styles */
+.checkboxCell,
+.nameCell,
+.statusCell,
+.memberCell,
+.tagsCell {
+    padding: 12px;
+    vertical-align: middle;
+    
+}
+
+.memberCell {
+    color: black;
+}
+
+/* Contact Info Styles */
+.contactInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: black;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: #495057;
+    flex-shrink: 0;
+}
+
+.contactDetails {
+    min-width: 0;
+    flex: 1;
+}
+
+.contactName {
+    font-weight: 500;
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.contactEmail {
+    color: black;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+/* Status Badge Styles */
+.statusBadge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.statusActive {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.statusInactive {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Tags Styles */
+.tagsContainer {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.tag {
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.tagRegular {
+    background-color: #e7f3ff;
+    color: #0c5aa6;
+    border-color: #b3d9ff;
+}
+
+.tagCount {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+/* Empty Message */
+.emptyMessage {
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .searchRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sortSelect,
+    .exportBtn {
+        width: 100%;
+    }
+    
+    .tableContainer {
+        overflow-x: auto;
+    }
+    
+    .contactsTable {
+        min-width: 600px;
+    }
+    
+    .contactName,
+    .contactEmail {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+    }
+}
