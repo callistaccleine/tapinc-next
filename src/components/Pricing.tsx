@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "../styles/Pricing.module.css";
+import ContactForm from "./ContactForm"
+
 
 type Plan = {
   id: string | number;
@@ -224,6 +226,20 @@ export default function Pricing() {
           Contact us
         </button>
       </div>
+
+      {/* Render the ContactForm when showContact is true */}
+      {showContact && (
+        <div className={styles.contactModal}>
+          <ContactForm />
+          <button
+            className={styles.closeButton}
+            onClick={() => setShowContact(false)}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 }

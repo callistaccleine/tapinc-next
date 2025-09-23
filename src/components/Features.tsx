@@ -40,24 +40,6 @@ const features = [
 export default function Features() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const scrollLeft = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollBy({
-        left: -containerRef.current.offsetWidth,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  const scrollRight = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollBy({
-        left: containerRef.current.offsetWidth,
-        behavior: "smooth",
-      });
-    }
-  };
-
   return (
     <section className={styles.featuresSection}>
       <h2 className={styles.featuresTitle}>Features</h2>
