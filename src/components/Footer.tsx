@@ -47,9 +47,8 @@ export default function Footer() {
           </div>
           <div className={styles.footerColumn}>
             <h4>Contact Us</h4>
-            <p>Support</p>
             <p>+61 9428 2408</p>
-            <p>Page</p>
+            <p>tapinc.io.au@gmail.com</p>
           </div>
         </div>
       </div>

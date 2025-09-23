@@ -1,24 +1,478 @@
-.body{
+/* Reset and base styles */
+.body {
     color: black;
-}
-
-.contactForm { display:grid; gap:12px; max-width:520px; }
-.contactModal {
-    position: fixed; 
-    top: 50%; 
-    left: 50%; 
-    transform: translate(-50%, -50%); 
-    background: white;
-    padding: 20px;
-    border-radius: 10px; 
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-    z-index: 1000; 
   }
   
-.contactForm label { display:grid; gap:6px; font-size:14px; color: black; }
-.contactForm input, .contactForm textarea {
-  padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px;
-}
-.contactForm button { padding:10px 14px; border-radius:10px; border:0; background:#111; color:#fff; }
-.success { color: #059669; }
-.error { color: #dc2626; }
+  /* Modal Styles */
+  .modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  
+  .modalContent {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 32px;
+    animation: modalSlideIn 0.3s ease-out;
+    z-index: 10000;
+  }
+  
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  
+  .closeButton {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+    z-index: 10001;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .closeButton:hover {
+    background: #e5e7eb;
+    color: #374151;
+    transform: scale(1.1);
+  }
+  
+  .closeButton:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+  
+  .modalHeader {
+    margin-bottom: 24px;
+    text-align: center;
+    color: black;
+  }
+  
+  .modalHeader h2 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.2;
+  }
+  
+  .modalHeader p {
+    margin: 0;
+    font-size: 16px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+  
+  /* Form Styles */
+  .contactForm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .contactModal {
+    /* Legacy class - keeping for backwards compatibility */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .label span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 4px;
+  }
+  
+  .input,
+  .textarea {
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    background: white;
+    font-family: inherit;
+    color: #111827;
+  }
+  
+  .input::placeholder,
+  .textarea::placeholder {
+    color: #9ca3af;
+  }
+  
+  .input:focus,
+  .textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .input:hover,
+  .textarea:hover {
+    border-color: #9ca3af;
+  }
+  
+  .textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+  }
+  
+  .button {
+    padding: 14px 20px;
+    background: #111827;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .button:hover:not(:disabled) {
+    background: #1f2937;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .button:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  .button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .button:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+  
+  /* Status Messages */
+  .success {
+    color: #059669;
+    font-size: 14px;
+    margin: 0;
+    padding: 12px 16px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .success::before {
+    content: "✓";
+    font-weight: bold;
+    color: #059669;
+  }
+  
+  .error {
+    color: #dc2626;
+    font-size: 14px;
+    margin: 0;
+    padding: 12px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .error::before {
+    content: "⚠";
+    font-weight: bold;
+    color: #dc2626;
+  }
+  
+  /* Notification Styles */
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10100;
+    animation: slideIn 0.3s ease-out;
+    max-width: 400px;
+  }
+  
+  .notificationContent {
+    background: white;
+    border: 1px solid #d1fae5;
+    border-left: 4px solid #10b981;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+  }
+  
+  .notificationIcon {
+    background: #10b981;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  
+  .notificationText {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .notificationText strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #065f46;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  
+  .notificationText p {
+    margin: 0;
+    font-size: 14px;
+    color: #047857;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+  
+  .notificationClose {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    line-height: 1;
+  }
+  
+  .notificationClose:hover {
+    color: #374151;
+    background: #f3f4f6;
+  }
+  
+  .notificationClose:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 1px;
+  }
+  
+  /* Animation Keyframes */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  
+  /* Loading Animation */
+  .button:disabled::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+  }
+  
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 640px) {
+    .modalOverlay {
+      padding: 16px;
+    }
+    
+    .modalContent {
+      padding: 24px;
+      max-height: 95vh;
+    }
+    
+    .modalHeader h2 {
+      font-size: 20px;
+    }
+    
+    .modalHeader p {
+      font-size: 14px;
+    }
+    
+    .notification {
+      left: 16px;
+      right: 16px;
+      top: 16px;
+      max-width: none;
+    }
+    
+    .notificationContent {
+      padding: 12px;
+    }
+    
+    .input,
+    .textarea,
+    .button {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .modalContent {
+      padding: 20px;
+    }
+    
+    .closeButton {
+      top: 12px;
+      right: 12px;
+    }
+    
+    .contactForm {
+      gap: 16px;
+    }
+  }
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .modalContent {
+      border: 2px solid #000;
+    }
+    
+    .input,
+    .textarea {
+      border: 2px solid #000;
+    }
+    
+    .button {
+      border: 2px solid #000;
+    }
+  }
+  
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .modalContent,
+    .notification,
+    .button,
+    .closeButton,
+    .input,
+    .textarea {
+      transition: none;
+      animation: none;
+    }
+    
+    .button:disabled::after {
+      animation: none;
+    }
+  }
+  
+  /* Focus visible support for better accessibility */
+  @supports selector(:focus-visible) {
+    .button:focus:not(:focus-visible) {
+      outline: none;
+    }
+    
+    .input:focus:not(:focus-visible),
+    .textarea:focus:not(:focus-visible) {
+      box-shadow: none;
+      border-color: #d1d5db;
+    }
+  }
+  
+  /* Print styles */
+  @media print {
+    .modalOverlay,
+    .notification {
+      display: none;
+    }
+  }
