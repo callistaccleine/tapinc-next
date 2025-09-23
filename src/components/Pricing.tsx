@@ -35,6 +35,14 @@ export default function Pricing() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  const handleOpenContact = () => {
+    setShowContact(true)
+  }
+
+  const handleCloseContact = () => {
+    setShowContact(false)
+  }
+
   // Load plans
   useEffect(() => {
     (async () => {
@@ -227,17 +235,17 @@ export default function Pricing() {
         </button>
       </div>
 
-      {/* Render the ContactForm when showContact is true */}
+      {/* Render the ContactForm */}
       {showContact && (
         <div className={styles.contactModal}>
-          <ContactForm />
           <button
-            className={styles.closeButton}
-            onClick={() => setShowContact(false)}
-            type="button"
-          >
-            Close
-          </button>
+            onClick ={() => handleOpenContact}>
+              Contact Us
+            </button>
+            <ContactForm 
+            isOpen={showContact} 
+            onClose={handleCloseContact} 
+          />
         </div>
       )}
     </div>
