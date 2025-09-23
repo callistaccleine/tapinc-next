@@ -30,91 +30,136 @@ export default function DesignDashboard() {
   const [newLink, setNewLink] = useState<Link>({ title: "", url: "" });
   const [headerStyle, setHeaderStyle] = useState("minimal");
   const [headerBanner, setHeaderBanner] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const options = [
     { value: 'She/Her', label: 'She/Her' },
     { value: 'He/Him', label: 'He/Him' },
-    { value: 'They/Them', label: 'They/Them' }
+    { value: 'They/Them', label: 'They/Them' },
+    { value: 'Not Specified', label: 'Not Specified' }
   ]
 
-  // ✅ Load profile from Supabase
+  // Load profile from Supabase
   useEffect(() => {
     const loadProfile = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError) {
-        console.error(userError);
-        return;
-      }
-      if (!user) return;
+      try {
+        setLoading(true);
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('User error:', userError);
+          return;
+        }
+        if (!user) {
+          console.log('No user found');
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+        console.log('Loading profile for user:', user.id);
 
-      if (error) {
-        if (error.code !== "PGRST116") console.error(error);
-      } else if (data) {
-        setFirstName(data.firstname || "");
-        setSurname(data.surname || "");
-        setPhone(data.phone || "");
-        setCompany(data.company || "");
-        setTitle(data.title || "");
-        setBio(data.bio || "");
-        setProfilePic(data.profile_pic || null);
-        setHeaderBanner(data.header_banner || null);
-        setHeaderStyle(data.header_style || "minimal");
-        setLinks(data.links || []);
-        setSocials(data.socials || {});
+        // Use the same table for loading and saving
+        const { data, error } = await supabase
+          .from("design_profile")  // ← Changed to match save operation
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          if (error.code === "PGRST116") {
+            // No data found - this is fine for new users
+            console.log('No existing profile found, starting fresh');
+          } else {
+            console.error('Database error:', error);
+          }
+        } else if (data) {
+          console.log('Profile data loaded:', data);
+          // Set all the state values
+          setFirstName(data.firstname || "");
+          setSurname(data.surname || "");
+          setPronouns(data.pronouns || "");
+          setPhone(data.phone || "");
+          setCompany(data.company || "");
+          setTitle(data.title || "");
+          setBio(data.bio || "");
+          setProfilePic(data.profile_pic || null);
+          setHeaderBanner(data.header_banner || null);
+          setHeaderStyle(data.header_style || "minimal");
+          setLinks(data.links || []);
+          setSocials(data.socials || {});
+        }
+      } catch (err) {
+        console.error('Error loading profile:', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadProfile();
   }, []);
 
-  // ✅ Add link
+  // Add link
   const addLink = () => {
     if (!newLink.title || !newLink.url) return;
     setLinks([...links, newLink]);
     setNewLink({ title: "", url: "" });
   };
 
-  // ✅ Save profile to Supabase
+  // Save profile to Supabase
   const saveProfile = async () => {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      return alert("Not logged in!");
+      if (userError || !user) {
+        return alert("Not logged in!");
+      }
+
+      console.log('Saving profile data:', {
+        firstname,
+        surname,
+        pronouns,
+        phone,
+        company,
+        title,
+        bio,
+        profile_pic: profilePic,
+        header_banner: headerBanner,
+        header_style: headerStyle,
+        links,
+        socials,
+      });
+
+      const { error } = await supabase.from("design_profile").upsert({
+        id: user.id,
+        firstname,
+        surname,
+        pronouns,
+        phone,
+        company,
+        title,
+        bio,
+        profile_pic: profilePic,
+        header_banner: headerBanner,
+        header_style: headerStyle,
+        links,
+        socials,
+        updated_at: new Date().toISOString()
+      });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        alert("Error saving profile: " + error.message);
+      } else {
+        alert("Profile saved!");
+      }
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      alert("Error saving profile");
     }
-
-    const { error } = await supabase.from("design_profile").upsert({
-      id: user.id,
-      firstname,
-      surname,
-      pronouns,
-      phone,
-      company,
-      title,
-      bio,
-      profile_pic: profilePic,
-      header_banner: headerBanner,
-      header_style: headerStyle,
-      links,
-      socials,
-    });
-
-    if (error) {
-      console.error("Supabase error:", error);
-      alert("Error saving profile: " + error.message);
-    } else {
-      alert("Profile saved!");
-    }    
   };
 
   const handleFileUpload = (
@@ -127,6 +172,10 @@ export default function DesignDashboard() {
       reader.readAsDataURL(e.target.files[0]);
     }
   };
+
+  if (loading) {
+    return <div className={styles.designpageContainer}>Loading profile...</div>;
+  }
 
   return (
     <div className={styles.designpageContainer}>
@@ -193,6 +242,7 @@ export default function DesignDashboard() {
               <label>Pronouns</label>
               <Select
                 options={options}
+                value={options.find(option => option.value === pronouns)}
                 onChange={(selectedOption) =>
                   setPronouns(selectedOption?.value || "")
                 }
@@ -367,6 +417,11 @@ export default function DesignDashboard() {
               <h3>
                 {firstname || "First Name"} {surname || "Surname"}
               </h3>
+
+              <div className={styles.pronounsSection}>
+                <p>{pronouns || "Gender"}</p>
+              </div>
+
               <p className={styles.jobTitle}>
                 {title || "Job Title"} @ {company || "Company"}
               </p>
@@ -375,10 +430,6 @@ export default function DesignDashboard() {
 
             <div className={styles.bioSection}>
               <p>{bio || "Bio placeholder text..."}</p>
-            </div>
-
-            <div className={styles.pronounsSection}>
-              <p>{pronouns || "Gender"}</p>
             </div>
 
             <div className={styles.linksSection}>
