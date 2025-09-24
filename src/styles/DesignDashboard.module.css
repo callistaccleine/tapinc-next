@@ -272,4 +272,162 @@
     height: 100%;
     object-fit: cover;
   }
+
+  .templateGrid {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  
+  .templateCard {
+    cursor: pointer;
+    border: 2px solid #e5e7eb; /* gray-200 */
+    border-radius: 16px;
+    padding: 12px;
+    background: #fff;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    width: 220px;
+    text-align: center;
+  }
+  
+  .templateCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  }
+  
+  .templateCard.active {
+    border-color: #3b82f6; /* blue-500 */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+  
+  .templateImage {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+  
+  .templateLabel {
+    margin-top: 10px;
+    font-weight: 600;
+    color: #374151; /* gray-700 */
+  }
+
+  /* Add these notification styles to your DesignDashboard.module.css file */
+
+/* Notification Styles */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10100;
+  animation: slideIn 0.3s ease-out;
+  max-width: 400px;
+}
+
+.notificationContent {
+  background: white;
+  border: 1px solid #d1fae5;
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.notificationIcon {
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.notificationText {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationText strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #065f46;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.notificationClose {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.notificationClose:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Error notification variant */
+.notification.error .notificationContent {
+  border-left-color: #ef4444;
+}
+
+.notification.error .notificationIcon {
+  background: #ef4444;
+}
+
+.notification.error .notificationText strong {
+  color: #991b1b;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .notification {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    max-width: none;
+  }
+  
+  .notificationContent {
+    padding: 12px;
+  }
+}
+  
   

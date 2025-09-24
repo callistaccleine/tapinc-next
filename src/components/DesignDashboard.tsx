@@ -3,8 +3,8 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import styles from "@/styles/DesignDashboard.module.css";
 import { supabase } from "@/lib/supabaseClient";
-import Select from 'react-select'
-import React from 'react'
+import Select from "react-select";
+import React from "react";
 
 interface Link {
   title: string;
@@ -16,7 +16,9 @@ interface Socials {
 }
 
 export default function DesignDashboard() {
-  const [activeTab, setActiveTab] = useState<"profile" | "links" | "socials" | "templates">("profile");
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "links" | "socials" | "templates"
+  >("profile");
   const [firstname, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
   const [pronouns, setPronouns] = useState("");
@@ -28,16 +30,24 @@ export default function DesignDashboard() {
   const [links, setLinks] = useState<Link[]>([]);
   const [socials, setSocials] = useState<Socials>({});
   const [newLink, setNewLink] = useState<Link>({ title: "", url: "" });
-  const [headerStyle, setHeaderStyle] = useState("minimal");
+  const [template, setTemplate] = useState("");
   const [headerBanner, setHeaderBanner] = useState<string | null>(null);
+  const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(true);
+  const [designProfileId, setDesignProfileId] = useState<string | null>(null);
+
+  const templateMap: Record<string, string> = {
+    "Template 1": "template1_blank.svg",
+    "Template 2": "template2_blank.svg",
+    "Template 3": "template3_blank.svg",
+  };
 
   const options = [
-    { value: 'She/Her', label: 'She/Her' },
-    { value: 'He/Him', label: 'He/Him' },
-    { value: 'They/Them', label: 'They/Them' },
-    { value: 'Not Specified', label: 'Not Specified' }
-  ]
+    { value: "She/Her", label: "She/Her" },
+    { value: "He/Him", label: "He/Him" },
+    { value: "They/Them", label: "They/Them" },
+    { value: "Not Specified", label: "Not Specified" },
+  ];
 
   // Load profile from Supabase
   useEffect(() => {
@@ -48,35 +58,28 @@ export default function DesignDashboard() {
           data: { user },
           error: userError,
         } = await supabase.auth.getUser();
-        
+
         if (userError) {
-          console.error('User error:', userError);
+          console.error("User error:", userError);
           return;
         }
         if (!user) {
-          console.log('No user found');
+          console.log("No user found");
           return;
         }
 
-        console.log('Loading profile for user:', user.id);
+        console.log("Loading profile for user:", user.id);
 
-        // Use the same table for loading and saving
         const { data, error } = await supabase
-          .from("design_profile")  // ← Changed to match save operation
+          .from("design_profile")
           .select("*")
           .eq("id", user.id)
           .single();
 
         if (error) {
-          if (error.code === "PGRST116") {
-            // No data found - this is fine for new users
-            console.log('No existing profile found, starting fresh');
-          } else {
-            console.error('Database error:', error);
-          }
+          console.error("Database error:", error);
         } else if (data) {
-          console.log('Profile data loaded:', data);
-          // Set all the state values
+          setDesignProfileId(data.id);
           setFirstName(data.firstname || "");
           setSurname(data.surname || "");
           setPronouns(data.pronouns || "");
@@ -85,13 +88,13 @@ export default function DesignDashboard() {
           setTitle(data.title || "");
           setBio(data.bio || "");
           setProfilePic(data.profile_pic || null);
-          setHeaderBanner(data.header_banner || null);
-          setHeaderStyle(data.header_style || "minimal");
+          setTemplate(data.template || "");
           setLinks(data.links || []);
           setSocials(data.socials || {});
+          setAddress(data.address || "");
         }
       } catch (err) {
-        console.error('Error loading profile:', err);
+        console.error("Error loading profile:", err);
       } finally {
         setLoading(false);
       }
@@ -106,8 +109,8 @@ export default function DesignDashboard() {
     setNewLink({ title: "", url: "" });
   };
 
-  // Save profile to Supabase
-  const saveProfile = async () => {
+  // Reusable save function
+  const saveToDatabase = async (fields: Record<string, any>) => {
     try {
       const {
         data: { user },
@@ -118,50 +121,50 @@ export default function DesignDashboard() {
         return alert("Not logged in!");
       }
 
-      console.log('Saving profile data:', {
-        firstname,
-        surname,
-        pronouns,
-        phone,
-        company,
-        title,
-        bio,
-        profile_pic: profilePic,
-        header_banner: headerBanner,
-        header_style: headerStyle,
-        links,
-        socials,
-      });
-
-      const { error } = await supabase.from("design_profile").upsert({
-        id: user.id,
-        firstname,
-        surname,
-        pronouns,
-        phone,
-        company,
-        title,
-        bio,
-        profile_pic: profilePic,
-        header_banner: headerBanner,
-        header_style: headerStyle,
-        links,
-        socials,
-        updated_at: new Date().toISOString()
-      });
+      const { data, error } = await supabase
+        .from("design_profile")
+        .upsert({
+          id: user.id,
+          ...fields,
+          updated_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
 
       if (error) {
         console.error("Supabase error:", error);
-        alert("Error saving profile: " + error.message);
-      } else {
-        alert("Profile saved!");
+        alert("Error saving: " + error.message);
+      } else if (data) {
+        setDesignProfileId(data.id);
+        alert("Saved successfully!");
       }
     } catch (err) {
-      console.error('Error saving profile:', err);
-      alert("Error saving profile");
+      console.error("Error saving:", err);
+      alert("Error saving");
     }
   };
 
+  // Specific save functions for each tab
+  const saveProfileTab = () =>
+    saveToDatabase({
+      firstname,
+      surname,
+      pronouns,
+      phone,
+      company,
+      title,
+      bio,
+      profile_pic: profilePic,
+      address,
+    });
+
+  const saveLinksTab = () => saveToDatabase({ links });
+
+  const saveSocialsTab = () => saveToDatabase({ socials });
+
+  const saveTemplateTab = () => saveToDatabase({ template });
+
+  // File upload handler
   const handleFileUpload = (
     e: ChangeEvent<HTMLInputElement>,
     setter: (val: string | null) => void
@@ -242,7 +245,7 @@ export default function DesignDashboard() {
               <label>Pronouns</label>
               <Select
                 options={options}
-                value={options.find(option => option.value === pronouns)}
+                value={options.find((option) => option.value === pronouns)}
                 onChange={(selectedOption) =>
                   setPronouns(selectedOption?.value || "")
                 }
@@ -277,9 +280,22 @@ export default function DesignDashboard() {
             </div>
 
             <div className={styles.field}>
+              <label>Address</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.field}>
               <label>Bio</label>
               <textarea value={bio} onChange={(e) => setBio(e.target.value)} />
             </div>
+
+            <button className={styles.btn} onClick={saveProfileTab}>
+              Save Profile
+            </button>
           </>
         )}
 
@@ -316,6 +332,10 @@ export default function DesignDashboard() {
                 </p>
               ))}
             </div>
+
+            <button className={styles.btn} onClick={saveLinksTab}>
+              Save Links
+            </button>
           </>
         )}
 
@@ -368,91 +388,69 @@ export default function DesignDashboard() {
                 </div>
               ))}
             </div>
+
+            <button className={styles.btn} onClick={saveSocialsTab}>
+              Save Socials
+            </button>
           </>
         )}
 
         {activeTab === "templates" && (
           <>
-            <h3>Choose Header Style</h3>
-            <div className={styles.templateOptions}>
-              {["minimal", "banner", "portrait", "shapes"].map((style) => (
-                <button
-                  key={style}
-                  className={`${styles.templateChoice} ${
-                    headerStyle === style ? styles.active : ""
+            <h3>Choose Your Virtual Card Style</h3>
+            <div className={styles.templateGrid}>
+              {Object.keys(templateMap).map((templateName) => (
+                <div
+                  key={templateName}
+                  className={`${styles.templateCard} ${
+                    template === templateMap[templateName] ? styles.active : ""
                   }`}
-                  onClick={() => setHeaderStyle(style)}
+                  onClick={() => setTemplate(templateMap[templateName])}
                 >
-                  {style}
-                </button>
+                  <img
+                    src={`/templates/${templateName}.png`}
+                    alt={templateName}
+                    className={styles.templateImage}
+                  />
+                  <p className={styles.templateLabel}>{templateName}</p>
+                </div>
               ))}
             </div>
+
+            <button className={styles.btn} onClick={saveTemplateTab}>
+              Save Template
+            </button>
           </>
         )}
-
-        <button className={styles.btn} onClick={saveProfile}>
-          Save Profile
-        </button>
       </main>
 
-      {/* Emulator */}
-      <aside className={styles.designEmulator}>
-        <div className={styles.phoneFrame}>
-          <div className={styles.phoneHeader}></div>
-          <div className={styles.phoneContent}>
-            {headerBanner && (
-              <div className={styles.headerBanner}>
-                <img src={headerBanner} alt="Header Banner" />
-              </div>
-            )}
-
-            <div className={styles.avatarSection}>
-              <div className={styles.avatarCircle}>
-                {profilePic ? (
-                  <img src={profilePic} alt="Profile" className={styles.avatarImg} />
-                ) : (
-                  <span>+</span>
-                )}
-              </div>
-              <h3>
-                {firstname || "First Name"} {surname || "Surname"}
-              </h3>
-
-              <div className={styles.pronounsSection}>
-                <p>{pronouns || "Gender"}</p>
-              </div>
-
-              <p className={styles.jobTitle}>
-                {title || "Job Title"} @ {company || "Company"}
-              </p>
-              <p className={styles.phone}>{phone || "Mobile Number"}</p>
-            </div>
-
-            <div className={styles.bioSection}>
-              <p>{bio || "Bio placeholder text..."}</p>
-            </div>
-
-            <div className={styles.linksSection}>
-              <p>Links</p>
-              {links.length === 0 && <p className={styles.placeholder}>[No links yet]</p>}
-              {links.map((l, i) => (
-                <a key={i} href={l.url} target="_blank" rel="noreferrer" className={styles.linkButton}>
-                  {l.title}
-                </a>
-              ))}
-            </div>
-
-            <div className={styles.socialIcons}>
-              <p>Social Links</p>
-              {Object.entries(socials).map(([platform, url]) => (
-                <a key={platform} href={url} target="_blank" rel="noreferrer">
-                  {platform}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </aside>
+      {/* View Profile Button */}
+      <div style={{ marginTop: "20px", textAlign: "center" }}>
+        {designProfileId ? (
+          <a
+            href={`/user/${designProfileId}`}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 20px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontWeight: 500,
+              color: "#374151",
+              backgroundColor: "#fff",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            }}
+          >
+            View Profile
+          </a>
+        ) : (
+          <p>Loading profile link...</p>
+        )}
+      </div>
     </div>
   );
 }
