@@ -5,6 +5,7 @@ import styles from "@/styles/DesignDashboard.module.css";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import React from "react";
+import Image from "next/image"
 
 interface Link {
   title: string;
@@ -14,6 +15,15 @@ interface Link {
 interface Socials {
   [platform: string]: string;
 }
+
+const SocialIcon = ({ platform }: { platform: string }) => (
+  <Image 
+    src={`/icons/${platform}.svg`} 
+    width={20} 
+    height={20} 
+    alt={`${platform} icon`}
+  />
+);
 
 export default function DesignDashboard() {
   const [activeTab, setActiveTab] = useState<
@@ -344,7 +354,7 @@ export default function DesignDashboard() {
             <h3>Social Links</h3>
             <div className={styles.socialCards}>
               {[
-                "twitter",
+                "X",
                 "instagram",
                 "linkedin",
                 "facebook",
@@ -352,6 +362,7 @@ export default function DesignDashboard() {
                 "discord",
                 "twitch",
                 "whatsapp",
+                "github",
               ].map((platform) => (
                 <div
                   key={platform}
@@ -368,7 +379,8 @@ export default function DesignDashboard() {
                     }
                   }}
                 >
-                  <span>{platform}</span>
+                  {/* Only show the icon */}
+                  <SocialIcon platform={platform.toLowerCase()} />
                 </div>
               ))}
             </div>
