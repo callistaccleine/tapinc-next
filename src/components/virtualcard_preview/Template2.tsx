@@ -3,6 +3,19 @@
 import { CardData } from "@/types/CardData";
 
 export default function Template2({ data }: { data: CardData }) {
+    const vCard = `BEGIN:VCARD
+    VERSION:3.0
+    FN:${data.name}
+    TITLE:${data.title || ""}
+    TEL;TYPE=WORK,VOICE:${data.phone || ""}
+    EMAIL;TYPE=PREF,INTERNET:${data.email || ""}
+    ADR;TYPE=WORK:;;${data.address || ""};;;; 
+    NOTE:${data.bio || ""}
+    END:VCARD`;
+    
+    const blob = new Blob([vCard], { type: "text/vcard" });
+    const vCardUrl = URL.createObjectURL(blob);
+    
   return (
     <svg
       width="360"
@@ -66,7 +79,7 @@ export default function Template2({ data }: { data: CardData }) {
             >
               <text
                 x="20"
-                y={570 + i * 20}
+                y={572 + i * 20}
                 fontSize="13"
                 fill="blue"
                 textDecoration="underline"
@@ -77,6 +90,14 @@ export default function Template2({ data }: { data: CardData }) {
           ))}
         </g>
       )}
+
+      {/* Button */}
+      <a href={vCardUrl} download={`${data.name}.vcf`} target="_blank">
+        {/* <rect x="110" y="590" width="140" height="30" rx="6" fill="#007AFF" /> */}
+        <text x="128" y="292" fontSize="15" fontFamily="sans-serif" fill="#fff">
+            Save Contact
+        </text>
+      </a>
     </svg>
   );
 }

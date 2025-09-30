@@ -1,6 +1,6 @@
 "use client";
 
-import Checkout from "@/components/Payment/Checkout";
+import Checkout from "@/components/payment/Checkout";
 
 export default function CheckoutPage() {
   return <Checkout />;
