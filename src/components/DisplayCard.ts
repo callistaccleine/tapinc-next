@@ -3,7 +3,7 @@ export interface Card {
     image: string;
   }
   
-  const cardData: Card[] = [
+  const displayCard: Card[] = [
     {
       title: "Business",
       image: "/images/cards/businessCard.png",
@@ -18,5 +18,5 @@ export interface Card {
     },
   ];
   
-  export default cardData;
+  export default displayCard;
   

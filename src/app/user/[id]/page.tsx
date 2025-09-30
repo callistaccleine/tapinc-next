@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import VirtualPreview from "@/components/VirtualPreview";
+import VirtualPreview from "@/components/virtualcard_preview/VirtualPreview";
 
 export default function UserVirtualPage() {
   const { id } = useParams();
@@ -29,18 +29,24 @@ export default function UserVirtualPage() {
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: "2rem" }}>
       <VirtualPreview
-        data={{
-          name: `${profile.firstname} ${profile.surname}`,
-          title: profile.title,
-          phone: profile.phone,
-          email: profile.email,
-          bio: profile.bio,
-          address: profile.address,
-          links: profile.links,
-          profilePic: profile.profile_pic,
-          template: profile.template, 
-        }}
-      />
+      data={{
+        name: `${profile.firstname} ${profile.surname}`,
+        title: profile.title,
+        phone: profile.phone,
+        email: profile.email,
+        bio: profile.bio,
+        address: profile.address,
+        socials: profile.socials
+          ? Object.entries(profile.socials).map(([platform, url]) => ({
+              platform,
+              url: typeof url === "string" ? url : String(url),
+            }))
+          : [],
+        links: typeof profile.links === "string" ? JSON.parse(profile.links) : profile.links,
+        profilePic: profile.profile_pic,
+        template: profile.template, 
+      }}
+    />
     </div>
   );
 }

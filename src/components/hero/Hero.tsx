@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import styles from "../styles/Hero.module.css";
+import styles from "../../styles/Hero.module.css";
 
 export default function Hero() {
   const router = useRouter();

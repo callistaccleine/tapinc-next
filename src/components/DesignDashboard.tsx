@@ -35,6 +35,7 @@ export default function DesignDashboard() {
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
   const [title, setTitle] = useState("");
+  const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
@@ -96,6 +97,7 @@ export default function DesignDashboard() {
           setPhone(data.phone || "");
           setCompany(data.company || "");
           setTitle(data.title || "");
+          setEmail(data.email || user.email || "");
           setBio(data.bio || "");
           setProfilePic(data.profile_pic || null);
           setTemplate(data.template || "");
@@ -163,6 +165,7 @@ export default function DesignDashboard() {
       phone,
       company,
       title,
+      email,
       bio,
       profile_pic: profilePic,
       address,
@@ -259,6 +262,15 @@ export default function DesignDashboard() {
                 onChange={(selectedOption) =>
                   setPronouns(selectedOption?.value || "")
                 }
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label>Email</label>
+              <input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 

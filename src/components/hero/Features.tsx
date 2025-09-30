@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import FeatureCard from "./FeatureCard";
-import styles from "../styles/Features.module.css";
+import FeatureCard from "../FeatureCard";
+import styles from "../../styles/Features.module.css";
 
 const features = [
   {

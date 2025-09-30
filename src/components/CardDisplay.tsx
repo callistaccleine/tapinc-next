@@ -1,5 +1,5 @@
 import Image from "next/image";
-import cardData, { Card } from "./CardData";
+import displayCard, { Card } from "./DisplayCard";
 import styles from "../styles/CardDisplay.module.css";
 
 export default function CardDisplay() {
@@ -7,7 +7,7 @@ export default function CardDisplay() {
     <section className={styles.cardDisplaySection}>
       <h2 className={styles.cardDisplayTitle}>Select Your Cards</h2>
       <div className={styles.cardList}>
-        {cardData.map((card: Card, index: number) => (
+        {displayCard.map((card: Card, index: number) => (
           <div className={styles.cardContainer} key={index}>
             <h3 className={styles.cardName}>{card.title}</h3>
             <Image

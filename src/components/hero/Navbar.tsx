@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import styles from "../styles/Navbar.module.css";
+import styles from "../../styles/Navbar.module.css";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(undefined); // undefined=loading, null=logged out, object=logged in
