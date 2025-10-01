@@ -53,9 +53,11 @@ export default function DesignDashboard() {
   const [loading, setLoading] = useState(true);
   const [designProfileId, setDesignProfileId] = useState<string | null>(null);
 
+  const libraries: ("places")[] = ["places"];
+
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY, // Use your API key
-    libraries: ["places"], // Load the Places library
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "", 
+    libraries,
   });
 
   const handlePlaceChanged = () => {
@@ -160,7 +162,7 @@ export default function DesignDashboard() {
           ...fields,
           updated_at: new Date().toISOString(),
         })
-        .select("id")
+        .select("*")
         .single();
 
       if (error) {
@@ -168,6 +170,8 @@ export default function DesignDashboard() {
         alert("Error saving: " + error.message);
       } else if (data) {
         setDesignProfileId(data.id);
+        setProfilePic(data.profile_pic || null);
+        setHeaderBanner(data.header_banner || null);
         alert("Saved successfully!");
       }
     } catch (err) {
@@ -198,16 +202,64 @@ export default function DesignDashboard() {
   const saveTemplateTab = () => saveToDatabase({ template });
 
   // File upload handler
-  const handleFileUpload = (
+  const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
-    setter: (val: string | null) => void
+    setter: (val: string | null) => void,
+    folder: string
   ) => {
-    if (e.target.files?.[0]) {
-      const reader = new FileReader();
-      reader.onload = (event) => setter(event.target?.result as string);
-      reader.readAsDataURL(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    try {
+      // Get current user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        alert("Not logged in!");
+        return;
+      }
+  
+      // Unique path for this user’s file
+      const filePath = `${folder}/${user.id}-${Date.now()}-${file.name}`;
+  
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("profile-pics") 
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+  
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        alert("Upload failed: " + uploadError.message);
+        return;
+      }
+  
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("profile-pics")
+        .getPublicUrl(filePath);
+  
+      const publicUrl = publicUrlData.publicUrl;
+  
+      // Save public URL to state
+      setter(publicUrl);
+  
+      // Optionally update DB immediately
+      await supabase
+        .from("design_profile")
+        .update({ [folder === "profile-pics" ? "profile_pic" : "header_banner"]: publicUrl })
+        .eq("id", user.id);
+  
+      console.log("File uploaded:", publicUrl);
+    } catch (err) {
+      console.error("Error uploading file:", err);
+      alert("Error uploading file");
     }
-  };
+  };  
 
   if (loading) {
     return <div className={styles.designpageContainer}>Loading profile...</div>;
@@ -249,7 +301,7 @@ export default function DesignDashboard() {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileUpload(e, setHeaderBanner)}
+                onChange={(e) => handleFileUpload(e, setHeaderBanner, "header-banners")}
               />
             </div>
 
@@ -258,7 +310,7 @@ export default function DesignDashboard() {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileUpload(e, setProfilePic)}
+                onChange={(e) => handleFileUpload(e, setProfilePic, "profile-pics")}
               />
             </div>
 
@@ -495,61 +547,63 @@ export default function DesignDashboard() {
         )}
       </main>
 
-      {/* View Profile Button */}
-      <div style={{ marginTop: "20px", textAlign: "center" }}>
+      {/* Profile Action Buttons */}
+      <div style={{ marginTop: "20px", textAlign: "center", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
         {designProfileId ? (
-          <a
-            href={`/user/${designProfileId}`}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              textDecoration: "none",
-              fontWeight: 500,
-              color: "#374151",
-              backgroundColor: "#fff",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            }}
-          >
-            View Profile
-          </a>
+          <>
+            <a
+              href={`/user/${designProfileId}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "10px 20px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                textDecoration: "none",
+                fontWeight: 500,
+                color: "#374151",
+                backgroundColor: "#fff",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                width: "fit-content",
+              }}
+            >
+              View Profile
+            </a>
+
+            <button
+              onClick={() => {
+                const profileUrl = `${window.location.origin}/user/${designProfileId}`;
+                navigator.clipboard.writeText(profileUrl);
+                alert("Profile URL copied to clipboard!");
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "10px 20px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontWeight: 500,
+                color: "#374151",
+                backgroundColor: "#fff",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                cursor: "pointer",
+                width: "fit-content",
+              }}
+            >
+              Share Profile
+            </button>
+          </>
         ) : (
           <p>Loading profile link...</p>
         )}
       </div>
 
-      {/* Share Profile Button */}
-      <div style={{ marginTop: "20px", textAlign: "center" }}>
-        {designProfileId && (
-          <button
-            onClick={() => {
-              const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-              navigator.clipboard.writeText(profileUrl);
-              alert("Profile URL copied to clipboard!");
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontWeight: 500,
-              color: "#374151",
-              backgroundColor: "#fff",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-              cursor: "pointer",
-            }}
-          >
-            Share Profile
-          </button>
-        )}
-      </div>
     </div>
   );
 }
