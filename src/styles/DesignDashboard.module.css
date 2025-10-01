@@ -84,7 +84,25 @@
     color: #fff;
     cursor: pointer;
     font-weight: 600;
+    margin-top: 10px;
     margin-bottom: 12px;
+  }
+
+  .backButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    color: #374151;
+    transition: background-color 0.2s ease;
+  }
+  
+  .backButton:hover {
+    background-color: #e5e7eb;
   }
   
   .blockPlaceholder {
@@ -416,6 +434,7 @@
 .notification.error .notificationText strong {
   color: #991b1b;
 }
+
 
 /* Responsive Design */
 @media (max-width: 640px) {

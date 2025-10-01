@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useRef } from "react";
 import styles from "@/styles/DesignDashboard.module.css";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import React from "react";
 import Image from "next/image"
+import { input } from "framer-motion/client";
+import { useRouter } from "next/navigation";
+import { types } from "util";
+import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 
 interface Link {
   title: string;
@@ -26,6 +30,7 @@ const SocialIcon = ({ platform }: { platform: string }) => (
 );
 
 export default function DesignDashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     "profile" | "links" | "socials" | "templates"
   >("profile");
@@ -44,8 +49,23 @@ export default function DesignDashboard() {
   const [template, setTemplate] = useState("");
   const [headerBanner, setHeaderBanner] = useState<string | null>(null);
   const [address, setAddress] = useState("");
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [loading, setLoading] = useState(true);
   const [designProfileId, setDesignProfileId] = useState<string | null>(null);
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY, // Use your API key
+    libraries: ["places"], // Load the Places library
+  });
+
+  const handlePlaceChanged = () => {
+    if (autocomplete) {
+      const place = autocomplete.getPlace();
+      if (place && place.formatted_address) {
+        setAddress(place.formatted_address);
+      }
+    }
+  };
 
   const templateMap: Record<string, string> = {
     "Template 1": "template1_blank.svg",
@@ -197,6 +217,12 @@ export default function DesignDashboard() {
     <div className={styles.designpageContainer}>
       {/* Sidebar */}
       <aside className={styles.designSidebar}>
+        {/* Back Button */}
+        <button className={styles.backButton} 
+          onClick={() => router.push("/dashboard")}>
+          ←
+        </button>
+
         <h3>Editor</h3>
         <ul className={styles.navList}>
           {["profile", "links", "socials", "templates"].map((tab) => (
@@ -302,13 +328,23 @@ export default function DesignDashboard() {
             </div>
 
             <div className={styles.field}>
-              <label>Address</label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </div>
+            <label>Address</label>
+            {isLoaded ? (
+              <Autocomplete
+                onLoad={(autocompleteInstance) => setAutocomplete(autocompleteInstance)}
+                onPlaceChanged={handlePlaceChanged}
+              >
+                <input
+                  type="text"
+                  placeholder="Search for an address..."
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </Autocomplete>
+            ) : (
+              <p>Loading Google Places...</p>
+            )}
+          </div>
 
             <div className={styles.field}>
               <label>Bio</label>
@@ -405,9 +441,21 @@ export default function DesignDashboard() {
                     type="url"
                     placeholder={`Enter your ${platform} URL`}
                     value={url}
-                    onChange={(e) =>
-                      setSocials({ ...socials, [platform]: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const inputUrl = e.target.value.trim();
+                      let normalizedUrl = inputUrl;
+
+                      // Normalize the URL if it doesn't already start with "http://" or "https://"
+                      if (
+                        inputUrl &&
+                        !inputUrl.startsWith("http://") &&
+                        !inputUrl.startsWith("https://")
+                      ) {
+                        normalizedUrl = `https://www.${inputUrl}`;
+                      }
+
+                      setSocials({ ...socials, [platform]: normalizedUrl });
+                    }}
                   />
                 </div>
               ))}
@@ -418,7 +466,6 @@ export default function DesignDashboard() {
             </button>
           </>
         )}
-
         {activeTab === "templates" && (
           <>
             <h3>Choose Your Virtual Card Style</h3>
@@ -473,6 +520,34 @@ export default function DesignDashboard() {
           </a>
         ) : (
           <p>Loading profile link...</p>
+        )}
+      </div>
+
+      {/* Share Profile Button */}
+      <div style={{ marginTop: "20px", textAlign: "center" }}>
+        {designProfileId && (
+          <button
+            onClick={() => {
+              const profileUrl = `${window.location.origin}/user/${designProfileId}`;
+              navigator.clipboard.writeText(profileUrl);
+              alert("Profile URL copied to clipboard!");
+            }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 20px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              fontWeight: 500,
+              color: "#374151",
+              backgroundColor: "#fff",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              cursor: "pointer",
+            }}
+          >
+            Share Profile
+          </button>
         )}
       </div>
     </div>

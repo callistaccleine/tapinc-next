@@ -7,6 +7,7 @@ export default function Template1({ data }: { data: CardData }) {
     VERSION:3.0
     FN:${data.name}
     TITLE:${data.title || ""}
+    COMPANY:${data.company || ""}
     TEL;TYPE=WORK,VOICE:${data.phone || ""}
     EMAIL;TYPE=PREF,INTERNET:${data.email || ""}
     ADR;TYPE=WORK:;;${data.address || ""};;;; 
@@ -45,10 +46,9 @@ export default function Template1({ data }: { data: CardData }) {
       </text>
 
       {/* Job Title */}
-      <text x="20" y="330
-      " fontSize="15" fontFamily="sans-serif" fill="#000">
-        {data.title}
-      </text>
+        <text x="20" y="330" fontSize="15" fontFamily="sans-serif" fill="#000">
+        {data.title} {data.company ? `@${data.company}` : ""}
+        </text>
 
       {/* Phone */}
       <text x="20" y="360" fontSize="15" fontFamily="sans-serif" fill="#000">

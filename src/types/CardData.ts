@@ -5,7 +5,8 @@ export type Link = {
 
 export type CardData = {
   name: string;        
-  title: string;       
+  title: string;   
+  company?: string;    
   phone: string;       
   email: string;       
   bio?: string;        

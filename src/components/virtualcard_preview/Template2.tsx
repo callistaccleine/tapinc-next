@@ -67,6 +67,34 @@ export default function Template2({ data }: { data: CardData }) {
         </text>
       )}
 
+      {/* Socials */}
+      {data.socials && data.socials.length > 0 && (
+        <g>
+            {data.socials.slice(0, 2).map((social, i) => {
+                return (
+                    <a
+                        key={i}
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >
+                        {/* Icon */}
+                        <text
+                            x ="20"
+                            y={485 + i * 30}
+                            fontSize="13"
+                            fontFamily="sans-serif"
+                            fill="blue"
+                            textDecoration="underline"
+                        >
+                            {social.url}
+                        </text>
+                    </a>
+                );
+            })}
+        </g>
+        )}
+
       {/* Links */}
       {data.links && data.links.length > 0 && (
         <g>

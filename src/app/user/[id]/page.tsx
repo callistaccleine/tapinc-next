@@ -32,6 +32,7 @@ export default function UserVirtualPage() {
       data={{
         name: `${profile.firstname} ${profile.surname}`,
         title: profile.title,
+        company: profile.company,
         phone: profile.phone,
         email: profile.email,
         bio: profile.bio,
