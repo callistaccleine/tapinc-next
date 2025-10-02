@@ -10,6 +10,7 @@ import { input } from "framer-motion/client";
 import { useRouter } from "next/navigation";
 import { types } from "util";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
+import ProfileQRCode from "@/components/ProfileQRCode";
 
 interface Link {
   title: string;
@@ -52,6 +53,7 @@ export default function DesignDashboard() {
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [loading, setLoading] = useState(true);
   const [designProfileId, setDesignProfileId] = useState<string | null>(null);
+  const [showQRCode, setShowQRCode] = useState(false); 
 
   const libraries: ("places")[] = ["places"];
 
@@ -577,8 +579,9 @@ export default function DesignDashboard() {
             <button
               onClick={() => {
                 const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-                navigator.clipboard.writeText(profileUrl);
-                alert("Profile URL copied to clipboard!");
+                // navigator.clipboard.writeText(profileUrl);
+                setShowQRCode(!showQRCode);
+                // alert("Profile URL copied to clipboard!");
               }}
               style={{
                 display: "inline-flex",
@@ -598,6 +601,7 @@ export default function DesignDashboard() {
             >
               Share Profile
             </button>
+            {showQRCode && <ProfileQRCode profileId={designProfileId} />}
           </>
         ) : (
           <p>Loading profile link...</p>
