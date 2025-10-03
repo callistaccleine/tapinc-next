@@ -52,13 +52,13 @@ const Analytics: React.FC = () => {
         <AnalyticsCard
           label="Profile views"
           value={metrics.profileViews}
-          growth="0%"   
+          growth="%"   
           color="blue"
         />
         <AnalyticsCard
           label="New connections"
           value={metrics.newConnections}
-          growth="0%"
+          growth="%"
           color="green"
         />
       </div>

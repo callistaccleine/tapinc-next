@@ -6,11 +6,12 @@ import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import React from "react";
 import Image from "next/image"
-import { input } from "framer-motion/client";
+import { input, s } from "framer-motion/client";
 import { useRouter } from "next/navigation";
 import { types } from "util";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 import ProfileQRCode from "@/components/ProfileQRCode";
+import Notification from "./Notification";
 
 interface Link {
   title: string;
@@ -54,6 +55,11 @@ export default function DesignDashboard() {
   const [loading, setLoading] = useState(true);
   const [designProfileId, setDesignProfileId] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false); 
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ message, type });
+  };
 
   const libraries: ("places")[] = ["places"];
 
@@ -169,12 +175,12 @@ export default function DesignDashboard() {
 
       if (error) {
         console.error("Supabase error:", error);
-        alert("Error saving: " + error.message);
+        showNotification("Error saving: " + error.message, "error"); 
       } else if (data) {
         setDesignProfileId(data.id);
         setProfilePic(data.profile_pic || null);
         setHeaderBanner(data.header_banner || null);
-        alert("Saved successfully!");
+        showNotification("Saved successfully!", "success");
       }
     } catch (err) {
       console.error("Error saving:", err);
@@ -183,25 +189,56 @@ export default function DesignDashboard() {
   };
 
   // Specific save functions for each tab
-  const saveProfileTab = () =>
-    saveToDatabase({
-      firstname,
-      surname,
-      pronouns,
-      phone,
-      company,
-      title,
-      email,
-      bio,
-      profile_pic: profilePic,
-      address,
-    });
-
-  const saveLinksTab = () => saveToDatabase({ links });
-
-  const saveSocialsTab = () => saveToDatabase({ socials });
-
-  const saveTemplateTab = () => saveToDatabase({ template });
+  const saveProfileTab = async () => {
+    try {
+      await saveToDatabase({
+        firstname,
+        surname,
+        pronouns,
+        phone,
+        company,
+        title,
+        email,
+        bio,
+        profile_pic: profilePic,
+        address,
+      });
+      showNotification("Profile saved successfully!", "success");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      showNotification("Failed to save profile. Please try again.", "error");
+    }
+  };
+  
+  const saveLinksTab = async () => {
+    try {
+      await saveToDatabase({ links });
+      showNotification("Links saved successfully!", "success");
+    } catch (error) {
+      console.error("Error saving links:", error);
+      showNotification("Failed to save links. Please try again.", "error");
+    }
+  };
+  
+  const saveSocialsTab = async () => {
+    try {
+      await saveToDatabase({ socials });
+      showNotification("Socials saved successfully!", "success");
+    } catch (error) {
+      console.error("Error saving socials:", error);
+      showNotification("Failed to save socials. Please try again.", "error");
+    }
+  };
+  
+  const saveTemplateTab = async () => {
+    try {
+      await saveToDatabase({ template });
+      showNotification("Template saved successfully!", "success");
+    } catch (error) {
+      console.error("Error saving template:", error);
+      showNotification("Failed to save template. Please try again.", "error");
+    }
+  };
 
   // File upload handler
   const handleFileUpload = async (
@@ -219,7 +256,7 @@ export default function DesignDashboard() {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        alert("Not logged in!");
+        showNotification("Not logged in!", "error");
         return;
       }
   
@@ -228,7 +265,7 @@ export default function DesignDashboard() {
   
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("profile-pics") 
+        .from("profile-pics")
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: true,
@@ -236,7 +273,7 @@ export default function DesignDashboard() {
   
       if (uploadError) {
         console.error("Upload error:", uploadError);
-        alert("Upload failed: " + uploadError.message);
+        showNotification(`Upload failed: ${uploadError.message}`, "error"); // Use Notification
         return;
       }
   
@@ -257,9 +294,10 @@ export default function DesignDashboard() {
         .eq("id", user.id);
   
       console.log("File uploaded:", publicUrl);
+      showNotification("File uploaded successfully!", "success"); // Success Notification
     } catch (err) {
       console.error("Error uploading file:", err);
-      alert("Error uploading file");
+      showNotification("Error uploading file. Please try again.", "error"); // Error Notification
     }
   };  
 
@@ -337,6 +375,7 @@ export default function DesignDashboard() {
             <div className={styles.field}>
               <label>Pronouns</label>
               <Select
+                className={styles.pronounsSelect}
                 options={options}
                 value={options.find((option) => option.value === pronouns)}
                 onChange={(selectedOption) =>
@@ -439,9 +478,53 @@ export default function DesignDashboard() {
             <div className={styles.blockPlaceholder}>
               {links.length === 0 && <p>[No links added]</p>}
               {links.map((l, i) => (
-                <p key={i}>
-                  {l.title} → {l.url}
-                </p>
+                <div 
+                  key={i} 
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "12px 16px",
+                    background: "#ffffff",
+                    border: "1px solid #e5e5e5",
+                    borderRadius: "8px",
+                    marginBottom: "8px"
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>
+                      {l.title}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "13px", color: "#86868b" }}>
+                      {l.url}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const updatedLinks = links.filter((_, index) => index !== i);
+                      setLinks(updatedLinks);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#fef2f2";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -607,6 +690,14 @@ export default function DesignDashboard() {
           <p>Loading profile link...</p>
         )}
       </div>
+      
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
 
     </div>
   );
