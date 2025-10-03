@@ -34,7 +34,7 @@ const SocialIcon = ({ platform }: { platform: string }) => (
 export default function DesignDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "profile" | "links" | "socials" | "templates"
+    "profile" | "links" | "socials" | "templates" | "card design"
   >("profile");
   const [firstname, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
@@ -49,6 +49,7 @@ export default function DesignDashboard() {
   const [socials, setSocials] = useState<Socials>({});
   const [newLink, setNewLink] = useState<Link>({ title: "", url: "" });
   const [template, setTemplate] = useState("");
+  const [cardDesign, setCardDesign] = useState("");
   const [headerBanner, setHeaderBanner] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -131,6 +132,7 @@ export default function DesignDashboard() {
           setBio(data.bio || "");
           setProfilePic(data.profile_pic || null);
           setTemplate(data.template || "");
+          setCardDesign(data.cardDesign || "");
           setLinks(data.links || []);
           setSocials(data.socials || {});
           setAddress(data.address || "");
@@ -240,6 +242,16 @@ export default function DesignDashboard() {
     }
   };
 
+  const saveCardDesignTab = async () => {
+    try {
+      await saveToDatabase({ cardDesign });
+      showNotification("Card Design saved successfully!", "success");
+    } catch (error) {
+      console.error("Error saving card design:", error);
+      showNotification("Failed to save card design. Please try again.", "error");
+    }
+  };
+
   // File upload handler
   const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
@@ -317,7 +329,7 @@ export default function DesignDashboard() {
 
         <h3>Editor</h3>
         <ul className={styles.navList}>
-          {["profile", "links", "socials", "templates"].map((tab) => (
+          {["profile", "links", "socials", "templates", "card design"].map((tab) => (
             <li
               key={tab}
               className={activeTab === tab ? styles.active : ""}
@@ -630,6 +642,34 @@ export default function DesignDashboard() {
             </button>
           </>
         )}
+
+        {activeTab === "card design" && (
+          <>
+            <h3>Design Your Card</h3>
+            <div className={styles.templateGrid}>
+              {Object.keys(templateMap).map((templateName) => (
+                <div
+                  key={templateName}
+                  className={`${styles.templateCard} ${
+                    template === templateMap[templateName] ? styles.active : ""
+                  }`}
+                  onClick={() => setCardDesign(templateMap[templateName])}
+                >
+                  <img
+                    src={`/templates/${templateName}.png`}
+                    alt={templateName}
+                    className={styles.templateImage}
+                  />
+                  <p className={styles.templateLabel}>{templateName}</p>
+                </div>
+              ))}
+            </div>
+
+            <button className={styles.btn} onClick={saveCardDesignTab}>
+              Save Card Design
+            </button>
+          </>
+        )}
       </main>
 
       {/* Profile Action Buttons */}
@@ -660,37 +700,73 @@ export default function DesignDashboard() {
             </a>
 
             <button
-              onClick={() => {
-                const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-                // navigator.clipboard.writeText(profileUrl);
-                setShowQRCode(!showQRCode);
-                // alert("Profile URL copied to clipboard!");
-              }}
+            onClick={() => setShowQRCode(!showQRCode)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "10px 10px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              fontWeight: 500,
+              color: "#374151",
+              backgroundColor: "#fff",
+              boxShadow: "1px 1px 2px rgba(0,0,0,0.05)",
+              cursor: "pointer",
+              width: "fit-content",
+            }}
+          >
+            Share Profile
+          </button>
+
+          {showQRCode && (
+            <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "10px 20px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                fontWeight: 500,
-                color: "#374151",
-                backgroundColor: "#fff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                cursor: "pointer",
-                width: "fit-content",
+                marginTop: "16px",
+                padding: "16px",
+                border: "1px solid #e5e5e5",
+                borderRadius: "8px",
+                background: "#fff",
+                textAlign: "center",
               }}
             >
-              Share Profile
-            </button>
-            {showQRCode && <ProfileQRCode profileId={designProfileId} />}
+              <ProfileQRCode profileId={designProfileId} />
+
+              {/* Show the profile link */}
+              <p style={{ marginTop: "12px", fontSize: "14px", wordBreak: "break-all", color: "#000" }}>
+                {`${window.location.origin}/user/${designProfileId}`}
+              </p>
+
+              {/* Copy Link button */}
+              <button
+                onClick={async () => {
+                  const profileUrl = `${window.location.origin}/user/${designProfileId}`;
+                  await navigator.clipboard.writeText(profileUrl);
+                  showNotification("Profile link copied to clipboard!", "success");
+                }}
+                style={{
+                  marginTop: "8px",
+                  padding: "8px 16px",
+                  border: "none",
+                  borderRadius: "6px",
+                  backgroundColor: "#000",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                }}
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
           </>
         ) : (
           <p>Loading profile link...</p>
         )}
       </div>
-      
+
       {notification && (
         <Notification
           message={notification.message}

@@ -94,17 +94,28 @@ export default function Pricing() {
         p.cta_label || (p.action === "contact" ? "Contact Us" : "Get Started");
 
       const buttonAction = async () => {
-        if (p.action === "contact") {
-          return setShowContact(true);
-        }
-        
-        if (p.action === "link" && p.cta_url) {
-          return window.open(p.cta_url, "_blank", "noopener,noreferrer");
-        }
+        try {
+          // check if user is logged in
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
 
-        // Handle checkout action
-        if (p.action === "checkout" && p.price_id) {
-          try {
+          if (!user) {
+            // not logged in → redirect
+            router.push("/signup"); 
+            return;
+          }
+
+          // logged in, now handle according to plan action
+          if (p.action === "contact") {
+            return setShowContact(true);
+          }
+
+          if (p.action === "link" && p.cta_url) {
+            return window.open(p.cta_url, "_blank", "noopener,noreferrer");
+          }
+
+          if (p.action === "checkout" && p.price_id) {
             const res = await fetch("/api/create-checkout-session", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -115,27 +126,23 @@ export default function Pricing() {
             });
 
             const data = await res.json();
-            
-            if (!res.ok) {
-              throw new Error(data.error || "Failed to create checkout session");
-            }
+
+            if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
 
             if (data.clientSecret) {
-              // For embedded checkout, redirect to checkout page
               router.push(`/checkout?client_secret=${encodeURIComponent(data.clientSecret)}`);
             } else if (data.url) {
-              // For hosted checkout, redirect directly
               window.location.href = data.url;
             } else {
               throw new Error("No checkout URL or client secret received");
             }
-          } catch (err: any) {
-            console.error("Checkout error:", err);
-            alert(`Unable to start checkout: ${err.message}`);
+          } else if (!p.price_id) {
+            console.warn("No price_id found for plan:", p.name);
+            alert("This plan is not available for checkout. Please contact us.");
           }
-        } else if (!p.price_id) {
-          console.warn("No price_id found for plan:", p.name);
-          alert("This plan is not available for checkout. Please contact us.");
+        } catch (err: any) {
+          console.error("Error in buttonAction:", err);
+          alert(`Error: ${err.message}`);
         }
       };
 

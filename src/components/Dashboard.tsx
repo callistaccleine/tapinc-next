@@ -94,7 +94,7 @@ export default function Dashboard() {
             ) : profiles.length === 0 ? (
             <div className={styles.noResults}>
                 <h3>No profiles found</h3>
-                <p>You don’t have any profiles yet.</p>
+                <p>You don't have any profiles yet.</p>
             </div>
             ) : (
             <div className={styles.tableWrapper}>
@@ -103,7 +103,6 @@ export default function Dashboard() {
                     <tr>
                     <th>Name & Profile ID</th>
                     <th>Contact Info</th>
-                    <th>Company</th>
                     <th>Product</th>
                     <th>Edit</th>
                     <th>View</th>
@@ -137,16 +136,12 @@ export default function Dashboard() {
 
                         {/* Contact Info */}
                         <td>
-                        <div>{p.title || "—"}</div>
                         <div className={styles.subtext}>{p.email || "No email"}</div>
                         </td>
 
-                        {/* Company */}
-                        <td>{p.company || "—"}</td>
-
                         {/* Product */}
                         <td>
-                        <span className={styles.productBadge}>TapInc Custom</span>
+                        <div>{p.title || "—"}</div>
                         </td>
 
                         {/* Edit */}
