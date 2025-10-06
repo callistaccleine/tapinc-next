@@ -31,7 +31,11 @@ const SocialIcon = ({ platform }: { platform: string }) => (
   />
 );
 
-export default function DesignDashboard() {
+interface DesignDashboardProps {
+  profile?: any; // or replace 'any' with your actual Profile type
+}
+
+export default function DesignDashboard({profile}: DesignDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     "profile" | "links" | "socials" | "templates" | "card design"
@@ -112,10 +116,12 @@ export default function DesignDashboard() {
 
         console.log("Loading profile for user:", user.id);
 
+        if (!profile) return;
+     
         const { data, error } = await supabase
           .from("design_profile")
           .select("*")
-          .eq("id", user.id)
+          .eq("profile_id", profile.id)
           .single();
 
         if (error) {
@@ -131,6 +137,7 @@ export default function DesignDashboard() {
           setEmail(data.email || user.email || "");
           setBio(data.bio || "");
           setProfilePic(data.profile_pic || null);
+          setHeaderBanner(data.header_banner || null);
           setTemplate(data.template || "");
           setCardDesign(data.cardDesign || "");
           setLinks(data.links || []);
@@ -160,35 +167,59 @@ export default function DesignDashboard() {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
-
+  
       if (userError || !user) {
         return alert("Not logged in!");
       }
-
-      const { data, error } = await supabase
+  
+      // ✅ Check if design_profile already exists for this profile
+      const { data: existing } = await supabase
         .from("design_profile")
-        .upsert({
-          id: user.id,
-          ...fields,
-          updated_at: new Date().toISOString(),
-        })
-        .select("*")
-        .single();
-
+        .select("id")
+        .eq("profile_id", profile.id)
+        .maybeSingle();
+  
+      let response;
+      if (existing) {
+        // ✅ Update existing record
+        response = await supabase
+          .from("design_profile")
+          .update({
+            ...fields,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("profile_id", profile.id)
+          .select("*")
+          .single();
+      } else {
+        // ✅ Insert new record
+        response = await supabase
+          .from("design_profile")
+          .insert({
+            profile_id: profile.id,
+            ...fields,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select("*")
+          .single();
+      }
+  
+      const { data, error } = response;
+  
       if (error) {
         console.error("Supabase error:", error);
-        showNotification("Error saving: " + error.message, "error"); 
+        showNotification("Error saving: " + error.message, "error");
       } else if (data) {
         setDesignProfileId(data.id);
         setProfilePic(data.profile_pic || null);
         setHeaderBanner(data.header_banner || null);
-        showNotification("Saved successfully!", "success");
       }
     } catch (err) {
       console.error("Error saving:", err);
       alert("Error saving");
     }
-  };
+  };  
 
   // Specific save functions for each tab
   const saveProfileTab = async () => {
@@ -203,6 +234,7 @@ export default function DesignDashboard() {
         email,
         bio,
         profile_pic: profilePic,
+        header_banner: headerBanner,
         address,
       });
       showNotification("Profile saved successfully!", "success");
@@ -256,62 +288,79 @@ export default function DesignDashboard() {
   const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
     setter: (val: string | null) => void,
-    folder: string
+    bucketName: string
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     try {
       // Get current user
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
+
       if (userError || !user) {
         showNotification("Not logged in!", "error");
         return;
       }
-  
-      // Unique path for this user’s file
-      const filePath = `${folder}/${user.id}-${Date.now()}-${file.name}`;
-  
-      // Upload file to Supabase Storage
+
+      // Define the mapping between bucket and DB column
+      const columnMap: Record<string, string> = {
+        "profile-pics": "profile_pic",
+        "header-banner": "header_banner",
+      };
+
+      const columnName = columnMap[bucketName];
+      if (!columnName) {
+        showNotification(`Unknown bucket: ${bucketName}`, "error");
+        return;
+      }
+
+      // Create a unique file path
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+
+      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("profile-pics")
+        .from(bucketName)
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: true,
         });
-  
+
       if (uploadError) {
         console.error("Upload error:", uploadError);
-        showNotification(`Upload failed: ${uploadError.message}`, "error"); // Use Notification
+        showNotification(`Upload failed: ${uploadError.message}`, "error");
         return;
       }
-  
+
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
-        .from("profile-pics")
+        .from(bucketName)
         .getPublicUrl(filePath);
-  
+
       const publicUrl = publicUrlData.publicUrl;
-  
-      // Save public URL to state
       setter(publicUrl);
-  
-      // Optionally update DB immediately
-      await supabase
+
+      // Save the URL to the correct database column
+      const { error: updateError } = await supabase
         .from("design_profile")
-        .update({ [folder === "profile-pics" ? "profile_pic" : "header_banner"]: publicUrl })
-        .eq("id", user.id);
-  
-      console.log("File uploaded:", publicUrl);
-      showNotification("File uploaded successfully!", "success"); // Success Notification
+        .update({ [columnName]: publicUrl })
+        .eq("profile_id", profile.id);
+
+      if (updateError) {
+        console.error("Database update error:", updateError);
+        showNotification(`Failed to save ${columnName}: ${updateError.message}`, "error");
+        return;
+      }
+
+      console.log(`${columnName} uploaded successfully:`, publicUrl);
+      showNotification("File uploaded and saved successfully!", "success");
     } catch (err) {
-      console.error("Error uploading file:", err);
-      showNotification("Error uploading file. Please try again.", "error"); // Error Notification
+      console.error("Unexpected upload error:", err);
+      showNotification("Error uploading file. Please try again.", "error");
     }
-  };  
+  };
 
   if (loading) {
     return <div className={styles.designpageContainer}>Loading profile...</div>;
@@ -353,7 +402,7 @@ export default function DesignDashboard() {
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileUpload(e, setHeaderBanner, "header-banners")}
+                onChange={(e) => handleFileUpload(e, setHeaderBanner, "header-banner")}
               />
             </div>
 
@@ -393,6 +442,7 @@ export default function DesignDashboard() {
                 onChange={(selectedOption) =>
                   setPronouns(selectedOption?.value || "")
                 }
+                instanceId="pronouns-select"
               />
             </div>
 
@@ -433,23 +483,23 @@ export default function DesignDashboard() {
             </div>
 
             <div className={styles.field}>
-            <label>Address</label>
-            {isLoaded ? (
-              <Autocomplete
-                onLoad={(autocompleteInstance) => setAutocomplete(autocompleteInstance)}
-                onPlaceChanged={handlePlaceChanged}
-              >
-                <input
-                  type="text"
-                  placeholder="Search for an address..."
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </Autocomplete>
-            ) : (
-              <p>Loading Google Places...</p>
-            )}
-          </div>
+              <label>Address</label>
+              {isLoaded ? (
+                <Autocomplete
+                  onLoad={(autocompleteInstance) => setAutocomplete(autocompleteInstance)}
+                  onPlaceChanged={handlePlaceChanged}
+                >
+                  <input
+                    type="text"
+                    placeholder="Search for an address..."
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                </Autocomplete>
+              ) : (
+                <p>Loading Google Places...</p>
+              )}
+            </div>
 
             <div className={styles.field}>
               <label>Bio</label>
@@ -576,7 +626,6 @@ export default function DesignDashboard() {
                     }
                   }}
                 >
-                  {/* Only show the icon */}
                   <SocialIcon platform={platform.toLowerCase()} />
                 </div>
               ))}
@@ -594,7 +643,6 @@ export default function DesignDashboard() {
                       const inputUrl = e.target.value.trim();
                       let normalizedUrl = inputUrl;
 
-                      // Normalize the URL if it doesn't already start with "http://" or "https://"
                       if (
                         inputUrl &&
                         !inputUrl.startsWith("http://") &&
@@ -615,6 +663,7 @@ export default function DesignDashboard() {
             </button>
           </>
         )}
+
         {activeTab === "templates" && (
           <>
             <h3>Choose Your Virtual Card Style</h3>
@@ -673,7 +722,16 @@ export default function DesignDashboard() {
       </main>
 
       {/* Profile Action Buttons */}
-      <div style={{ marginTop: "20px", textAlign: "center", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
+      <div
+        style={{
+          marginTop: "20px",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          alignItems: "center",
+        }}
+      >
         {designProfileId ? (
           <>
             <a
@@ -700,73 +758,113 @@ export default function DesignDashboard() {
             </a>
 
             <button
-            onClick={() => setShowQRCode(!showQRCode)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              padding: "10px 10px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontWeight: 500,
-              color: "#374151",
-              backgroundColor: "#fff",
-              boxShadow: "1px 1px 2px rgba(0,0,0,0.05)",
-              cursor: "pointer",
-              width: "fit-content",
-            }}
-          >
-            Share Profile
-          </button>
-
-          {showQRCode && (
-            <div
+              onClick={() => setShowQRCode(true)}
               style={{
-                marginTop: "16px",
-                padding: "16px",
-                border: "1px solid #e5e5e5",
-                borderRadius: "8px",
-                background: "#fff",
-                textAlign: "center",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "10px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontWeight: 500,
+                color: "#374151",
+                backgroundColor: "#fff",
+                boxShadow: "1px 1px 2px rgba(0,0,0,0.05)",
+                cursor: "pointer",
+                width: "fit-content",
               }}
             >
-              <ProfileQRCode profileId={designProfileId} />
+              Share Profile
+            </button>
 
-              {/* Show the profile link */}
-              <p style={{ marginTop: "12px", fontSize: "14px", wordBreak: "break-all", color: "#000" }}>
-                {`${window.location.origin}/user/${designProfileId}`}
-              </p>
-
-              {/* Copy Link button */}
-              <button
-                onClick={async () => {
-                  const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-                  await navigator.clipboard.writeText(profileUrl);
-                  showNotification("Profile link copied to clipboard!", "success");
-                }}
+            {showQRCode && (
+              <div
                 style={{
-                  marginTop: "8px",
-                  padding: "8px 16px",
-                  border: "none",
-                  borderRadius: "6px",
-                  backgroundColor: "#000",
-                  color: "#fff",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  background: "rgba(0, 0, 0, 0.6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 9999,
                 }}
+                onClick={() => setShowQRCode(false)}
               >
-                Copy Link
-              </button>
-            </div>
-          )}
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    background: "#fff",
+                    padding: "30px 40px",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                    textAlign: "center",
+                    maxWidth: "400px",
+                    width: "90%",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                    <ProfileQRCode profileId={designProfileId} />
+
+                    <p
+                      style={{
+                        fontSize: "13px",
+                        color: "#555",
+                        wordBreak: "break-all",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      {`${window.location.origin}/user/${designProfileId}`}
+                    </p>
+
+                    <button
+                      onClick={async () => {
+                        const profileUrl = `${window.location.origin}/user/${designProfileId}`;
+                        await navigator.clipboard.writeText(profileUrl);
+                        showNotification("Profile link copied to clipboard!", "success");
+                      }}
+                      style={{
+                        padding: "10px 18px",
+                        border: "none",
+                        borderRadius: "6px",
+                        backgroundColor: "#000",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Copy Link
+                    </button>
+
+                    <button
+                      onClick={() => setShowQRCode(false)}
+                      style={{
+                        marginTop: "10px",
+                        border: "none",
+                        background: "transparent",
+                        color: "#555",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         ) : (
-          <p>Loading profile link...</p>
+          <p style={{ color: "#777" }}>Please save your profile first to view or share it.</p>
         )}
       </div>
 
+      {/* Notification - Always at root level */}
       {notification && (
         <Notification
           message={notification.message}
@@ -774,7 +872,6 @@ export default function DesignDashboard() {
           onClose={() => setNotification(null)}
         />
       )}
-
     </div>
   );
 }
