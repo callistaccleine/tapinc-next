@@ -12,7 +12,8 @@ export type CardData = {
   bio?: string;        
   address?: string;    
   socials?: Social[];
-  links?: Link[];      
+  links?: Link[];   
+  headerBanner?: string;   
   profilePic?: string; 
   template: string;
 };

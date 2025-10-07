@@ -24,29 +24,57 @@ export default function Template2({ data }: { data: CardData }) {
       xmlns="http://www.w3.org/2000/svg"
       style={{ borderRadius: "20px", overflow: "hidden" }}
     >
+      {/* Define clip path for circular profile picture */}
+      <defs>
+        <clipPath id="circleClip">
+          <circle cx="175" cy="115" r="45" />
+        </clipPath>
+        <clipPath id="headerClip">
+          <path d="M0,0 
+                   H360
+                   V150 
+                   Q180,90 0,150
+                   Z" />
+        </clipPath>
+      </defs>
+
       {/* Background from your SVG file */}
       <image href="/templates/template2_blank.svg" width="360" height="640" />
 
-      {/* Profile Picture */}
+      {/* Header Banner - covers the dark grey area at top */}
+      {data.headerBanner && (
+        <image
+          href={data.headerBanner}
+          x="0"
+          y="0"
+          width="360"
+          height="160"
+          clipPath="url(#headerClip)"
+          preserveAspectRatio="xMidYMid slice"
+        />
+      )}
+
+      {/* Profile Picture - circular clipped, overlays on top of header */}
       {data.profilePic && (
         <image
           href={data.profilePic}
-          x="20"
-          y="60"
-          width="80"
-          height="80"
-          clipPath="circle(40px at 60px 100px)" 
+          x="130"
+          y="70"
+          width="90"
+          height="90"
+          clipPath="url(#circleClip)"
+          preserveAspectRatio="xMidYMid slice"
         />
       )}
 
       {/* Name */}
-      <text x="100" y="180" fontSize="22" fontFamily="sans-serif" fontWeight="bold" fill="#000">
+      <text x="180" y="190" fontSize="22" fontFamily="sans-serif" fontWeight="bold" textAnchor="middle" fill="#000">
         {data.name}
       </text>
 
       {/* Job Title */}
-      <text x="110" y="210
-      " fontSize="15" fontFamily="sans-serif" fill="#000">
+      <text x="180" y="220
+      " fontSize="15" fontFamily="sans-serif" textAnchor="middle" fill="#000">
         {data.title}
       </text>
 
@@ -62,7 +90,7 @@ export default function Template2({ data }: { data: CardData }) {
 
       {/* Bio */}
       {data.bio && (
-        <text x="110" y="245" fontSize="15" fontFamily="sans-serif" fill="#333">
+        <text x="180" y="250" fontSize="15" fontFamily="sans-serif"  textAnchor="middle" fill="#333">
           {data.bio}
         </text>
       )}

@@ -32,7 +32,7 @@ const SocialIcon = ({ platform }: { platform: string }) => (
 );
 
 interface DesignDashboardProps {
-  profile?: any; // or replace 'any' with your actual Profile type
+  profile?: any;
 }
 
 export default function DesignDashboard({profile}: DesignDashboardProps) {
@@ -151,7 +151,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       }
     };
     loadProfile();
-  }, []);
+  }, [profile]);
 
   // Add link
   const addLink = () => {
@@ -169,10 +169,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       } = await supabase.auth.getUser();
   
       if (userError || !user) {
-        return alert("Not logged in!");
+        showNotification("Not logged in!", "error");
+        return;
       }
   
-      // ✅ Check if design_profile already exists for this profile
+      if (!profile?.id) {
+        showNotification("Profile not found!", "error");
+        return;
+      }
+  
+      // Check if design_profile already exists for this profile
       const { data: existing } = await supabase
         .from("design_profile")
         .select("id")
@@ -181,7 +187,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   
       let response;
       if (existing) {
-        // ✅ Update existing record
+        // Update existing record
         response = await supabase
           .from("design_profile")
           .update({
@@ -192,11 +198,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           .select("*")
           .single();
       } else {
-        // ✅ Insert new record
+        // Insert new record
         response = await supabase
           .from("design_profile")
           .insert({
             profile_id: profile.id,
+            email: email || user.email || "",
             ...fields,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -210,16 +217,122 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       if (error) {
         console.error("Supabase error:", error);
         showNotification("Error saving: " + error.message, "error");
+        throw error;
       } else if (data) {
         setDesignProfileId(data.id);
-        setProfilePic(data.profile_pic || null);
-        setHeaderBanner(data.header_banner || null);
+        console.log("Saved successfully:", data);
+        return data;
       }
     } catch (err) {
       console.error("Error saving:", err);
-      alert("Error saving");
+      throw err;
     }
-  };  
+  };
+
+  // Improved file upload handler
+  const handleFileUpload = async (
+    e: ChangeEvent<HTMLInputElement>,
+    fieldName: "profile_pic" | "header_banner"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        showNotification("Not logged in!", "error");
+        return;
+      }
+
+      if (!profile?.id) {
+        showNotification("Profile not found!", "error");
+        return;
+      }
+
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        showNotification("Please upload an image file", "error");
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        showNotification("File size must be less than 5MB", "error");
+        return;
+      }
+
+      showNotification("Uploading image...", "success");
+
+      // Determine bucket
+      const bucketName = fieldName === "profile_pic" ? "profile-pics" : "header-banner";
+      
+      // Create unique file path
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        showNotification(`Upload failed: ${uploadError.message}`, "error");
+        return;
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicUrlData.publicUrl;
+      console.log("Public URL generated:", publicUrl);
+
+      // Get current record to delete old image
+      const { data: existingRecord } = await supabase
+        .from("design_profile")
+        .select("id, profile_pic, header_banner")
+        .eq("profile_id", profile.id)
+        .maybeSingle();
+
+      // Save to database
+      await saveToDatabase({ [fieldName]: publicUrl });
+
+      // Delete old image if exists
+      if (existingRecord && existingRecord[fieldName]) {
+        try {
+          const oldUrl = existingRecord[fieldName] as string;
+          const oldUrlParts = oldUrl.split(`/${bucketName}/`);
+          if (oldUrlParts[1]) {
+            const oldPath = decodeURIComponent(oldUrlParts[1]);
+            await supabase.storage.from(bucketName).remove([oldPath]);
+            console.log("Old image deleted:", oldPath);
+          }
+        } catch (err) {
+          console.log("Could not delete old image:", err);
+        }
+      }
+
+      // Update local state
+      if (fieldName === "profile_pic") {
+        setProfilePic(publicUrl);
+      } else {
+        setHeaderBanner(publicUrl);
+      }
+
+      showNotification("Image uploaded successfully!", "success");
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      showNotification(err.message || "Upload failed", "error");
+    }
+  };
 
   // Specific save functions for each tab
   const saveProfileTab = async () => {
@@ -284,84 +397,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
 
-  // File upload handler
-  const handleFileUpload = async (
-    e: ChangeEvent<HTMLInputElement>,
-    setter: (val: string | null) => void,
-    bucketName: string
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // Get current user
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        showNotification("Not logged in!", "error");
-        return;
-      }
-
-      // Define the mapping between bucket and DB column
-      const columnMap: Record<string, string> = {
-        "profile-pics": "profile_pic",
-        "header-banner": "header_banner",
-      };
-
-      const columnName = columnMap[bucketName];
-      if (!columnName) {
-        showNotification(`Unknown bucket: ${bucketName}`, "error");
-        return;
-      }
-
-      // Create a unique file path
-      const filePath = `${user.id}/${Date.now()}-${file.name}`;
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        showNotification(`Upload failed: ${uploadError.message}`, "error");
-        return;
-      }
-
-      // Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      const publicUrl = publicUrlData.publicUrl;
-      setter(publicUrl);
-
-      // Save the URL to the correct database column
-      const { error: updateError } = await supabase
-        .from("design_profile")
-        .update({ [columnName]: publicUrl })
-        .eq("profile_id", profile.id);
-
-      if (updateError) {
-        console.error("Database update error:", updateError);
-        showNotification(`Failed to save ${columnName}: ${updateError.message}`, "error");
-        return;
-      }
-
-      console.log(`${columnName} uploaded successfully:`, publicUrl);
-      showNotification("File uploaded and saved successfully!", "success");
-    } catch (err) {
-      console.error("Unexpected upload error:", err);
-      showNotification("Error uploading file. Please try again.", "error");
-    }
-  };
-
   if (loading) {
     return <div className={styles.designpageContainer}>Loading profile...</div>;
   }
@@ -399,19 +434,49 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
             <div className={styles.field}>
               <label>Header Banner</label>
+              {headerBanner && (
+                <div style={{ marginBottom: '10px' }}>
+                  <img 
+                    src={headerBanner} 
+                    alt="Header preview" 
+                    style={{
+                      maxWidth: '100%', 
+                      maxHeight: '150px',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e5e5'
+                    }} 
+                  />
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileUpload(e, setHeaderBanner, "header-banner")}
+                onChange={(e) => handleFileUpload(e, "header_banner")}
               />
             </div>
 
             <div className={styles.field}>
               <label>Profile Picture</label>
+              {profilePic && (
+                <div style={{ marginBottom: '10px' }}>
+                  <img 
+                    src={profilePic} 
+                    alt="Profile preview" 
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      objectFit: 'cover',
+                      borderRadius: '50%',
+                      border: '2px solid #e5e5e5'
+                    }} 
+                  />
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileUpload(e, setProfilePic, "profile-pics")}
+                onChange={(e) => handleFileUpload(e, "profile_pic")}
               />
             </div>
 
@@ -700,7 +765,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 <div
                   key={templateName}
                   className={`${styles.templateCard} ${
-                    template === templateMap[templateName] ? styles.active : ""
+                    cardDesign === templateMap[templateName] ? styles.active : ""
                   }`}
                   onClick={() => setCardDesign(templateMap[templateName])}
                 >
@@ -864,7 +929,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         )}
       </div>
 
-      {/* Notification - Always at root level */}
+      {/* Notification */}
       {notification && (
         <Notification
           message={notification.message}

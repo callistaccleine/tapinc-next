@@ -24,18 +24,36 @@ export default function Template3({ data }: { data: CardData }) {
       xmlns="http://www.w3.org/2000/svg"
       style={{ borderRadius: "20px", overflow: "hidden" }}
     >
+      {/* Define clip path for header banner */}
+      <defs>
+        <clipPath id="headerClip">
+        <path
+          d="
+            M 0 20
+            Q 0 0, 20 0
+            L 340 0
+            Q 360 0, 360 20
+            L 360 240
+            L 0 180
+            Z
+          "
+        />
+        </clipPath>
+      </defs>
+
       {/* Background from your SVG file */}
       <image href="/templates/template3_blank.svg" width="360" height="640" />
 
-      {/* Profile Picture */}
-      {data.profilePic && (
+      {/* Header Banner */}
+      {data.headerBanner && (
         <image
-          href={data.profilePic}
-          x="20"
-          y="60"
-          width="80"
-          height="80"
-          clipPath="circle(40px at 60px 100px)" 
+          href={data.headerBanner}
+          x="0"
+          y="0"
+          width="360"
+          height="240"
+          clipPath="url(#headerClip)"
+          preserveAspectRatio="xMidYMid slice"
         />
       )}
 
@@ -45,7 +63,7 @@ export default function Template3({ data }: { data: CardData }) {
       </text>
 
       {/* Job Title */}
-      <text x="20" y="270
+      <text x="20" y="275
       " fontSize="17" fontFamily="sans-serif" fill="#000">
         {data.title}
       </text>

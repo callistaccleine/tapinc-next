@@ -44,6 +44,7 @@ export default function UserVirtualPage() {
             }))
           : [],
         links: typeof profile.links === "string" ? JSON.parse(profile.links) : profile.links,
+        headerBanner: profile.header_banner,
         profilePic: profile.profile_pic,
         template: profile.template, 
       }}
