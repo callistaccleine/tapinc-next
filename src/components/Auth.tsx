@@ -17,22 +17,32 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
-
-    const { error } = await supabase.auth.signInWithPassword({
+  
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
+  
     if (error) {
       setMessage(error.message || "Login failed.");
       setIsLoading(false);
       return;
     }
-
+  
+    // ✅ Normalize the email
+    const userEmail = (data?.user?.email || "").trim().toLowerCase();
+  
     setMessage("Login successful!");
-    router.replace("/dashboard"); // redirect after login
+  
+    // ✅ Redirect based on email
+    if (userEmail === "tapinc.io.au@gmail.com") {
+      router.replace("/admin");
+    } else {
+      router.replace("/dashboard");
+    }
+  
     setIsLoading(false);
-  };
+  };  
 
   return (
     <div className={styles.authSplit}>

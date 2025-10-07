@@ -206,7 +206,7 @@ export default function ContactForm({ isOpen = true, onClose }: ContactFormProps
               onClick={() => setShowNotification(false)}
               type="button"
             >
-              ×
+              x
             </button>
           </div>
         </div>

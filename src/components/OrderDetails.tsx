@@ -50,6 +50,22 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
 
       setOrder(orderData);
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("Not logged in");
+      
+      const { data, error } = await supabase.from("orders").insert([
+        {
+          user_id: user.id,
+          customer_name: user.user_metadata?.display_name || "Guest",
+          customer_email: user.email,
+          status: "pending",
+          // …other order fields
+        }
+      ]);
+
       // Fetch order items
       const { data: itemData, error: itemError } = await supabase
         .from("order_items")
@@ -61,19 +77,7 @@ const OrderDetails: React.FC<{ orderId: string }> = ({ orderId }) => {
       setCustomer({
         name: orderData.customer_name,
         email: orderData.customer_email,});
-
-      // Fetch customer info from auth.users
-    //   if (orderData?.user_id) {
-    //     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(orderData.user_id);
-    //     if (!userError && userData?.user) {
-    //       setCustomer({
-    //         name: userData.user.user_metadata.display_name,
-    //         email: userData.user.email,
-    //       });
-    //     }
-    //   }
     };
-
     fetchOrder();
   }, [id]);
 

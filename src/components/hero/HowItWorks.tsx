@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import styles from "../styles/HowItWork.module.css";
+import styles from "../../styles/HowItWork.module.css";
 
 export default function HowItWorks() {
   const [activeTab, setActiveTab] = useState("Design");

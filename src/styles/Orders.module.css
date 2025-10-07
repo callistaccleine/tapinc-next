@@ -1,151 +1,274 @@
 .ordersContainer {
-    padding: 20px;
-    font-family: Arial, sans-serif;
+  padding: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  background: #f5f5f7;
+  min-height: 100vh;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin: 0 0 32px 0;
+  color: #000000;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.filterBtn {
+  padding: 10px 20px;
+  border: 1px solid #d2d2d7;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #000000;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.filterBtn:hover {
+  border-color: #000000;
+  background: #f5f5f7;
+}
+
+.active {
+  border-color: #000000;
+  background: #000000;
+  color: #ffffff;
+}
+
+/* Order Card */
+.orderCard {
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  padding: 20px;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.orderCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.orderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.orderNumber {
+  color: #000000;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.2px;
+}
+
+.orderDate {
+  color: #86868b;
+  font-size: 13px;
+}
+
+.statusBadge {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.1px;
+  color: black;
+}
+
+.delivered {
+  background: #000000;
+  color: #ffffff;
+}
+
+.shipped {
+  background: #f5f5f7;
+  color: #000000;
+  border: 1px solid #e5e5e5;
+}
+
+.cancelled {
+  background: #f5f5f7;
+  color: #86868b;
+}
+
+.returned {
+  background: #f5f5f7;
+  color: #86868b;
+}
+
+.orderBody {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  color: #000000;
+  margin-top: 10px;
+}
+
+.productImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid #e5e5e5;
+  flex-shrink: 0;
+}
+
+.orderInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.subtotal {
+  color: grey;
+  font-size: 0.9rem;
+}
+
+.orderSummary {
+  margin-top: 12px;
+  text-align: right;
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
+  font-weight: bold;
+  color: #fff;
+  font-size: 1rem;
+  color: black;
+}
+
+.productName {
+  font-weight: 500;
+  font-size: 15px;
+  color: #000000;
+  letter-spacing: -0.2px;
+  margin-bottom: 4px;
+}
+
+.productPrice {
+  font-size: 13px;
+  color: #86868b;
+  margin-bottom: 8px;
+}
+
+.orderTotal {
+  font-weight: 500;
+  font-size: 15px;
+  color: #000000;
+  margin-top: 4px;
+}
+
+.orderFooter {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #f5f5f7;
+}
+
+/* === Payment Summary Section === */
+.paymentSummary {
+  margin-top: 12px;
+  text-align: right;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  color: #ddd;
+}
+.paymentSummary p {
+  margin: 4px 0;
+  color: grey;
+}
+
+.paymentSummary strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1rem;
+  color: grey;
+}
+
+.detailsBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #000000;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+}
+
+.detailsBtn:hover {
+  background: #1d1d1f;
+  transform: translateY(-1px);
+}
+
+.detailsBtn:active {
+  transform: translateY(0);
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #86868b;
+  font-size: 15px;
+  padding: 64px 32px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e5e5;
+}
+
+.emptyMessage h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.4px;
+}
+
+.emptyMessage p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ordersContainer {
+    padding: 24px 16px;
   }
-  
-  .pageTitle {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: black;
-  }
-  
-  /* Filters */
+
   .filters {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    color: black;
-  }
-  
-  .filterBtn {
-    padding: 6px 12px;
-    border: 1px solid #ddd;
-    background: #f8f9fa;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-  
-  .filterBtn:hover {
-    background: #e9ecef;
-  }
-  
-  .active {
-    border-color: #0066cc;
-    background: #e6f0ff;
-  }
-  
-  /* Order Card */
-  .orderCard {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    padding: 12px;
-    background: #fff;
-  }
-  
-  .orderHeader {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    font-size: 12px;
-
+    flex-wrap: wrap;
   }
 
-  .orderNumber{
-    color: black;
-  }
-
-  .orderDate{
-    color: black;
-  }
-  
-  .statusBadge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 12px;
-    color: black;
-    background-color: #e2e3e5;
-  }
-  
-  .delivered {
-    background: #d4edda;
-    color: #155724;
-  }
-  
-  .shipped {
-    background: #fff3cd;
-    color: #856404;
-  }
-  
-  .cancelled {
-    background: #f8d7da;
-    color: #721c24;
-  }
-  
-  .returned {
-    background: #e2e3e5;
-    color: #383d41;
-  }
-  
   .orderBody {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    color: black;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  
+
   .productImage {
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-    object-fit: cover;
-    border: 1px solid #ddd;
+    width: 100%;
+    height: 200px;
   }
-  
-  .orderInfo {
-    flex: 1;
-  }
-  
-  .productName {
-    font-weight: 500;
-  }
-  
-  .productPrice {
-    font-size: 13px;
-    color: #666;
-  }
-  
-  .orderTotal {
-    font-weight: bold;
-    margin-top: 4px;
-  }
-  
+
   .orderFooter {
-    margin-top: 10px;
-    display: flex;
-    justify-content: flex-end;
+    justify-content: stretch;
   }
-  
+
   .detailsBtn {
-    padding: 6px 12px;
-    border: 1px solid #0073e6;
-    border-radius: 4px;
-    background: #0073e6;
-    color: #fff;
-    font-size: 13px;
-    cursor: pointer;
+    width: 100%;
   }
-  
-  .detailsBtn:hover {
-    background: #0073e6;
-  }
-  
-  .emptyMessage {
-    text-align: center;
-    color: #666;
-    font-style: italic;
-  }
-  
+}

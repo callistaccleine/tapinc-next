@@ -20,11 +20,13 @@ interface Profile {
   title: string | null;
   bio: string | null;
   profile_pic: string | null;
+  created_at: string;
 }
 
 export default function Dashboard() {
   const router = useRouter();
   const [sortBy, setSortBy] = useState("newest");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("profiles");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,31 @@ export default function Dashboard() {
     loadProfiles();
   }, []);
 
+  // ✅ Apply search and sort
+  const filteredProfiles = profiles
+  .filter((p) => {
+    const fullName = `${p.firstname ?? ""} ${p.surname ?? ""}`.toLowerCase();
+    const email = (p.email ?? "").toLowerCase();
+    return (
+      fullName.includes(searchQuery.toLowerCase()) ||
+      email.includes(searchQuery.toLowerCase())
+    );
+  })
+  .sort((a, b) => {
+    switch (sortBy) {
+      case "newest":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "oldest":
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "name-az":
+        return (a.firstname ?? "").localeCompare(b.firstname ?? "");
+      case "name-za":
+        return (b.firstname ?? "").localeCompare(a.firstname ?? "");
+      default: // newest
+        return b.id.localeCompare(a.id); // or use created_at desc
+    }
+  });
+
   return (
     <div className={styles.dashboard}>
       {/* ✅ Sidebar */}
@@ -77,7 +104,12 @@ export default function Dashboard() {
             </div>
 
             <div className={styles.searchRow}>
-            <input type="text" placeholder="Search" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -94,7 +126,7 @@ export default function Dashboard() {
             ) : profiles.length === 0 ? (
             <div className={styles.noResults}>
                 <h3>No profiles found</h3>
-                <p>You don’t have any profiles yet.</p>
+                <p>You don't have any profiles yet.</p>
             </div>
             ) : (
             <div className={styles.tableWrapper}>
@@ -102,15 +134,14 @@ export default function Dashboard() {
                 <thead>
                     <tr>
                     <th>Name & Profile ID</th>
-                    <th>Contact Info</th>
-                    <th>Company</th>
+                    {/* <th>Contact Info</th> */}
                     <th>Product</th>
                     <th>Edit</th>
                     <th>View</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {profiles.map((p) => (
+                    {filteredProfiles.map((p) => (
                     <tr key={p.id}>
                         {/* Name + avatar */}
                         <td>
@@ -136,24 +167,20 @@ export default function Dashboard() {
                         </td>
 
                         {/* Contact Info */}
-                        <td>
-                        <div>{p.title || "—"}</div>
+                        {/* <td>
                         <div className={styles.subtext}>{p.email || "No email"}</div>
-                        </td>
-
-                        {/* Company */}
-                        <td>{p.company || "—"}</td>
+                        </td> */}
 
                         {/* Product */}
                         <td>
-                        <span className={styles.productBadge}>TapInc Custom</span>
+                        <div>{p.title || "—"}</div>
                         </td>
 
                         {/* Edit */}
                         <td>
                         <button
                           className={styles.iconBtn}
-                          onClick={() => router.push("/design")}
+                          onClick={() => router.push(`/design/${p.id}`)}
                         >
                           Edit
                         </button>

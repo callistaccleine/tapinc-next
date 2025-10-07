@@ -1,18 +1,22 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/Orders.module.css";
 import { useRouter } from "next/navigation"; 
 
-interface Order {
-  id: string;
-  order_number: string;
+interface OrderItem {
   product_name: string;
   product_image: string;
   price: number;
   quantity: number;
+}
+
+interface Order {
+  id: string;
+  order_number: string;
   status: string;
   created_at: string;
+  items: OrderItem[];
 }
 
 const Orders: React.FC = () => {
@@ -22,9 +26,9 @@ const Orders: React.FC = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const {data: {user}} = await supabase.auth.getUser();
-      if (!user){
-        console.error('No user found')
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("No user found");
         return;
       }
 
@@ -42,27 +46,31 @@ const Orders: React.FC = () => {
             quantity
           )
         `)
-        .eq("user_id", user.id) 
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching orders:", error.message);
-      } else {
-        setOrders(
-          (data || []).flatMap((order) =>
-            order.order_items.map((item) => ({
-              id: order.id,
-              order_number: order.order_number,
-              status: order.status,
-              created_at: order.created_at,
-              product_name: item.product_name,
-              product_image: item.product_image,
-              price: item.price,
-              quantity: item.quantity,
-            }))
-          )
-        );
+        return;
       }
+
+      // Group by order_number
+      const groupedOrders: Record<string, Order> = {};
+      (data || []).forEach((order: any) => {
+        const orderNum = order.order_number;
+        if (!groupedOrders[orderNum]) {
+          groupedOrders[orderNum] = {
+            id: order.id,
+            order_number: order.order_number,
+            status: order.status,
+            created_at: order.created_at,
+            items: [],
+          };
+        }
+        groupedOrders[orderNum].items.push(...order.order_items);
+      });
+
+      setOrders(Object.values(groupedOrders));
     };
 
     fetchOrders();
@@ -80,9 +88,7 @@ const Orders: React.FC = () => {
         {["All", "Shipped", "Delivered", "Cancelled", "Returned"].map((f) => (
           <button
             key={f}
-            className={`${styles.filterBtn} ${
-              filter === f ? styles.active : ""
-            }`}
+            className={`${styles.filterBtn} ${filter === f ? styles.active : ""}`}
             onClick={() => setFilter(f)}
           >
             {f}
@@ -96,7 +102,7 @@ const Orders: React.FC = () => {
           <p className={styles.emptyMessage}>No orders found.</p>
         ) : (
           filteredOrders.map((order) => (
-            <div key={order.id} className={styles.orderCard}>
+            <div key={order.order_number} className={styles.orderCard}>
               <div className={styles.orderHeader}>
                 <span
                   className={`${styles.statusBadge} ${styles[order.status.toLowerCase()]}`}
@@ -104,37 +110,72 @@ const Orders: React.FC = () => {
                   {order.status}
                 </span>
                 <span className={styles.orderDate}>
-                  {new Date(order.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {new Date(order.created_at).toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
                 </span>
                 <span className={styles.orderNumber}>
                   Order No: {order.order_number}
                 </span>
               </div>
 
-              <div className={styles.orderBody}>
-                <img
-                  src={order.product_image}
-                  alt={order.product_name}
-                  className={styles.productImage}
-                />
-                <div className={styles.orderInfo}>
-                  <div className={styles.productName}>{order.product_name}</div>
-                  <div className={styles.productPrice}>
-                    ${order.price} x {order.quantity}
-                  </div>
-                  <div className={styles.orderTotal}>
-                    Total: ${(order.price * order.quantity).toFixed(2)}
+              {/* All products for this order */}
+            `  {order.items?.map((item, i) => (
+                <div key={i} className={styles.orderBody}>
+                  <img
+                    src={item.product_image}
+                    alt={item.product_name}
+                    className={styles.productImage}
+                  />
+                  <div className={styles.orderInfo}>
+                    <div className={styles.productName}>{item.product_name}</div>
+                    <div className={styles.productPrice}>
+                      ${item.price} × {item.quantity}
+                    </div>
+                    <div className={styles.subtotal}>
+                      Subtotal: ${(item.price * item.quantity).toFixed(2)}
+                    </div>
                   </div>
                 </div>
+              ))}
+
+              {/* ✅ Final order total below all products */}
+              <div className={styles.orderSummary}>
+                {/* Compute subtotal */}
+                {(() => {
+                  const subtotal = order.items?.reduce(
+                    (sum, item) => sum + item.price * item.quantity,
+                    0
+                  ) ?? 0;
+
+                  // Example values — you can replace with order.shipping_fee, order.tax if stored in DB
+                  const shippingCost = 15.0; // Flat rate or fetched from order table
+                  const tax = subtotal * 0.1; // Example: 10% tax
+
+                  const total = subtotal + shippingCost + tax;
+
+                  return (
+                    <>
+                      <div className={styles.paymentSummary}>
+                        <p>Subtotal: ${subtotal.toFixed(2)}</p>
+                        <p>Shipping Fee: ${shippingCost.toFixed(2)}</p>
+                        <p>Tax: ${tax.toFixed(2)}</p>
+                        <strong>Total: ${total.toFixed(2)}</strong>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className={styles.orderFooter}>
-              <button
-                className={styles.detailsBtn}
-                onClick={() => router.push(`/orders/${order.id}`)}
-              >
-                Order Details
-              </button>  
+                <button
+                  className={styles.detailsBtn}
+                  onClick={() => router.push(`/orders/${order.id}`)}
+                >
+                  Order Details
+                </button>
               </div>
             </div>
           ))

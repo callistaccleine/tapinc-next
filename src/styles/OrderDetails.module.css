@@ -1,123 +1,152 @@
-html,body{
-    background-color: white;
-    color: black;
-    font-family: 'Roboto', sans-serif;
+html, body {
+  background-color: #ffffff;
+  color: #1d1d1f; /* Apple’s system gray-black */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 .orderDetails {
-    padding: 20px;
-  }
-  
-  .title {
-    font-size: 20px;
-    font-weight: bold;
-  }
-  
-  .date {
-    font-size: 12px;
-    color: #666;
-  }
-  
-  .statusBadge {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-    background-color: #e2e3e5;
-  }
-  
-  .delivered {
-    background: #d4edda;
-    color: #155724;
-  }
-  
-  .shipped {
-    background: #fff3cd;
-    color: #856404;
-  }
-  
-  .cancelled {
-    background: #f8d7da;
-    color: #721c24;
-  }
-  
-  .inprogress {
-    background: #e2e3e5;
-    color: #383d41;
-  }
-  
-  .section {
-    margin-top: 20px;
-  }
-  
-  .item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 8px;
-  }
-  
-  .itemImage {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    margin-right: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .itemName {
-    font-weight: 500;
-  }
-  
-  .itemMeta {
-    font-size: 12px;
-    color: #666;
-  }
-  
-  .itemTotal {
-    font-weight: bold;
-  }
-  
-  .actions {
-    margin-top: 20px;
-    display: flex;
-    gap: 10px;
-  }
-  
-  .actions button {
-    padding: 6px 12px;
-    border: 1px solid #ddd;
-    background: #f8f9fa;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
 
-  .payBtn{
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #0073e6;
-    color: white;
-  }
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
 
-  .backBtn {
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    color: #333;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-right: 10px;
-    transition: background 0.2s;
-  }
-  
-  .backBtn:hover {
-    background-color: #e6e6e6;
-  }
-  
-  
+.date {
+  font-size: 13px;
+  color: #86868b;
+  font-weight: 400;
+}
+
+.statusBadge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #f5f5f7;
+  color: #1d1d1f;
+}
+
+.delivered {
+  background: #e6f4ea;
+  color: #1e4620;
+}
+
+.shipped {
+  background: #fff8e1;
+  color: #8d6e00;
+}
+
+.cancelled {
+  background: #fdecea;
+  color: #b71c1c;
+}
+
+.inprogress {
+  background: #f5f5f7;
+  color: #444;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e5ea;
+}
+
+.itemImage {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  margin-right: 16px;
+  border: 1px solid #e5e5ea;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.itemName {
+  font-weight: 500;
+  font-size: 15px;
+  color: #1d1d1f;
+}
+
+.itemMeta {
+  font-size: 13px;
+  color: #86868b;
+}
+
+.itemTotal {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1d1d1f;
+}
+
+.actions {
+  margin-top: 28px;
+  display: flex;
+  gap: 12px;
+}
+
+.actions button {
+  padding: 8px 16px;
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actions button:hover {
+  background: #e5e5ea;
+}
+
+.payBtn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #0071e3; /* Apple blue */
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.payBtn:hover {
+  background: #0077ed;
+  transform: translateY(-1px);
+}
+
+.backBtn {
+  background-color: #f5f5f7;
+  border: 1px solid #d2d2d7;
+  color: #1d1d1f;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background-color: #e5e5ea;
+}

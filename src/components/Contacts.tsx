@@ -108,7 +108,7 @@ const Contacts: React.FC = () => {
               sortedContacts.map((contact) => (
                 <tr key={contact.name} className={styles.tableRow}>
                   <td className={styles.checkboxCell}>
-                    <input type={styles.checkbox} />
+                    <input type={styles.checkboxInput} />
                   </td>
                   <td className={styles.nameCell}>
                     <div className={styles.contactInfo}>
