@@ -5,7 +5,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-08-27.basil",
 });
 
-const DOMAIN = "http://localhost:3000";
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN ?? "http://localhost:3000";
 
 export async function POST(req: Request) {
   const body = await req.json();
