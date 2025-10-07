@@ -1,4 +1,4 @@
-import * as cors from "cors";
+import cors from "cors";
 import * as express from "express";
 import { createBaseServer } from "../utils/backend/base_backend/create";
 import { createDamRouter } from "./routers/dam";

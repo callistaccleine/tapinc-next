@@ -1,7 +1,12 @@
 "use client";
 
-import Checkout from "../../components/payment/Checkout";
+import Checkout from "@/components/Payment/Checkout";
+import { Suspense } from "react";
 
 export default function CheckoutPage() {
-  return <Checkout />;
+  return (
+    <Suspense fallback={<div>Loading Checkout...</div>}>
+  <Checkout />;
+    </Suspense>
+  );
 }
