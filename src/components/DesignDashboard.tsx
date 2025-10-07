@@ -6,9 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import React from "react";
 import Image from "next/image"
-import { input, s } from "framer-motion/client";
 import { useRouter } from "next/navigation";
-import { types } from "util";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 import ProfileQRCode from "@/components/ProfileQRCode";
 import Notification from "./Notification";
