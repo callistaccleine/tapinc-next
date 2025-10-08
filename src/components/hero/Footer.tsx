@@ -7,7 +7,7 @@ export default function Footer() {
       <div className={styles.footerContainer}>
         {/* Brand */}
         <div className={styles.footerBrand}>
-          <h2>TapINC</h2>
+          <h2>TapINK</h2>
           <div className={styles.footerSocials}>
             <a
               href="https://www.linkedin.com/company/tapinc"

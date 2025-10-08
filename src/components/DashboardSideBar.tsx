@@ -21,7 +21,7 @@ export default function DashboardSideBar({ activeTab, setActiveTab }: DashboardN
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
         <div className={styles.brandLogo}></div>
-        <span className={styles.brandName}>TapINC</span>
+        <span className={styles.brandName}>Tapink</span>
       </div>
 
       <ul className={styles.navList}>

@@ -60,7 +60,7 @@ export default function Navbar() {
         style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
       >
         <Image src="/images/Tapinc-logo.png" alt="TapINC Logo" className={styles.logoImg} width={64} height={64} />
-        <span className={styles.logoText}>TapINC</span>
+        <span className={styles.logoText}>TapINK</span>
       </div>
 
       {/* ✅ Nav Links */}
