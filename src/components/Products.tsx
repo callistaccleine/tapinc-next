@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import ProductsCard from "./ProductsCard";
 import styles from "@/styles/Products.module.css";
 
 type ProductRow = {
@@ -19,42 +18,61 @@ type SortOption = {
   label: string;
 };
 
+function ProductsCard({ id, image, title, price, badge }: ProductRow) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      className={`${styles.card}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className={styles.imageContainer}>
+        <img src={image || ""} alt={title} className={styles.image} />
+        {badge && <div className={styles.badge}>{badge}</div>}
+      </div>
+
+      <div className={styles.cardBody}>
+        <h3 className={styles.title}>{title}</h3>
+        <p className={styles.price}>
+          {typeof price === "number" ? `$${price}` : price}
+        </p>
+
+        <button
+          className={`${styles.addBtn} ${isHovered ? styles.addBtnVisible : styles.addBtnHidden}`}
+        >
+          Add to Bag
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Products() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("best");
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
 
   const sortOptions: SortOption[] = [
-    { value: "best", label: "Best selling" },
+    { value: "best", label: "Best Selling" },
     { value: "newest", label: "Newest" },
-    { value: "oldest", label: "Oldest" },
     { value: "price-asc", label: "Price: Low to High" },
     { value: "price-desc", label: "Price: High to Low" },
-    { value: "default", label: "Default" },
   ];
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setErr("");
+    async function fetchProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .in("id", [1, 2, 3]);
 
-        const { data, error } = await supabase
-          .from("products")
-          .select("id, title, price, badge, image, created_at")
-          .in ("id", [1,2,3])
-          .order("id", { ascending: true });
-
-        if (error) throw error;
-        setRows(data ?? []);
-      } catch (e: any) {
-        setErr(e.message || "Failed to load products");
-      } finally {
-        setLoading(false);
-      }
-    })();
+      if (error) console.error("Error fetching products:", error);
+      else setRows(data || []);
+      setLoading(false);
+    }
+    fetchProducts();
   }, []);
 
   const items = useMemo(() => {
@@ -90,11 +108,9 @@ export default function Products() {
       case "newest":
         arr.sort((a, b) => (b.createdAtValue ?? 0) - (a.createdAtValue ?? 0));
         break;
-      case "oldest":
-        arr.sort((a, b) => (a.createdAtValue ?? Infinity) - (b.createdAtValue ?? Infinity));
-        break;
       case "best": {
-        const rank = (p: any) => (p.badge === "Best Seller" ? 2 : p.badge === "Popular" ? 1 : 0);
+        const rank = (p: any) =>
+          p.badge === "Best Seller" ? 2 : p.badge === "Popular" ? 1 : 0;
         arr.sort((a, b) => rank(b) - rank(a) || a.index - b.index);
         break;
       }
@@ -104,70 +120,85 @@ export default function Products() {
     return arr;
   }, [items, sortBy]);
 
-  if (loading) return <div className={styles.productsPage}><p>Loading products…</p></div>;
-  if (err) return <div className={styles.productsPage}><p style={{ color: "crimson" }}>{err}</p></div>;
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p className={styles.loadingText}>Loading products...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.productsPage}>
-      <header className={styles.productsHeader}>
-        <h1>Products</h1>
+    <div className={styles.container}>
+      {/* Hero Header */}
+      <header className={styles.header}>
+        <h1 className={styles.headerTitle}>Products</h1>
+        <p className={styles.headerSubtitle}>
+          Discover our curated collection of premium products
+        </p>
       </header>
 
-      <div className={styles.productsToolbar}>
-        <div className={styles.filterDropdown}>
-          <button
-            className={styles.filterButton}
-            onClick={() => setShowFilters((v) => !v)}
-            aria-expanded={showFilters}
-            aria-controls="filters-panel"
-          >
-            {showFilters ? "Filters" : " Filters"}
-          </button>
+      {/* Toolbar */}
+      <div className={styles.toolbarContainer}>
+        <div className={styles.toolbar}>
+          <p className={styles.toolbarText}>{sorted.length} products</p>
 
-          {showFilters && (
-            <div id="filters-panel" className={styles.dropdownPanel}>
-              <ul className={styles.optionList}>
-                {sortOptions.map((opt) => (
-                  <li
-                    key={opt.value}
-                    className={`${styles.optionItem} ${
-                      sortBy === opt.value ? styles.selected : ""
-                    }`}
-                    onClick={() => setSortBy(opt.value)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={sortBy === opt.value}
-                      readOnly
-                    />
-                    <span>{opt.label}</span>
-                    {sortBy === opt.value && (
-                      <button
-                        className={styles.removeBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSortBy("default"); // reset filter
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className={styles.sortWrapper}>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={styles.sortButton}
+            >
+              <span>Sort by: {sortOptions.find((o) => o.value === sortBy)?.label}</span>
+              <svg
+                className={`${styles.arrowIcon} ${showFilters ? styles.arrowRotate : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {showFilters && (
+              <>
+                <div className={styles.overlay} onClick={() => setShowFilters(false)} />
+                <div className={styles.dropdown}>
+                  {sortOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        setSortBy(opt.value);
+                        setShowFilters(false);
+                      }}
+                      className={`${styles.dropdownItem} ${
+                        sortBy === opt.value ? styles.activeDropdownItem : ""
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className={styles.productsGrid}>
+      {/* Products Grid */}
+      <div className={styles.gridContainer}>
         {sorted.map((p) => (
           <ProductsCard
             key={p.id}
             id={p.id}
             image={p.image || ""}
             title={p.title}
-            price={typeof p.price === "number" ? `$${p.price.toFixed(2)}` : p.price}
+            price={p.priceValue || 0}
             badge={p.badge || ""}
           />
         ))}

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import displayCard, { Card } from "./DisplayCard";
+import displayCard, { Card } from "./hero/DisplayCard";
 import styles from "../styles/CardDisplay.module.css";
 
 export default function CardDisplay() {
