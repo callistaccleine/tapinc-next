@@ -44,6 +44,7 @@ export default function Products() {
         const { data, error } = await supabase
           .from("products")
           .select("id, title, price, badge, image, created_at")
+          .in ("id", [1,2,3])
           .order("id", { ascending: true });
 
         if (error) throw error;

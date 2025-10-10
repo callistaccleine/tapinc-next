@@ -2,9 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import styles from "../../styles/Hero.module.css";
+import { supabase } from "@/lib/supabaseClient"; 
+
 
 export default function Hero() {
   const router = useRouter();
+
+  const handleCreateCard = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      router.push("/dashboard");
+    } else {
+      router.push("/auth");
+    }
+  };
 
   return (
     <section className={styles.hero}>
@@ -16,7 +27,7 @@ export default function Hero() {
         <div className={styles.heroButtons}>
           <button
             className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() => router.push("/pricing")}
+            onClick={handleCreateCard}
           >
             Create My Card
           </button>

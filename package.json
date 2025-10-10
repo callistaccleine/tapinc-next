@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack --no-lint", 
+    "build": "next build --turbopack --no-lint",
     "start": "next start",
     "lint": "eslint"
   },
@@ -13,6 +13,7 @@
     "@react-google-maps/api": "^2.20.7",
     "@stripe/react-stripe-js": "^4.0.2",
     "@stripe/stripe-js": "^7.9.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.56.0",
     "chart.js": "^4.5.0",
     "next": "15.5.0",

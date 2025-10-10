@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "../styles/Pricing.module.css";
-import ContactForm from "./ContactForm"
-
+import ContactForm from "./ContactForm";
 
 type Plan = {
   id: string | number;
@@ -16,11 +15,11 @@ type Plan = {
   period: string;
   features: string[];
   popular: boolean;
-  action: "contact" | "link" | "checkout" | null;
+  action: "contact" | "link" | "products" | "checkout" | null;
   cta_label?: string;
   cta_url?: string;
   product_id?: string;
-  price_id?: string; 
+  price_id?: string;
   sort_order?: number;
   is_active?: boolean;
 };
@@ -28,20 +27,15 @@ type Plan = {
 export default function Pricing() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<
-    "individual" | "teams" | "enterprise" | "event"
-  >("individual");
+    "free" | "individual" | "teams" | "enterprise" | "event"
+  >("free");
   const [showContact, setShowContact] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  const handleOpenContact = () => {
-    setShowContact(true)
-  }
-
-  const handleCloseContact = () => {
-    setShowContact(false)
-  }
+  const handleOpenContact = () => setShowContact(true);
+  const handleCloseContact = () => setShowContact(false);
 
   // Load plans
   useEffect(() => {
@@ -101,36 +95,44 @@ export default function Pricing() {
           } = await supabase.auth.getUser();
 
           if (!user) {
-            // not logged in → redirect
-            router.push("/signup"); 
+            router.push("/signup");
             return;
           }
 
-          // logged in, now handle according to plan action
-          if (p.action === "contact") {
-            return setShowContact(true);
-          }
+          // handle plan actions
+          if (p.action === "contact") return setShowContact(true);
 
-          if (p.action === "link" && p.cta_url) {
+          if (p.action === "link" && p.cta_url)
             return window.open(p.cta_url, "_blank", "noopener,noreferrer");
+
+          // ✅ SKIP CHECKOUT — redirect to products instead
+          if (p.action === "products") {
+            router.push("/products");
+            return;
           }
 
+          // checkout flow
           if (p.action === "checkout" && p.price_id) {
             const res = await fetch("/api/create-checkout-session", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ 
-                price_id: p.price_id, 
-                quantity: 1 
+              body: JSON.stringify({
+                price_id: p.price_id,
+                quantity: 1,
               }),
             });
 
             const data = await res.json();
 
-            if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
+            if (!res.ok)
+              throw new Error(data.error || "Failed to create checkout session");
 
             if (data.clientSecret) {
-              router.push(`/checkout?client_secret=${encodeURIComponent(data.clientSecret)}`);
+              router.push(
+                `/checkout?client_secret=${encodeURIComponent(
+                  data.clientSecret
+                )}`
+              );
             } else if (data.url) {
               window.location.href = data.url;
             } else {
@@ -167,7 +169,7 @@ export default function Pricing() {
         <p>Select the perfect plan for your needs</p>
 
         <div className={styles.pricingToggle}>
-          {["individual", "teams", "enterprise", "event"].map((cat) => (
+          {["free", "individual", "teams", "enterprise", "event"].map((cat) => (
             <button
               key={cat}
               className={`${styles.toggleButton} ${
@@ -175,7 +177,12 @@ export default function Pricing() {
               }`}
               onClick={() =>
                 setActiveCategory(
-                  cat as "individual" | "teams" | "enterprise" | "event"
+                  cat as
+                    | "free"
+                    | "individual"
+                    | "teams"
+                    | "enterprise"
+                    | "event"
                 )
               }
               type="button"
@@ -187,13 +194,15 @@ export default function Pricing() {
       </div>
 
       {loading && <div>Loading plans...</div>}
-      {err && <div style={{ color: 'red' }}>Error: {err}</div>}
+      {err && <div style={{ color: "red" }}>Error: {err}</div>}
 
       <div className={styles.pricingGrid}>
         {renderedPlans.map((plan) => (
           <div
             key={plan.id}
-            className={`${styles.pricingCard} ${plan.popular ? styles.popular : ""}`}
+            className={`${styles.pricingCard} ${
+              plan.popular ? styles.popular : ""
+            }`}
           >
             {plan.popular && (
               <div className={styles.popularBadge}>Most Popular</div>
@@ -242,17 +251,10 @@ export default function Pricing() {
         </button>
       </div>
 
-      {/* Render the ContactForm */}
+      {/* Contact Form Modal */}
       {showContact && (
         <div className={styles.contactModal}>
-          <button
-            onClick ={() => handleOpenContact}>
-              Contact Us
-            </button>
-            <ContactForm 
-            isOpen={showContact} 
-            onClose={handleCloseContact} 
-          />
+          <ContactForm isOpen={showContact} onClose={handleCloseContact} />
         </div>
       )}
     </div>

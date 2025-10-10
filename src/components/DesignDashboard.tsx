@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent, useRef } from "react";
-import styles from "@/styles/DesignDashboard.module.css";
+import { useState, useEffect, ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
-import React from "react";
-import Image from "next/image"
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 import ProfileQRCode from "@/components/ProfileQRCode";
-import Notification from "./Notification";
+import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 
 interface Link {
   title: string;
@@ -38,6 +35,8 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     "profile" | "links" | "socials" | "templates" | "card design"
   >("profile");
+  
+  // Profile state
   const [firstname, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
   const [pronouns, setPronouns] = useState("");
@@ -57,8 +56,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [loading, setLoading] = useState(true);
   const [designProfileId, setDesignProfileId] = useState<string | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false); 
+  const [showQRCode, setShowQRCode] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  
+  // Activation state
+  const [physicalActivated, setPhysicalActivated] = useState(false);
+  const [virtualActivated, setVirtualActivated] = useState(false);
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
@@ -103,44 +106,43 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           error: userError,
         } = await supabase.auth.getUser();
 
-        if (userError) {
-          console.error("User error:", userError);
-          return;
-        }
-        if (!user) {
-          console.log("No user found");
+        if (userError || !user || !profile) {
+          console.error("User error or no profile:", userError);
           return;
         }
 
-        console.log("Loading profile for user:", user.id);
-
-        if (!profile) return;
-     
-        const { data, error } = await supabase
+        // Load design_profile data
+        const { data: designData, error: designError } = await supabase
           .from("design_profile")
           .select("*")
           .eq("profile_id", profile.id)
           .single();
 
-        if (error) {
-          console.error("Database error:", error);
-        } else if (data) {
-          setDesignProfileId(data.id);
-          setFirstName(data.firstname || "");
-          setSurname(data.surname || "");
-          setPronouns(data.pronouns || "");
-          setPhone(data.phone || "");
-          setCompany(data.company || "");
-          setTitle(data.title || "");
-          setEmail(data.email || user.email || "");
-          setBio(data.bio || "");
-          setProfilePic(data.profile_pic || null);
-          setHeaderBanner(data.header_banner || null);
-          setTemplate(data.template || "");
-          setCardDesign(data.cardDesign || "");
-          setLinks(data.links || []);
-          setSocials(data.socials || {});
-          setAddress(data.address || "");
+        if (designError && designError.code !== 'PGRST116') {
+          console.error("Database error:", designError);
+        } else if (designData) {
+          setDesignProfileId(designData.id);
+          setFirstName(designData.firstname || "");
+          setSurname(designData.surname || "");
+          setPronouns(designData.pronouns || "");
+          setPhone(designData.phone || "");
+          setCompany(designData.company || "");
+          setTitle(designData.title || "");
+          setEmail(designData.email || user.email || "");
+          setBio(designData.bio || "");
+          setProfilePic(designData.profile_pic || null);
+          setHeaderBanner(designData.header_banner || null);
+          setTemplate(designData.template || "");
+          setCardDesign(designData.cardDesign || "");
+          setLinks(designData.links || []);
+          setSocials(designData.socials || {});
+          setAddress(designData.address || "");
+        }
+
+        // Load activation status from profiles table
+        if (profile) {
+          setPhysicalActivated(profile.physical_activated || false);
+          setVirtualActivated(profile.virtual_activated || false);
         }
       } catch (err) {
         console.error("Error loading profile:", err);
@@ -151,14 +153,52 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     loadProfile();
   }, [profile]);
 
-  // Add link
-  const addLink = () => {
-    if (!newLink.title || !newLink.url) return;
-    setLinks([...links, newLink]);
-    setNewLink({ title: "", url: "" });
+  // Check if basic info is complete
+  const isBasicInfoComplete = () => {
+    return firstname && surname && email;
   };
 
-  // Reusable save function
+  // Toggle activation
+  const toggleActivation = async (type: 'physical' | 'virtual') => {
+    if (!profile?.id) {
+      showNotification("Profile not found", "error");
+      return;
+    }
+
+    if (!isBasicInfoComplete()) {
+      showNotification("Please complete Profile, Links, and Socials tabs first", "error");
+      return;
+    }
+
+    try {
+      const newStatus = type === 'physical' ? !physicalActivated : !virtualActivated;
+      
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          [type === 'physical' ? 'physical_activated' : 'virtual_activated']: newStatus
+        })
+        .eq("id", profile.id);
+
+      if (error) throw error;
+
+      if (type === 'physical') {
+        setPhysicalActivated(newStatus);
+      } else {
+        setVirtualActivated(newStatus);
+      }
+
+      showNotification(
+        `${type === 'physical' ? 'Physical' : 'Virtual'} card ${newStatus ? 'activated' : 'deactivated'} successfully!`,
+        "success"
+      );
+    } catch (error: any) {
+      console.error("Error toggling activation:", error);
+      showNotification("Failed to update activation status", "error");
+    }
+  };
+
+  // Save functions
   const saveToDatabase = async (fields: Record<string, any>) => {
     try {
       const {
@@ -176,7 +216,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
   
-      // Check if design_profile already exists for this profile
       const { data: existing } = await supabase
         .from("design_profile")
         .select("id")
@@ -185,7 +224,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   
       let response;
       if (existing) {
-        // Update existing record
         response = await supabase
           .from("design_profile")
           .update({
@@ -196,7 +234,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           .select("*")
           .single();
       } else {
-        // Insert new record
         response = await supabase
           .from("design_profile")
           .insert({
@@ -218,7 +255,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         throw error;
       } else if (data) {
         setDesignProfileId(data.id);
-        console.log("Saved successfully:", data);
         return data;
       }
     } catch (err) {
@@ -227,7 +263,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
 
-  // Improved file upload handler
   const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
     fieldName: "profile_pic" | "header_banner"
@@ -236,26 +271,19 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     if (!file) return;
 
     try {
-      // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      if (userError || !user) {
-        showNotification("Not logged in!", "error");
+      if (userError || !user || !profile?.id) {
+        showNotification("Not logged in or profile not found!", "error");
         return;
       }
 
-      if (!profile?.id) {
-        showNotification("Profile not found!", "error");
-        return;
-      }
-
-      // Validate file
       if (!file.type.startsWith('image/')) {
         showNotification("Please upload an image file", "error");
         return;
       }
 
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
         showNotification("File size must be less than 5MB", "error");
         return;
@@ -263,15 +291,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
       showNotification("Uploading image...", "success");
 
-      // Determine bucket
       const bucketName = fieldName === "profile_pic" ? "profile-pics" : "header-banner";
-      
-      // Create unique file path
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
@@ -285,40 +309,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
 
-      // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
       const publicUrl = publicUrlData.publicUrl;
-      console.log("Public URL generated:", publicUrl);
 
-      // Get current record to delete old image
-      const { data: existingRecord } = await supabase
-        .from("design_profile")
-        .select("id, profile_pic, header_banner")
-        .eq("profile_id", profile.id)
-        .maybeSingle();
-
-      // Save to database
       await saveToDatabase({ [fieldName]: publicUrl });
 
-      // Delete old image if exists
-      if (existingRecord && existingRecord[fieldName]) {
-        try {
-          const oldUrl = existingRecord[fieldName] as string;
-          const oldUrlParts = oldUrl.split(`/${bucketName}/`);
-          if (oldUrlParts[1]) {
-            const oldPath = decodeURIComponent(oldUrlParts[1]);
-            await supabase.storage.from(bucketName).remove([oldPath]);
-            console.log("Old image deleted:", oldPath);
-          }
-        } catch (err) {
-          console.log("Could not delete old image:", err);
-        }
-      }
-
-      // Update local state
       if (fieldName === "profile_pic") {
         setProfilePic(publicUrl);
       } else {
@@ -332,7 +330,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
 
-  // Specific save functions for each tab
+  const addLink = () => {
+    if (!newLink.title || !newLink.url) return;
+    setLinks([...links, newLink]);
+    setNewLink({ title: "", url: "" });
+  };
+
   const saveProfileTab = async () => {
     try {
       await saveToDatabase({
@@ -350,8 +353,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       });
       showNotification("Profile saved successfully!", "success");
     } catch (error) {
-      console.error("Error saving profile:", error);
-      showNotification("Failed to save profile. Please try again.", "error");
+      showNotification("Failed to save profile", "error");
     }
   };
   
@@ -360,8 +362,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       await saveToDatabase({ links });
       showNotification("Links saved successfully!", "success");
     } catch (error) {
-      console.error("Error saving links:", error);
-      showNotification("Failed to save links. Please try again.", "error");
+      showNotification("Failed to save links", "error");
     }
   };
   
@@ -370,52 +371,88 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       await saveToDatabase({ socials });
       showNotification("Socials saved successfully!", "success");
     } catch (error) {
-      console.error("Error saving socials:", error);
-      showNotification("Failed to save socials. Please try again.", "error");
+      showNotification("Failed to save socials", "error");
     }
   };
   
   const saveTemplateTab = async () => {
     try {
       await saveToDatabase({ template });
-      showNotification("Template saved successfully!", "success");
+      await toggleActivation('virtual');
     } catch (error) {
-      console.error("Error saving template:", error);
-      showNotification("Failed to save template. Please try again.", "error");
+      showNotification("Failed to save template", "error");
     }
   };
 
   const saveCardDesignTab = async () => {
     try {
       await saveToDatabase({ cardDesign });
-      showNotification("Card Design saved successfully!", "success");
+      await toggleActivation('physical');
     } catch (error) {
-      console.error("Error saving card design:", error);
-      showNotification("Failed to save card design. Please try again.", "error");
+      showNotification("Failed to save card design", "error");
     }
   };
 
   if (loading) {
-    return <div className={styles.designpageContainer}>Loading profile...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+      }}>
+        Loading profile...
+      </div>
+    );
   }
 
   return (
-    <div className={styles.designpageContainer}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '260px 1fr',
+      minHeight: '100vh',
+      background: '#f5f5f7',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+    }}>
       {/* Sidebar */}
-      <aside className={styles.designSidebar}>
-        {/* Back Button */}
-        <button className={styles.backButton} 
-          onClick={() => router.push("/dashboard")}>
+      <aside style={{
+        background: '#ffffff',
+        borderRight: '1px solid #e5e5e5',
+        padding: '24px',
+      }}>
+        <button 
+          onClick={() => router.push("/dashboard")}
+          style={{
+            background: '#f5f5f7',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            cursor: 'pointer',
+            color: "black",
+            marginBottom: '24px',
+            fontSize: '18px'
+          }}
+        >
           ←
         </button>
 
-        <h3>Editor</h3>
-        <ul className={styles.navList}>
+        <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px', color: "black" }}>Editor</h3>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {["profile", "links", "socials", "templates", "card design"].map((tab) => (
             <li
               key={tab}
-              className={activeTab === tab ? styles.active : ""}
               onClick={() => setActiveTab(tab as any)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                marginBottom: '4px',
+                color: "black",
+                background: activeTab === tab ? '#f5f5f7' : 'transparent',
+                fontWeight: activeTab === tab ? 500 : 400,
+                transition: 'all 0.2s ease'
+              }}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </li>
@@ -423,15 +460,201 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         </ul>
       </aside>
 
-      {/* Middle Editor */}
-      <main className={styles.designEditor}>
-        {activeTab === "profile" && (
-          <>
-            <h3>Edit Profile</h3>
-            <h4>This information will be visible on your profile</h4>
+      {/* Main Editor */}
+      <main style={{ padding: '40px', overflowY: 'auto' }}>
+        {/* Templates Tab - Virtual Card */}
+        {activeTab === "templates" && (
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
+              {!virtualActivated && (
+                <p style={{ color: '#86868b', fontSize: '15px' }}>
+                  Complete Profile, Links, and Socials tabs before activating your virtual card
+                </p>
+              )}
+              {virtualActivated && (
+                <div style={{
+                  display: 'inline-block',
+                  background: '#000000',
+                  color: '#ffffff',
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 500
+                }}>
+                  Virtual Card Active
+                </div>
+              )}
+            </div>
 
-            <div className={styles.field}>
-              <label>Header Banner</label>
+            {!isBasicInfoComplete() ? (
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #e5e5e5',
+                color: "black",
+                borderRadius: '16px',
+                padding: '48px 24px',
+                textAlign: 'center',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+              }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black" }}>
+                  Complete Your Basic Information First
+                </h3>
+                <p style={{ color: '#86868b', fontSize: '15px'}}>
+                  Please fill out Profile, Links, and Socials tabs before choosing a template
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '16px',
+                  marginBottom: '24px'
+                }}>
+                  {Object.keys(templateMap).map((templateName) => (
+                    <div
+                      key={templateName}
+                      onClick={() => setTemplate(templateMap[templateName])}
+                      style={{
+                        background: '#ffffff',
+                        border: template === templateMap[templateName] ? '2px solid #000000' : '1px solid #e5e5e5',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <img
+                        src={`/templates/${templateName}.png`}
+                        alt={templateName}
+                        style={{ width: '100%', borderRadius: '8px', marginBottom: '12px' }}
+                      />
+                      <p style={{ textAlign: 'center', fontWeight: 500 }}>{templateName}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={saveTemplateTab}
+                  style={{
+                    background: '#000000',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '10px',
+                    fontWeight: 500,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {virtualActivated ? 'Update & Save Template' : 'Save & Activate Virtual Card'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Card Design Tab - Physical Card */}
+        {activeTab === "card design" && (
+          <div>
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
+              {!physicalActivated && (
+                <p style={{ color: '#86868b', fontSize: '15px' }}>
+                  Complete Profile, Links, and Socials tabs before designing your physical card
+                </p>
+              )}
+              {physicalActivated && (
+                <div style={{
+                  display: 'inline-block',
+                  background: '#000000',
+                  color: '#ffffff',
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 500
+                }}>
+                  Physical Card Active
+                </div>
+              )}
+            </div>
+
+            {!isBasicInfoComplete() ? (
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #e5e5e5',
+                borderRadius: '16px',
+                padding: '48px 24px',
+                textAlign: 'center',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+              }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>
+                  Complete Your Basic Information First
+                </h3>
+                <p style={{ color: '#86868b', fontSize: '15px' }}>
+                  Please fill out Profile, Links, and Socials tabs before choosing a card design
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '16px',
+                  marginBottom: '24px'
+                }}>
+                  {Object.keys(templateMap).map((templateName) => (
+                    <div
+                      key={templateName}
+                      onClick={() => setCardDesign(templateMap[templateName])}
+                      style={{
+                        background: '#ffffff',
+                        border: cardDesign === templateMap[templateName] ? '2px solid #000000' : '1px solid #e5e5e5',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <img
+                        src={`/templates/${templateName}.png`}
+                        alt={templateName}
+                        style={{ width: '100%', borderRadius: '8px', marginBottom: '12px' }}
+                      />
+                      <p style={{ textAlign: 'center', fontWeight: 500 }}>{templateName}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={saveCardDesignTab}
+                  style={{
+                    background: '#000000',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '10px',
+                    fontWeight: 500,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {physicalActivated ? 'Update & Save Card Design' : 'Save & Activate Physical Card'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <div>
+            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Edit Profile</h3>
+            <h4 style={{ color: '#86868b', fontSize: '15px', marginBottom: '24px' }}>
+              This information will be visible on your profile
+            </h4>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Header Banner</label>
               {headerBanner && (
                 <div style={{ marginBottom: '10px' }}>
                   <img 
@@ -441,6 +664,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                       maxWidth: '100%', 
                       maxHeight: '150px',
                       objectFit: 'cover',
+                      color: "black",
                       borderRadius: '8px',
                       border: '1px solid #e5e5e5'
                     }} 
@@ -451,11 +675,18 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFileUpload(e, "header_banner")}
+                style={{
+                  padding: '12px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Profile Picture</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Profile Picture</label>
               {profilePic && (
                 <div style={{ marginBottom: '10px' }}>
                   <img 
@@ -475,31 +706,53 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFileUpload(e, "profile_pic")}
+                style={{
+                  padding: '12px',
+                  border: '1px solid #d2d2d7',
+                  color: "black",
+                  borderRadius: '10px',
+                  width: '100%'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>First Name</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>First Name</label>
               <input
                 type="text"
                 value={firstname}
                 onChange={(e) => setFirstName(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  fontSize: '15px'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Surname</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Surname</label>
               <input
                 type="text"
                 value={surname}
                 onChange={(e) => setSurname(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  fontSize: '15px'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Pronouns</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Pronouns</label>
               <Select
-                className={styles.pronounsSelect}
                 options={options}
                 value={options.find((option) => option.value === pronouns)}
                 onChange={(selectedOption) =>
@@ -509,44 +762,76 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Email</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Email</label>
               <input
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  fontSize: '15px'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Mobile Number</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Mobile Number</label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  fontSize: '15px'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Company</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Company</label>
               <input
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  fontSize: '15px'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Job Title</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Job Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  fontSize: '15px'
+                }}
               />
             </div>
 
-            <div className={styles.field}>
-              <label>Address</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Address</label>
               {isLoaded ? (
                 <Autocomplete
                   onLoad={(autocompleteInstance) => setAutocomplete(autocompleteInstance)}
@@ -557,6 +842,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                     placeholder="Search for an address..."
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
+                    style={{
+                      padding: '12px 16px',
+                      border: '1px solid #d2d2d7',
+                      borderRadius: '10px',
+                      color: "black",
+                      width: '100%',
+                      fontSize: '15px'
+                    }}
                   />
                 </Autocomplete>
               ) : (
@@ -564,21 +857,48 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               )}
             </div>
 
-            <div className={styles.field}>
-              <label>Bio</label>
-              <textarea value={bio} onChange={(e) => setBio(e.target.value)} />
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Bio</label>
+              <textarea 
+                value={bio} 
+                onChange={(e) => setBio(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  width: '100%',
+                  minHeight: '100px',
+                  fontSize: '15px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+                }}
+              />
             </div>
 
-            <button className={styles.btn} onClick={saveProfileTab}>
+            <button 
+              onClick={saveProfileTab}
+              style={{
+                background: '#000000',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '15px'
+              }}
+            >
               Save Profile
             </button>
-          </>
+          </div>
         )}
 
+        {/* Links Tab */}
         {activeTab === "links" && (
-          <>
-            <h3>Add Links</h3>
-            <div className={styles.linkRow}>
+          <div>
+            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black"}}>Add Links</h3>
+            
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
               <input
                 type="text"
                 placeholder="Link title"
@@ -586,6 +906,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 onChange={(e) =>
                   setNewLink({ ...newLink, title: e.target.value })
                 }
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  flex: 1,
+                  color: "black",
+                  fontSize: '15px'
+                }}
               />
               <input
                 type="url"
@@ -594,14 +922,47 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 onChange={(e) =>
                   setNewLink({ ...newLink, url: e.target.value })
                 }
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  color: "black",
+                  flex: 1,
+                  fontSize: '15px'
+                }}
               />
             </div>
-            <button className={styles.btn} onClick={addLink}>
+
+            <button 
+              onClick={addLink}
+              style={{
+                background: '#f5f5f7',
+                color: '#000000',
+                border: '1px solid #d2d2d7',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                marginBottom: '24px',
+                fontSize: '15px'
+              }}
+            >
               + Add Link
             </button>
 
-            <div className={styles.blockPlaceholder}>
-              {links.length === 0 && <p>[No links added]</p>}
+            <div style={{ marginBottom: '24px' }}>
+              {links.length === 0 && (
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '16px',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  color: "black",
+                }}>
+                  <p>No links added yet</p>
+                </div>
+              )}
               {links.map((l, i) => (
                 <div 
                   key={i} 
@@ -637,14 +998,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                       padding: "8px 12px",
                       borderRadius: "6px",
                       fontSize: "14px",
-                      fontWeight: 500,
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#fef2f2";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
+                      fontWeight: 500
                     }}
                   >
                     Remove
@@ -653,16 +1007,36 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               ))}
             </div>
 
-            <button className={styles.btn} onClick={saveLinksTab}>
+            <button 
+              onClick={saveLinksTab}
+              style={{
+                background: '#000000',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '15px'
+              }}
+            >
               Save Links
             </button>
-          </>
+          </div>
         )}
 
+        {/* Socials Tab */}
         {activeTab === "socials" && (
-          <>
-            <h3>Social Links</h3>
-            <div className={styles.socialCards}>
+          <div>
+            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black" }}>Social Links</h3>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+              gap: '12px',
+              color: "black",
+              marginBottom: '24px'
+            }}>
               {[
                 "X",
                 "instagram",
@@ -676,9 +1050,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               ].map((platform) => (
                 <div
                   key={platform}
-                  className={`${styles.socialCard} ${
-                    socials[platform] !== undefined ? styles.active : ""
-                  }`}
                   onClick={() => {
                     if (socials[platform] === undefined) {
                       setSocials({ ...socials, [platform]: "" });
@@ -688,16 +1059,30 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                       setSocials(updated);
                     }
                   }}
+                  style={{
+                    background: socials[platform] !== undefined ? '#000000' : '#ffffff',
+                    border: '1px solid #e5e5e5',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: "black",
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
                 >
                   <SocialIcon platform={platform.toLowerCase()} />
                 </div>
               ))}
             </div>
 
-            <div className={styles.socialInputs}>
+            <div style={{ marginBottom: '24px' }}>
               {Object.entries(socials).map(([platform, url]) => (
-                <div key={platform} className={styles.field}>
-                  <label>{platform} URL</label>
+                <div key={platform} style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                    {platform} URL
+                  </label>
                   <input
                     type="url"
                     placeholder={`Enter your ${platform} URL`}
@@ -716,85 +1101,65 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
                       setSocials({ ...socials, [platform]: normalizedUrl });
                     }}
+                    style={{
+                      padding: '12px 16px',
+                      border: '1px solid #d2d2d7',
+                      borderRadius: '10px',
+                      width: '100%',
+                      color: "black",
+                      fontSize: '15px'
+                    }}
                   />
                 </div>
               ))}
             </div>
 
-            <button className={styles.btn} onClick={saveSocialsTab}>
+            <button 
+              onClick={saveSocialsTab}
+              style={{
+                background: '#000000',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontSize: '15px'
+              }}
+            >
               Save Socials
             </button>
-          </>
-        )}
-
-        {activeTab === "templates" && (
-          <>
-            <h3>Choose Your Virtual Card Style</h3>
-            <div className={styles.templateGrid}>
-              {Object.keys(templateMap).map((templateName) => (
-                <div
-                  key={templateName}
-                  className={`${styles.templateCard} ${
-                    template === templateMap[templateName] ? styles.active : ""
-                  }`}
-                  onClick={() => setTemplate(templateMap[templateName])}
-                >
-                  <img
-                    src={`/templates/${templateName}.png`}
-                    alt={templateName}
-                    className={styles.templateImage}
-                  />
-                  <p className={styles.templateLabel}>{templateName}</p>
-                </div>
-              ))}
-            </div>
-
-            <button className={styles.btn} onClick={saveTemplateTab}>
-              Save Template
-            </button>
-          </>
-        )}
-
-        {activeTab === "card design" && (
-          <>
-            <h3>Design Your Card</h3>
-            <div className={styles.templateGrid}>
-              {Object.keys(templateMap).map((templateName) => (
-                <div
-                  key={templateName}
-                  className={`${styles.templateCard} ${
-                    cardDesign === templateMap[templateName] ? styles.active : ""
-                  }`}
-                  onClick={() => setCardDesign(templateMap[templateName])}
-                >
-                  <img
-                    src={`/templates/${templateName}.png`}
-                    alt={templateName}
-                    className={styles.templateImage}
-                  />
-                  <p className={styles.templateLabel}>{templateName}</p>
-                </div>
-              ))}
-            </div>
-
-            <button className={styles.btn} onClick={saveCardDesignTab}>
-              Save Card Design
-            </button>
-          </>
+          </div>
         )}
       </main>
 
+      {/* Notification */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: notification.type === 'success' ? '#000000' : '#ef4444',
+          color: '#ffffff',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 9999
+        }}>
+          {notification.message}
+        </div>
+      )}
       {/* Profile Action Buttons */}
-      <div
-        style={{
-          marginTop: "20px",
-          textAlign: "center",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          alignItems: "center",
-        }}
-      >
+      <div style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        alignItems: 'flex-end',
+        zIndex: 1000
+      }}>
         {designProfileId ? (
           <>
             <a
@@ -802,138 +1167,175 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               target="_blank"
               rel="noreferrer"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "10px 20px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                textDecoration: "none",
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px 20px',
+                border: '1px solid #d2d2d7',
+                borderRadius: '10px',
+                textDecoration: 'none',
                 fontWeight: 500,
-                color: "#374151",
-                backgroundColor: "#fff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                width: "fit-content",
+                color: '#000000',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.2s ease'
               }}
             >
-              View Profile
+              👁️ View Profile
             </a>
 
             <button
               onClick={() => setShowQRCode(true)}
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "10px 10px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px 20px',
+                border: 'none',
+                borderRadius: '10px',
                 fontWeight: 500,
-                color: "#374151",
-                backgroundColor: "#fff",
-                boxShadow: "1px 1px 2px rgba(0,0,0,0.05)",
-                cursor: "pointer",
-                width: "fit-content",
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
               }}
             >
-              Share Profile
+              📱 Share Profile
             </button>
-
-            {showQRCode && (
-              <div
-                style={{
-                  position: "fixed",
-                  top: 0,
-                  left: 0,
-                  width: "100vw",
-                  height: "100vh",
-                  background: "rgba(0, 0, 0, 0.6)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 9999,
-                }}
-                onClick={() => setShowQRCode(false)}
-              >
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    background: "#fff",
-                    padding: "30px 40px",
-                    borderRadius: "12px",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                    textAlign: "center",
-                    maxWidth: "400px",
-                    width: "90%",
-                  }}
-                >
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-                    <ProfileQRCode profileId={designProfileId} />
-
-                    <p
-                      style={{
-                        fontSize: "13px",
-                        color: "#555",
-                        wordBreak: "break-all",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {`${window.location.origin}/user/${designProfileId}`}
-                    </p>
-
-                    <button
-                      onClick={async () => {
-                        const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-                        await navigator.clipboard.writeText(profileUrl);
-                        showNotification("Profile link copied to clipboard!", "success");
-                      }}
-                      style={{
-                        padding: "10px 18px",
-                        border: "none",
-                        borderRadius: "6px",
-                        backgroundColor: "#000",
-                        color: "#fff",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Copy Link
-                    </button>
-
-                    <button
-                      onClick={() => setShowQRCode(false)}
-                      style={{
-                        marginTop: "10px",
-                        border: "none",
-                        background: "transparent",
-                        color: "#555",
-                        fontSize: "13px",
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         ) : (
-          <p style={{ color: "#777" }}>Please save your profile first to view or share it.</p>
+          <p style={{ 
+            color: '#86868b', 
+            fontSize: '13px',
+            background: '#ffffff',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            margin: 0
+          }}>
+            Save your profile first
+          </p>
         )}
       </div>
 
-      {/* Notification */}
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
+      {/* QR Code Modal */}
+      {showQRCode && designProfileId && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={() => setShowQRCode(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              padding: '40px',
+              borderRadius: '16px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              textAlign: 'center',
+              maxWidth: '400px',
+              width: '90%',
+            }}
+          >
+
+            <h3 style={{ 
+              fontSize: '20px', 
+              fontWeight: 600, 
+              marginBottom: '24px',
+              color: '#000000'
+            }}>
+              Share Your Profile
+            </h3>
+
+            <div style={{ 
+              marginBottom: '20px',
+              padding: '20px',
+              background: '#f5f5f7',
+              borderRadius: '12px'
+            }}>
+              <div style={{
+                width: '200px',
+                height: '200px',
+                margin: '0 auto',
+                background: '#ffffff',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '48px'
+              }}>
+                <ProfileQRCode profileId={designProfileId} />
+              </div>
+            </div>
+
+            <p style={{
+              fontSize: '13px',
+              color: '#86868b',
+              wordBreak: 'break-all',
+              marginBottom: '20px',
+              padding: '12px',
+              background: '#f5f5f7',
+              borderRadius: '8px'
+            }}>
+              {typeof window !== 'undefined' ? `${window.location.origin}/user/${designProfileId}` : ''}
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={async () => {
+                  if (typeof window !== 'undefined') {
+                    const profileUrl = `${window.location.origin}/user/${designProfileId}`;
+                    await navigator.clipboard.writeText(profileUrl);
+                    showNotification('Profile link copied to clipboard!', 'success');
+                  }
+                }}
+                style={{
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  backgroundColor: '#000000',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Copy Link
+              </button>
+
+              <button
+                onClick={() => setShowQRCode(false)}
+                style={{
+                  padding: '12px 24px',
+                  border: '1px solid #d2d2d7',
+                  borderRadius: '10px',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
