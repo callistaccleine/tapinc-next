@@ -16,6 +16,7 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.56.0",
     "chart.js": "^4.5.0",
+    "framer-motion": "^12.23.24",
     "next": "15.5.0",
     "nodemailer": "^7.0.6",
     "qrcode.react": "^4.2.0",
