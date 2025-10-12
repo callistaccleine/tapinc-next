@@ -94,6 +94,28 @@
     box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.25);
   }
   
+  .passwordWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .showPasswordBtn {
+    position: absolute;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  .showPasswordBtn:hover {
+    color: #000;
+  }
+
+  
   /* ===== Submit button ===== */
   .btnDark {
     padding: 0 12px;

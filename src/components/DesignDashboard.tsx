@@ -65,8 +65,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
+  
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
   };
-
+  
   const libraries: ("places")[] = ["places"];
 
   const { isLoaded } = useLoadScript({
@@ -87,6 +91,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     "Template 1": "template1_blank.svg",
     "Template 2": "template2_blank.svg",
     "Template 3": "template3_blank.svg",
+  };
+
+  const cardDesignMap: Record<string, string> = {
+    "Sunset": "/images/cards/Physical Card Option 1.png",
+    "Sea": "/images/cards/Physical Card Option 2.png",
+    "Flowery": "/images/cards/Physical Card Option 3.png",
   };
 
   const options = [
@@ -518,7 +528,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                       onClick={() => setTemplate(templateMap[templateName])}
                       style={{
                         background: '#ffffff',
-                        border: template === templateMap[templateName] ? '2px solid #000000' : '1px solid #e5e5e5',
+                        border: template === templateMap[templateName] ? '2px solid #D3d3d3' : '1px solid #e5e5e5',
                         borderRadius: '12px',
                         padding: '16px',
                         cursor: 'pointer',
@@ -530,7 +540,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         alt={templateName}
                         style={{ width: '100%', borderRadius: '8px', marginBottom: '12px' }}
                       />
-                      <p style={{ textAlign: 'center', fontWeight: 500 }}>{templateName}</p>
+                      <p style={{ textAlign: 'center', fontWeight: 500, color: "black" }}>{templateName}</p>
                     </div>
                   ))}
                 </div>
@@ -603,27 +613,34 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   gap: '16px',
                   marginBottom: '24px'
                 }}>
-                  {Object.keys(templateMap).map((templateName) => (
-                    <div
-                      key={templateName}
-                      onClick={() => setCardDesign(templateMap[templateName])}
-                      style={{
-                        background: '#ffffff',
-                        border: cardDesign === templateMap[templateName] ? '2px solid #000000' : '1px solid #e5e5e5',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <img
-                        src={`/templates/${templateName}.png`}
-                        alt={templateName}
-                        style={{ width: '100%', borderRadius: '8px', marginBottom: '12px' }}
-                      />
-                      <p style={{ textAlign: 'center', fontWeight: 500 }}>{templateName}</p>
-                    </div>
-                  ))}
+                  {Object.entries(cardDesignMap).map(([designName, imagePath]) => (
+                <div
+                  key={designName}
+                  onClick={() => setCardDesign(imagePath)}
+                  style={{
+                    background: '#ffffff',
+                    border: cardDesign === imagePath ? '2px solid #D3d3d3' : '1px solid #e5e5e5',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <img
+                    src={imagePath}
+                    alt={designName}
+                    style={{
+                      width: '100%',
+                      borderRadius: '8px',
+                      marginBottom: '12px',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  <p style={{ textAlign: 'center', fontWeight: 500, color: "black" }}>
+                    {designName}
+                  </p>
+                </div>
+              ))}
                 </div>
 
                 <button 
@@ -755,10 +772,39 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               <Select
                 options={options}
                 value={options.find((option) => option.value === pronouns)}
-                onChange={(selectedOption) =>
-                  setPronouns(selectedOption?.value || "")
-                }
+                onChange={(selectedOption) => setPronouns(selectedOption?.value || '')}
                 instanceId="pronouns-select"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderColor: '#d2d2d7',
+                    borderRadius: '10px',
+                    backgroundColor: 'white',
+                    color: 'black',
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    color: 'black',
+                  }),
+                  input: (base) => ({
+                    ...base,
+                    color: 'black',
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    backgroundColor: 'white',
+                    color: 'black',
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    color: 'black',
+                    backgroundColor: state.isFocused ? '#f5f5f7' : 'white',
+                  }),
+                  placeholder: (base) => ({
+                    ...base,
+                    color: '#888',
+                  }),
+                }}
               />
             </div>
 
@@ -1060,7 +1106,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                     }
                   }}
                   style={{
-                    background: socials[platform] !== undefined ? '#000000' : '#ffffff',
+                    background: socials[platform] !== undefined ? '#f0f0f0' : '#ffffff',
                     border: '1px solid #e5e5e5',
                     borderRadius: '12px',
                     padding: '20px',
@@ -1080,7 +1126,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             <div style={{ marginBottom: '24px' }}>
               {Object.entries(socials).map(([platform, url]) => (
                 <div key={platform} style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>
                     {platform} URL
                   </label>
                   <input

@@ -10,6 +10,7 @@ export default function Auth() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -17,32 +18,32 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
-  
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-  
+
     if (error) {
       setMessage(error.message || "Login failed.");
       setIsLoading(false);
       return;
     }
-  
+
     // ✅ Normalize the email
     const userEmail = (data?.user?.email || "").trim().toLowerCase();
-  
+
     setMessage("Login successful!");
-  
+
     // ✅ Redirect based on email
     if (userEmail === "tapinc.io.au@gmail.com") {
       router.replace("/admin");
     } else {
       router.replace("/dashboard");
     }
-  
+
     setIsLoading(false);
-  };  
+  };
 
   return (
     <div className={styles.authSplit}>
@@ -53,6 +54,7 @@ export default function Auth() {
           <p className={styles.authSubtitle}>Log in to your account</p>
 
           <form onSubmit={handleLogin} className={styles.authForm}>
+            {/* Email field */}
             <label className={styles.authLabel}>Email*</label>
             <input
               className={`${styles.authInput} ${styles.pill}`}
@@ -63,15 +65,25 @@ export default function Auth() {
               required
             />
 
+            {/* Password field with toggle */}
             <label className={styles.authLabel}>Password*</label>
-            <input
-              className={`${styles.authInput} ${styles.pill}`}
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className={styles.passwordWrapper}>
+              <input
+                className={`${styles.authInput} ${styles.pill}`}
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className={styles.showPasswordBtn}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
 
             <button type="submit" className={styles.btnDark} disabled={isLoading}>
               {isLoading ? "Logging in…" : "Log In"}

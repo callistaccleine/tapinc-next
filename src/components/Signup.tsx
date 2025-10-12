@@ -14,9 +14,11 @@ export default function Signup() {
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +29,7 @@ export default function Signup() {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth`, // where Supabase redirects after confirmation
         data: {
           display_name: fullName,
           fullName,
@@ -41,8 +44,8 @@ export default function Signup() {
       return;
     }
 
-    setMessage("Account created! Please log in.");
-    router.replace("/auth");
+    // ✅ Show confirmation modal instead of redirecting
+    setShowConfirmation(true);
     setIsLoading(false);
   };
 
@@ -83,15 +86,25 @@ export default function Signup() {
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
 
+            {/* ✅ Password with toggle */}
             <label className={styles.signupLabel}>Password*</label>
-            <input
-              className={`${styles.signupInput} ${styles.pill}`}
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className={styles.passwordWrapper}>
+              <input
+                className={`${styles.signupInput} ${styles.pill}`}
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className={styles.showPasswordBtn}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
 
             <label className={styles.agreeRow}>
               <input
@@ -104,7 +117,11 @@ export default function Signup() {
               </span>
             </label>
 
-            <button type="submit" className={styles.btnDark} disabled={isLoading}>
+            <button
+              type="submit"
+              className={styles.btnDark}
+              disabled={isLoading || !agree}
+            >
               {isLoading ? "Creating…" : "Sign Up"}
             </button>
           </form>
@@ -138,6 +155,29 @@ export default function Signup() {
           </div>
         </div>
       </aside>
+
+      {/* ✅ Confirmation Modal */}
+      {showConfirmation && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Check your email ✉️</h2>
+            <p>
+              We’ve sent a confirmation link to <strong>{email}</strong>.
+              <br />
+              Please verify your account before logging in.
+            </p>
+            <button
+              className={styles.btnDark}
+              onClick={() => {
+                setShowConfirmation(false);
+                router.replace("/auth");
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
