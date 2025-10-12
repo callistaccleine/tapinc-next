@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ProfileCardOption from "./ProfileCardOption";
 import styles from "@/styles/AddProfiles.module.css";
-import businessCard from "@/../public/images/cards/businessCard.png";
+import businessCard from "@/../public/images/cards/Physical Card Option 1.png";
 import { supabase } from "@/lib/supabaseClient"; 
 
 const AddProfiles = () => {
@@ -79,7 +79,7 @@ const AddProfiles = () => {
       plan_id: userPlan?.id,
       title: `Profile ${existingProfilesCount + 1}`,
       subtitle: "New Profile",
-      image_url: "/images/cards/businessCard.png",
+      image_url: "/images/cards/Physical Card Option 1.png",
       physical_activated: false,
       virtual_activated: false,
     }]);
@@ -96,21 +96,15 @@ const AddProfiles = () => {
 
   return (
     <div className={styles.addProfilesContainer}>
-      <div className={styles.addProfilesHeader}>
+      {/* Back button */}
       <button 
-          onClick={() => router.push("/dashboard")}
-          style={{
-            background: '#f5f5f7',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            cursor: 'pointer',
-            marginBottom: '24px',
-            fontSize: '18px'
-          }}
-        >
-          ←
-        </button>
+        onClick={() => router.push("/dashboard")}
+        className={styles.backButton}
+      >
+        ← Back
+      </button>
+
+      <div className={styles.addProfilesHeader}>
         <h2>Add New Profile</h2>
         <p className={styles.subtext}>
           Each profile includes both Physical NFC Card and Digital Profile

@@ -26,18 +26,6 @@
   line-height: 1.5;
 }
 
-.featuresSlider {
-  display: flex;
-  gap: 32px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 0 12px 24px;
-  scrollbar-width: none;
-  touch-action: pan-x;
-  -webkit-overflow-scrolling: touch;
-}
-
 .featuresSlider::-webkit-scrollbar {
   display: none;
 }
@@ -87,6 +75,21 @@
   line-height: 1.6;
   margin-bottom: 0;
 }
+
+.featuresSlider {
+  display: flex;
+  gap: 32px;
+  overflow-x: auto;
+  scroll-snap-type: none; /* disable snap for smooth auto scroll */
+  scroll-behavior: auto; /* prevent interference with animation */
+  padding: 0 12px 24px;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
 
 @media (max-width: 1024px) {
   .featureCard {

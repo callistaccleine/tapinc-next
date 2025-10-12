@@ -133,11 +133,10 @@ export default function Dashboard() {
                 <table className={styles.profileTable}>
                 <thead>
                     <tr>
-                    <th>Name & Profile ID</th>
+                    <th>Profile ID</th>
                     {/* <th>Contact Info</th> */}
                     <th>Product</th>
-                    <th>Edit</th>
-                    <th>View</th>
+                    <th>Edit Profile</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -161,15 +160,10 @@ export default function Dashboard() {
                             <div className={styles.profileName}>
                                 {p.firstname} {p.surname}
                             </div>
-                            <div className={styles.profileId}>ID: {p.id.slice(0, 6)}…</div>
+                            <div className={styles.profileId}>ID: {p.id}</div>
                             </div>
                         </div>
                         </td>
-
-                        {/* Contact Info */}
-                        {/* <td>
-                        <div className={styles.subtext}>{p.email || "No email"}</div>
-                        </td> */}
 
                         {/* Product */}
                         <td>
@@ -182,16 +176,16 @@ export default function Dashboard() {
                           className={styles.iconBtn}
                           onClick={() => router.push(`/design/${p.id}`)}
                         >
-                          Edit
+                          ✎
                         </button>
                         </td>
 
                         {/* View */}
-                        <td>
+                        {/* <td>
                         <button className={styles.iconBtn}>
                             👁️
                         </button>
-                        </td>
+                        </td> */}
                     </tr>
                     ))}
                 </tbody>

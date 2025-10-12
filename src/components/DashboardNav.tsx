@@ -136,7 +136,7 @@ export default function DashboardNav({ children }: { children: React.ReactNode }
                 router.push("/");
               }}
             >
-              <span>Dashboard</span>
+              <span>Home</span>
             </button>
 
             <button className={styles.menuItem} type="button">
