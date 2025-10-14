@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import FeatureCard from "../FeatureCard";
+import Image from "next/image";
 import styles from "../../styles/CompanyList.module.css";
 
 const companies = [
-  { image: "/images/companies/o3_Logo.png" },
-  { image: "/images/companies/kalti_logo.png"},
-  { image: "/images/companies/Westminster_logo.png"},
+  { image: "/images/companies/o3_Logo.png", name: "O3 Collective" },
+  { image: "/images/companies/kalti_logo.png", name: "Kalti" },
+  { image: "/images/companies/Westminster_logo.png", name: "Westminster" },
 ];
 
 export default function CompanyList() {
@@ -17,23 +17,19 @@ export default function CompanyList() {
     const container = containerRef.current;
     if (!container) return;
 
-    let scrollSpeed = 0.6; // pixels per frame
+    let scrollSpeed = 0.6;
     let rafId: number;
 
     const scroll = () => {
       container.scrollLeft += scrollSpeed;
-
-      // If at the end, jump back smoothly
       if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
         container.scrollLeft = 0;
       }
-
       rafId = requestAnimationFrame(scroll);
     };
 
     rafId = requestAnimationFrame(scroll);
 
-    // Pause on hover
     const pause = () => cancelAnimationFrame(rafId);
     const resume = () => {
       rafId = requestAnimationFrame(scroll);
@@ -51,13 +47,18 @@ export default function CompanyList() {
 
   return (
     <section className={styles.companyListSection}>
+
       <div className={styles.companySlider} ref={containerRef}>
-      {companies.map((companies) => (
-          <span
-            key={companies.image}
-          >
-            {companies.image}
-          </span>
+        {companies.concat(companies).map((company, index) => (
+          <div key={index} className={styles.logoCard}>
+            <Image
+              src={company.image}
+              alt={company.name}
+              width={200}
+              height={200}
+              className={styles.companyLogo}
+            />
+          </div>
         ))}
       </div>
     </section>
