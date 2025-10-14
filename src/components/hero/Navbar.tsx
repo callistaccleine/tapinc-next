@@ -10,7 +10,7 @@ import styles from "../../styles/Navbar.module.css";
 export default function Navbar() {
   const [user, setUser] = useState<any>(undefined); // undefined=loading, null=logged out, object=logged in
   const [menuOpen, setMenuOpen] = useState(false);
-  const chipRef = useRef<HTMLLIElement>(null);
+  const chipRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   // Check session on load
@@ -59,19 +59,20 @@ export default function Navbar() {
         onClick={() => router.push("/")}
         style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
       >
-        <Image src="/images/Tapinc-logo.png" alt="TapINC Logo" className={styles.logoImg} width={64} height={64} />
-        <span className={styles.logoText}>TapInk</span>
+        <Image src="/images/Tapink-logo.png" alt="TapINK Logo" className={styles.logoImg} width={70} height={70} />
       </div>
-
-      {/* ✅ Nav Links */}
+  
+      {/* ✅ Centered Nav Links */}
       <ul className={styles.navbarLinks}>
         <li><Link href="/">Home</Link></li>
         <li><Link href="/products">Products</Link></li>
-        <li><Link href="/pricing">Pricing</Link></li>
-
+      <li><Link href="/pricing">Pricing</Link></li>
+      </ul>
+  
+      {/* ✅ User Section (stays on the right) */}
+      <div className={styles.navbarRight}>
         {user ? (
-          // ✅ Logged in
-          <li className={styles.userChip} ref={chipRef}>
+          <div className={styles.userChip} ref={chipRef}>
             <button
               type="button"
               className={styles.avatarProfile}
@@ -84,7 +85,7 @@ export default function Navbar() {
                 />
               </svg>
             </button>
-
+  
             {menuOpen && (
               <div className={styles.userMenu} role="menu">
                 <button
@@ -97,9 +98,9 @@ export default function Navbar() {
                 >
                   Dashboard
                 </button>
-
+  
                 <div className={styles.menuSep} />
-
+  
                 <button
                   className={`${styles.menuItem} ${styles.logout}`}
                   type="button"
@@ -109,16 +110,13 @@ export default function Navbar() {
                 </button>
               </div>
             )}
-          </li>
+          </div>
         ) : (
-          // ✅ Logged out
-        <li>
-            <Link href="/signup" className={styles.navbarCta}>
-                Register
-            </Link>
-        </li>
+          <Link href="/signup" className={styles.navbarCta}>
+            Register
+          </Link>
         )}
-      </ul>
+      </div>
     </nav>
   );
 }

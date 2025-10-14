@@ -361,6 +361,18 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         header_banner: headerBanner,
         address,
       });
+      // Generate profile link 
+      if (profile?.id) {
+        const profileUrl = `${window.location.origin}/user/${profile.id}`;
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ qr_url: profileUrl })
+          .eq("id", profile.id);
+
+        if (updateError) {
+          console.error("Error saving QR URL:", updateError);
+        }
+      }
       showNotification("Profile saved successfully!", "success");
     } catch (error) {
       showNotification("Failed to save profile", "error");

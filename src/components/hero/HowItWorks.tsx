@@ -6,33 +6,60 @@ import styles from "../../styles/HowItWork.module.css";
 export default function HowItWorks() {
   const [activeTab, setActiveTab] = useState("Design");
 
-  const renderVideo = () => {
-    switch (activeTab) {
-      case "Share":
-        return <div className={styles.videoContainer}>Share Video</div>;
-      case "Design":
-        return <div className={styles.videoContainer}>Design Video</div>;
-      case "Analyse":
-        return <div className={styles.videoContainer}>Analyse Video</div>;
-      default:
-        return null;
+  const tabs = [
+    {
+      name: "Share",
+      icon: "🔗",
+      description: "Instantly share your profile with a single tap"
+    },
+    {
+      name: "Design",
+      icon: "🎨",
+      description: "Customize your card to match your brand"
+    },
+    {
+      name: "Analyse",
+      icon: "📊",
+      description: "Track engagement and grow your network"
     }
+  ];
+
+  const renderContent = () => {
+    const content = tabs.find(tab => tab.name === activeTab);
+    return (
+      <div className={styles.videoContainer} key={activeTab}>
+        <div className={styles.contentIcon}>{content?.icon}</div>
+        <h3 className={styles.contentTitle}>{activeTab}</h3>
+        <p className={styles.contentDescription}>{content?.description}</p>
+      </div>
+    );
   };
 
   return (
     <section className={styles.howItWorks}>
+      {/* Section Header */}
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>How It Works</h2>
+        <p className={styles.sectionDescription}>
+          Three simple steps to revolutionize the way you connect
+        </p>
+      </div>
+
+      {/* Tabs */}
       <div className={styles.tabs}>
-        {["Share", "Design", "Analyse"].map((tab) => (
+        {tabs.map((tab) => (
           <span
-            key={tab}
-            className={`${styles.tab} ${activeTab === tab ? styles.active : ""}`}
-            onMouseEnter={() => setActiveTab(tab)}
+            key={tab.name}
+            className={`${styles.tab} ${activeTab === tab.name ? styles.active : ""}`}
+            onMouseEnter={() => setActiveTab(tab.name)}
           >
-            {tab}
+            {tab.name}
           </span>
         ))}
       </div>
-      {renderVideo()}
+
+      {/* Content */}
+      {renderContent()}
     </section>
   );
 }
