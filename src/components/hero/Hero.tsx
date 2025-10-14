@@ -74,9 +74,9 @@ export default function Hero() {
         <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">
           <FaTiktok />
         </a>
-        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+        {/* <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
           <FaLinkedinIn />
-        </a>
+        </a> */}
       </div>
 
       {/* Scroll Down Indicator */}

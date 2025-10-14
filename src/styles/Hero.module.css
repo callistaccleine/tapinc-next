@@ -24,7 +24,7 @@
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.8; 
+  opacity: 0.4; 
   z-index: 0;
 }
 
@@ -39,8 +39,6 @@
   opacity: 0.85; /* Adjust gradient overlay */
   z-index: 1;
 }
-
-/* Rest of your CSS remains the same... */
 
 .heroContent {
   position: relative;
