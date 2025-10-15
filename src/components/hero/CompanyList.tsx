@@ -5,9 +5,11 @@ import Image from "next/image";
 import styles from "../../styles/CompanyList.module.css";
 
 const companies = [
-  { image: "/images/companies/o3_Logo.png", name: "O3 Collective" },
+  { image: "/images/companies/O3-Logo-White.png", name: "O3 Collective" },
   { image: "/images/companies/kalti_logo.png", name: "Kalti" },
   { image: "/images/companies/Westminster_logo.png", name: "Westminster" },
+  { image: "/images/companies/moneyquest_Logo.png", name: "Money Quest Lonsdale" },
+  { image: "/images/companies/jett_logo.webp", name: "Jett" },
 ];
 
 export default function CompanyList() {
@@ -17,7 +19,7 @@ export default function CompanyList() {
     const container = containerRef.current;
     if (!container) return;
 
-    let scrollSpeed = 0.6;
+    let scrollSpeed = 0.8;
     let rafId: number;
 
     const scroll = () => {
@@ -47,16 +49,16 @@ export default function CompanyList() {
 
   return (
     <section className={styles.companyListSection}>
-
       <div className={styles.companySlider} ref={containerRef}>
         {companies.concat(companies).map((company, index) => (
           <div key={index} className={styles.logoCard}>
             <Image
               src={company.image}
               alt={company.name}
-              width={200}
-              height={200}
+              width={100}
+              height={50}
               className={styles.companyLogo}
+              priority
             />
           </div>
         ))}

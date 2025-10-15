@@ -5,15 +5,19 @@ import Features from "@/components/hero/Features"
 import Footer from "@/components/hero/Footer";
 import CustomerReview from "@/components/hero/CustomerReview";
 import CompanyList from "@/components/hero/CompanyList";
+import Benefit from "@/components/hero/Benefit";
 
 export default function Home() {
   return (
     <main>
       <Navbar />
       <Hero />
-      <CompanyList />
+      <div id="next-section">
+        <CompanyList />
+      </div>
       <HowItWorks />
       <Features />
+      <Benefit />
       <CustomerReview />
       <Footer />
     </main>

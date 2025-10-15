@@ -20,6 +20,13 @@ export default function Hero() {
     }
   };
 
+  const handleScrollDown = () => {
+    const nextSection = document.getElementById("next-section");
+    if (nextSection) {
+      nextSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <section className={styles.hero}>
       <div className={styles.glow}></div>
@@ -82,6 +89,7 @@ export default function Hero() {
       {/* Scroll Down Indicator */}
       <motion.div
         className={styles.scrollDown}
+        onClick={handleScrollDown}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 4.5, duration: 1 }}

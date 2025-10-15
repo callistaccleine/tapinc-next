@@ -1,117 +1,145 @@
 .featuresSection {
-  padding: 80px 24px;
+  padding: 100px 24px;
   font-family: 'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+  background: #8b3905;
+  min-height: 100vh;
   color: #111;
   overflow: hidden;
+  position: relative;
 }
 
 .featuresTitle {
-  font-size: 40px;
+  font-size: 42px;
   text-align: center;
-  margin-bottom: 40px;
-  color: #111;
+  margin-bottom: 60px;
+  color: white;
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.1;
-  text-rendering: optimizeLegibility;
 }
 
-.featuresSubtitle {
-  text-align: center;
-  font-size: 18px;
-  color: #555;
-  max-width: 600px;
-  margin: 0 auto 60px;
-  line-height: 1.5;
+.featuresSlider {
+  display: flex;
+  gap: 20px;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 20px 0 60px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  perspective: 1000px; /* 🔥 adds 3D depth */
 }
 
 .featuresSlider::-webkit-scrollbar {
   display: none;
 }
 
+/* ✅ Each card */
 .featureCard {
-  scroll-snap-align: start;
-  flex: 0 0 calc(33.33% - 20px);
-  background: #ffffff;
+  flex: 0 0 320px;
+  height: 440px;
   border-radius: 24px;
-  padding: 24px;
-  min-width: 320px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  transition: all 0.4s ease;
-  transform: translateY(0);
+  overflow: hidden;
+  scroll-snap-align: center;
   position: relative;
+  transition: all 0.4s ease-in-out;
+  background: #000;
+  color: white;
+  transform: scale(0.85) rotateY(10deg);
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.6;
 }
 
-.featureCard:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+.featureCard.active {
+  transform: scale(1) rotateY(0deg);
+  filter: grayscale(0) brightness(1);
+  opacity: 1;
+  z-index: 2;
 }
 
 .featureImage {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 24px;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.featureCard:hover .featureImage {
-  transform: scale(1.03);
+.featureCard.active .featureImage {
+  transform: scale(1.05);
+}
+
+.featureOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 24px;
+  background: linear-gradient(180deg, transparent 10%, rgba(0, 0, 0, 0.8) 100%);
+  color: white;
 }
 
 .featureTitle {
   font-size: 20px;
   font-weight: 600;
-  color: #111;
-  margin-bottom: 8px;
-  letter-spacing: -0.01em;
+  margin-bottom: 6px;
 }
 
 .featureText {
-  font-size: 16px;
-  color: #555;
-  line-height: 1.6;
-  margin-bottom: 0;
+  font-size: 15px;
+  color: #e5e5e5;
+  line-height: 1.5;
 }
 
-.featuresSlider {
-  display: flex;
-  gap: 32px;
-  overflow-x: auto;
-  scroll-snap-type: none; /* disable snap for smooth auto scroll */
-  scroll-behavior: auto; /* prevent interference with animation */
-  padding: 0 12px 24px;
-  scrollbar-width: none;
-  touch-action: pan-x;
-  -webkit-overflow-scrolling: touch;
-  position: relative;
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+.featureArrow {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  font-size: 1.3rem;
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
 }
 
+.featureArrow:hover {
+  opacity: 1;
+}
 
+/* Subtle fade on edges */
+.featuresSlider::before,
+.featuresSlider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 120px;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.featuresSlider::before {
+  left: 0;
+  background: linear-gradient(to right, white, transparent);
+}
+
+.featuresSlider::after {
+  right: 0;
+  background: linear-gradient(to left, white, transparent);
+}
+
+/* Responsive */
 @media (max-width: 1024px) {
   .featureCard {
-    flex: 0 0 calc(50% - 16px);
+    flex: 0 0 260px;
   }
 }
 
 @media (max-width: 640px) {
   .featureCard {
     flex: 0 0 90%;
-    padding: 20px;
-  }
-
-  .featureImage {
-    height: 180px;
+    height: 360px;
   }
 
   .featuresTitle {
     font-size: 32px;
-  }
-
-  .featuresSubtitle {
-    font-size: 16px;
   }
 }

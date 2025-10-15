@@ -56,8 +56,9 @@
   overflow: hidden;
   border-right: 3px solid white;
   white-space: nowrap;
-  animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+  animation: typing 5s steps(40, end) infinite, blink-caret 0.75s step-end infinite;
 }
+
 
 .heroSubtitle {
   font-size: 1.15rem;
@@ -211,13 +212,23 @@
 
 /* Animations */
 @keyframes typing {
-  from { width: 0; }
-  to { width: 100%; }
+  0%, 10% { width: 0 }
+  40%, 60% { width: 100% }
+  90%, 100% { width: 0 }
 }
 
 @keyframes blink-caret {
   from, to { border-color: transparent; }
   50% { border-color: white; }
+}
+
+@keyframes retype {
+  0%, 80% {
+    opacity: 1;
+  }
+  90%, 100% {
+    opacity: 0;
+  }
 }
 
 @keyframes fadeIn {

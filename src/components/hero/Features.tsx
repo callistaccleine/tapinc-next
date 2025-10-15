@@ -1,68 +1,65 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import FeatureCard from "../FeatureCard";
+import { useEffect, useRef } from "react";
 import styles from "../../styles/Features.module.css";
-
-const features = [
-  { title: "Links", desc: "Description of first product", image: "/images/features/feature1.jpg" },
-  { title: "Custom Exchange Form", desc: "Description of second product", image: "/images/features/feature2.jpg" },
-  { title: "Analytics", desc: "Description of third product", image: "/images/features/feature3.jpg" },
-  { title: "Google Review", desc: "Description of fourth product", image: "/images/features/feature4.jpg" },
-  { title: "Integration", desc: "Description of fifth product", image: "/images/features/feature5.jpg" },
-  { title: "Save Contact to Device", desc: "Description of sixth product", image: "/images/features/feature6.jpg" },
-];
+import Image from "next/image";
 
 export default function Features() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const slider = sliderRef.current;
+    if (!slider) return;
 
-    let scrollSpeed = 0.6; // pixels per frame
-    let rafId: number;
+    const handleScroll = () => {
+      const cards = Array.from(slider.children) as HTMLElement[];
+      const center = slider.scrollLeft + slider.offsetWidth / 2;
 
-    const scroll = () => {
-      container.scrollLeft += scrollSpeed;
-
-      // If at the end, jump back smoothly
-      if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
-        container.scrollLeft = 0;
-      }
-
-      rafId = requestAnimationFrame(scroll);
+      cards.forEach((card) => {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const distance = Math.abs(center - cardCenter);
+        if (distance < card.offsetWidth / 2) {
+          card.classList.add(styles.active);
+        } else {
+          card.classList.remove(styles.active);
+        }
+      });
     };
 
-    rafId = requestAnimationFrame(scroll);
-
-    // Pause on hover
-    const pause = () => cancelAnimationFrame(rafId);
-    const resume = () => {
-      rafId = requestAnimationFrame(scroll);
-    };
-
-    container.addEventListener("mouseenter", pause);
-    container.addEventListener("mouseleave", resume);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      container.removeEventListener("mouseenter", pause);
-      container.removeEventListener("mouseleave", resume);
-    };
+    slider.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => slider.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const features = [
+    { id: 1, title: "Digital Payment", image: "/images/features/feature1.jpg" },
+    { id: 2, title: "Management Tools", image: "/images/features/feature2.jpg" },
+    { id: 3, title: "Smart Analytics", image: "/images/features/feature3.jpg" },
+    { id: 4, title: "Premium Access", image: "/images/features/feature4.jpg" },
+  ];
 
   return (
     <section className={styles.featuresSection}>
-      <h2 className={styles.featuresTitle}>Features</h2>
-      <div className={styles.featuresSlider} ref={containerRef}>
-        {[...features, ...features].map((item, index) => (
-          <FeatureCard
-            key={index}
-            image={item.image}
-            title={item.title}
-            description={item.desc}
-          />
+      <h2 className={styles.featuresTitle}>Our Features</h2>
+
+      <div className={styles.featuresSlider} ref={sliderRef}>
+        {features.map((f) => (
+          <div key={f.id} className={styles.featureCard}>
+            <Image
+              src={f.image}
+              alt={f.title}
+              className={styles.featureImage}
+              width={400}
+              height={400}
+            />
+            <div className={styles.featureOverlay}>
+              <h3 className={styles.featureTitle}>{f.title}</h3>
+              <p className={styles.featureText}>
+                Tools that makes sharing seamless, secure and sustainable
+              </p>
+            </div>
+            <div className={styles.featureArrow}>→</div>
+          </div>
         ))}
       </div>
     </section>

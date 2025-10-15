@@ -13,7 +13,7 @@ export default function ProfileQRCode({ profileId }: { profileId: string }) {
         value={profileUrl}
         size={150} // size in pixels
         bgColor="#ffffff"
-        fgColor="#000000"
+      fgColor="#000000"
         level="H" // high error correction
         includeMargin={true}
       />

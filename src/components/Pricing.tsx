@@ -165,8 +165,8 @@ export default function Pricing() {
   return (
     <div className={styles.pricingContainer}>
       <div className={styles.pricingHeader}>
-        <h1>Choose Your Plan</h1>
-        <p>Select the perfect plan for your needs</p>
+        <h1>Start free, upgrade as your grow</h1>
+        <p>Experience the power of digital with no upfront cost, Start with our free plan and unlock advanced.</p>
 
         <div className={styles.pricingToggle}>
           {["free", "individual", "teams", "enterprise", "event"].map((cat) => (
