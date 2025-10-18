@@ -1,30 +1,19 @@
 .featuresSection {
   position: relative;
-  padding: 80px 40px;
+  padding: 120px 40px;
   background: #fdfdfd;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #f5f5f7;
-  /* Height based on number of features - each gets about 100vh */
-  height: 500vh;
-  overflow: visible;
-}
-
-/* Sticky wrapper to hold everything in place */
-.stickyWrapper {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 0;
+  min-height: 100vh;
 }
 
 /* Header Styling */
 .headerContainer {
   text-align: center;
   margin-bottom: 60px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .overline {
@@ -63,15 +52,20 @@
   height: 500px;
   border-radius: 24px;
   overflow: hidden;
+  cursor: pointer;
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  filter: brightness(0.7);
+  transform: scale(0.96);
 }
 
 /* 🔹 Expanded card */
 .featureCard.active {
   flex: 3;
+  filter: brightness(1);
+  transform: scale(1);
   z-index: 2;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.15);
 }
 
 /* 🔹 Image fill */
@@ -161,17 +155,20 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .featuresSection {
-    height: 500vh;
-    padding: 60px 20px;
+    padding: 80px 20px;
   }
 
-  .stickyWrapper {
-    padding: 20px 0;
+  .headerContainer {
+    margin-bottom: 40px;
+  }
+
+  .overline {
+    font-size: 12px;
   }
 
   .featuresTitle {
-    font-size: 32px;
-    margin-bottom: 40px;
+    font-size: 48px;
+    letter-spacing: -1.5px;
   }
 
   .featuresContainer {
@@ -182,10 +179,14 @@
   .featureCard {
     height: 380px;
     flex: 1 !important;
+    filter: brightness(0.85);
+    transform: scale(0.98);
   }
 
   .featureCard.active {
     height: 450px;
+    filter: brightness(1);
+    transform: scale(1);
   }
 
   .featureContent {
@@ -198,5 +199,22 @@
 
   .featureContent p {
     font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .featuresTitle {
+    font-size: 36px;
+    letter-spacing: -1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .featuresSection {
+    padding: 60px 20px;
+  }
+
+  .featuresTitle {
+    font-size: 28px;
   }
 }

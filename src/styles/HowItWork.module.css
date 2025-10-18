@@ -76,7 +76,7 @@
 }
 
 .tab.active {
-  background: #e85c05;
+  background: #ff9502;
   color: white;
   transform: translateX(8px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
