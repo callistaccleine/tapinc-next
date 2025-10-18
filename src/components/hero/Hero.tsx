@@ -30,11 +30,6 @@ export default function Hero() {
   return (
     <section className={styles.hero}>
       <div className={styles.glow}></div>
-
-      {/* Left sidebar */}
-      <div className={styles.leftSidebar}>
-        <span className={styles.leftText}>© TapInk 2025</span>
-      </div>
   
       <motion.div
         className={styles.heroContent}

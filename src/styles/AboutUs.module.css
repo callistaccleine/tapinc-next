@@ -1,0 +1,148 @@
+.aboutSection {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    font-family: "Poppins", sans-serif;
+    color: white;
+    background: white;
+    /* Height based on number of sections - each section gets about 100vh */
+    height: 300vh;
+    overflow: visible;
+    padding: 80px 40px;
+    box-sizing: border-box;
+  }
+  
+  /* 🔹 Image stays fixed while scrolling */
+  .imageArea {
+    position: sticky;
+    top: 80px;
+    left: 40px;
+    width: calc(50% - 60px);
+    height: calc(100vh - 160px);
+    overflow: hidden;
+    border-radius: 24px;
+    margin-right: 40px;
+  }
+  
+  .imageWrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.6s ease;
+  }
+  
+  .aboutImage {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* 🔹 Text area also sticky */
+  .textArea {
+    position: sticky;
+    top: 0;
+    width: 50%;
+    height: 100vh;
+    padding: 80px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .aboutTitle {
+    font-size: 3rem;
+    font-weight: 700;
+    color: black;
+    margin-bottom: 60px;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .textContainer {
+    position: relative;
+    min-height: 300px;
+    width: 100%;
+    max-width: 600px;
+  }
+  
+  .textBlock {
+    width: 100%;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  
+  .textBlock p {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: grey;
+    margin: 0;
+  }
+  
+  /* Progress Indicator */
+  .progressIndicator {
+    display: flex;
+    gap: 12px;
+    margin-top: 60px;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .progressDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: grey;
+    transition: all 0.4s ease;
+  }
+  
+  .progressDot.activeDot {
+    background:grey;
+    width: 32px;
+    border-radius: 4px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 900px) {
+    .aboutSection {
+      flex-direction: column;
+      height: 400vh; /* More height for mobile stacking */
+    }
+  
+    .imageArea {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      height: 40vh;
+      border-radius: 0 0 24px 24px;
+    }
+  
+    .textArea {
+      position: sticky;
+      top: 40vh;
+      width: 100%;
+      height: 60vh;
+      padding: 40px 24px;
+    }
+  
+    .aboutTitle {
+      font-size: 2.2rem;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+  
+    .textContainer {
+      max-width: 100%;
+    }
+  
+    .textBlock p {
+      text-align: center;
+      font-size: 1rem;
+    }
+  
+    .progressIndicator {
+      justify-content: center;
+      margin-top: 40px;
+    }
+  }

@@ -4,28 +4,50 @@ import { useState } from "react";
 import styles from "../../styles/HowItWork.module.css";
 
 export default function HowItWorks() {
-  const [activeTab, setActiveTab] = useState("Design");
+  const [activeTab, setActiveTab] = useState("Share");
 
   const tabs = [
     {
       name: "Share",
       icon: "🔗",
-      description: "Instantly share your profile with a single tap"
+      description: "Instantly share your profile with a single tap",
+      video:
+        "https://cizagqdvmcdhqbkxpopx.supabase.co/storage/v1/object/public/videos/tapink-share.mp4",
     },
     {
       name: "Design",
       icon: "🎨",
-      description: "Customize your card to match your brand"
+      description: "Customize your card to match your brand",
     },
     {
       name: "Analyse",
       icon: "📊",
-      description: "Track engagement and grow your network"
-    }
+      description: "Track engagement and grow your network",
+    },
   ];
 
   const renderContent = () => {
-    const content = tabs.find(tab => tab.name === activeTab);
+    const content = tabs.find((tab) => tab.name === activeTab);
+
+    // ✅ If the current tab has a video, only show the video
+    if (content?.video) {
+      return (
+        <div className={styles.videoContainer} key={activeTab}>
+          <video
+            key={content.video}
+            src={content.video}
+            controls
+            autoPlay
+            loop
+            muted
+            playsInline
+            className={styles.videoPlayer}
+          />
+        </div>
+      );
+    }
+
+    // ✅ Otherwise, show the icon, title, and description
     return (
       <div className={styles.videoContainer} key={activeTab}>
         <div className={styles.contentIcon}>{content?.icon}</div>
@@ -50,7 +72,9 @@ export default function HowItWorks() {
         {tabs.map((tab) => (
           <span
             key={tab.name}
-            className={`${styles.tab} ${activeTab === tab.name ? styles.active : ""}`}
+            className={`${styles.tab} ${
+              activeTab === tab.name ? styles.active : ""
+            }`}
             onMouseEnter={() => setActiveTab(tab.name)}
           >
             {tab.name}
@@ -58,7 +82,7 @@ export default function HowItWorks() {
         ))}
       </div>
 
-      {/* Content */}
+      {/* Dynamic Content */}
       {renderContent()}
     </section>
   );

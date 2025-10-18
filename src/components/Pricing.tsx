@@ -254,7 +254,7 @@ export default function Pricing() {
       {/* Contact Form Modal */}
       {showContact && (
         <div className={styles.contactModal}>
-          <ContactForm isOpen={showContact} onClose={handleCloseContact} />
+          <ContactForm isModal={showContact} onClose={handleCloseContact} />
         </div>
       )}
     </div>

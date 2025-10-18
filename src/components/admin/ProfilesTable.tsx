@@ -49,7 +49,7 @@ export default function ProfilesTable() {
               <td>{p.subtitle}</td>
               <td>{new Date(p.created_at).toLocaleString()}</td>
               <td>
-                <button onClick={() => deleteProfile(p.id)}>🗑️</button>
+                <button className={styles.deleteBtn} onClick={() => deleteProfile(p.id)}>Delete</button>
               </td>
             </tr>
           ))}

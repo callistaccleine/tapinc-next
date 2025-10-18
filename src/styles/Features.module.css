@@ -1,145 +1,157 @@
 .featuresSection {
-  padding: 100px 24px;
+  padding: 24px 24px;
+  background: #fff;
   font-family: 'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-  background: #8b3905;
-  min-height: 100vh;
   color: #111;
-  overflow: hidden;
-  position: relative;
+  min-height: 100vh;
 }
 
 .featuresTitle {
   font-size: 42px;
   text-align: center;
   margin-bottom: 60px;
-  color: white;
+  color: black;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.featuresSlider {
+/* 🔹 Container with equal spacing */
+.featuresContainer {
   display: flex;
+  justify-content: center;
+  align-items: stretch;
   gap: 20px;
-  overflow-x: scroll;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 20px 0 60px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  perspective: 1000px; /* 🔥 adds 3D depth */
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
 }
 
-.featuresSlider::-webkit-scrollbar {
-  display: none;
-}
 
-/* ✅ Each card */
+/* 🔹 Card base */
 .featureCard {
-  flex: 0 0 320px;
-  height: 440px;
+  position: relative;
+  flex: 1;
+  height: 500px;
   border-radius: 24px;
   overflow: hidden;
-  scroll-snap-align: center;
-  position: relative;
-  transition: all 0.4s ease-in-out;
-  background: #000;
-  color: white;
-  transform: scale(0.85) rotateY(10deg);
-  filter: grayscale(1) brightness(0.7);
-  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  filter: brightness(0.7);
+  transform: scale(0.96);
 }
 
+/* 🔹 Expanded card */
 .featureCard.active {
-  transform: scale(1) rotateY(0deg);
-  filter: grayscale(0) brightness(1);
-  opacity: 1;
+  flex: 3;
+  filter: brightness(1);
+  transform: scale(1);
   z-index: 2;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
+/* 🔹 Image fill */
 .featureImage {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
-  border-radius: 24px;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.6s ease;
 }
 
 .featureCard.active .featureImage {
   transform: scale(1.05);
 }
 
-.featureOverlay {
+/* 🔹 Number Badge */
+.featureId {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 24px;
-  background: linear-gradient(180deg, transparent 10%, rgba(0, 0, 0, 0.8) 100%);
+  top: 20px;
+  left: 20px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
-}
-
-.featureTitle {
-  font-size: 20px;
   font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.featureText {
-  font-size: 15px;
-  color: #e5e5e5;
-  line-height: 1.5;
-}
-
-.featureArrow {
-  position: absolute;
-  bottom: 24px;
-  right: 24px;
-  font-size: 1.3rem;
-  color: white;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s ease;
   opacity: 0.8;
-  transition: opacity 0.3s ease;
 }
 
-.featureArrow:hover {
+/* 🔸 When active — enlarge and highlight */
+.activeId {
+  background: white;
+  color: #ff5c00;
+  border: none;
+  transform: scale(1.2);
   opacity: 1;
+  box-shadow: 0 4px 12px rgba(255, 92, 0, 0.3);
 }
 
-/* Subtle fade on edges */
-.featuresSlider::before,
-.featuresSlider::after {
-  content: '';
+/* Optional hover animation for subtle feedback */
+.featureCard:hover .featureId {
+  transform: scale(1.05);
+}
+
+
+/* 🔹 Gradient overlay */
+.overlay {
   position: absolute;
-  top: 0;
-  width: 120px;
-  height: 100%;
-  z-index: 5;
-  pointer-events: none;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 40%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 30px;
+  transition: background 0.3s ease;
 }
 
-.featuresSlider::before {
-  left: 0;
-  background: linear-gradient(to right, white, transparent);
+/* 🔹 Text section */
+.featureContent {
+  color: white;
+  transition: all 0.4s ease;
+  max-width: 80%;
 }
 
-.featuresSlider::after {
-  right: 0;
-  background: linear-gradient(to left, white, transparent);
+.featureContent h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.featureContent p {
+  font-size: 1rem;
+  color: #ddd;
+  line-height: 1.5;
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+}
+
+/* ✅ When active, show description */
+.featureCard.active .featureContent p {
+  opacity: 1;
+  max-height: 200px;
+  transform: translateY(0);
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .featureCard {
-    flex: 0 0 260px;
-  }
-}
-
-@media (max-width: 640px) {
-  .featureCard {
-    flex: 0 0 90%;
-    height: 360px;
+  .featuresContainer {
+    flex-direction: column;
+    gap: 30px;
   }
 
-  .featuresTitle {
-    font-size: 32px;
+  .featureCard {
+    height: 380px;
+  }
+
+  .featureCard.active {
+    flex: 1;
+    height: 450px;
   }
 }

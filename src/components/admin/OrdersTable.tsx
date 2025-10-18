@@ -51,7 +51,7 @@ export default function OrdersTable() {
               <td>{o.status}</td>
               <td>{new Date(o.created_at).toLocaleString()}</td>
               <td>
-                <button onClick={() => deleteOrder(o.id)}>🗑️</button>
+                <button onClick={() => deleteOrder(o.id)}>Delete</button>
               </td>
             </tr>
           ))}

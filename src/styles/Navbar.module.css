@@ -16,18 +16,6 @@
   transition: background 0.4s ease;
 }
 
-/* Left sidebar that overlaps navbar */
-.navbar::before {
-  content: '';
-  position: fixed; /* Changed to fixed so it extends down */
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 60px;
-  background: rgba(0, 0, 0, 0.1);
-  z-index: -1; /* Behind navbar content but visible */
-}
-
 /* Adjust logo to account for sidebar */
 .navbarLogo {
   display: flex;
@@ -202,3 +190,47 @@
 .logout {
   color: #b22222;
 }
+
+/* Light text for dark backgrounds (e.g. hero) */
+.navbarLight {
+  color: white;
+}
+
+.navbarLight .navbarLinks a,
+.navbarLight .navbarCta,
+.navbarLight .avatarProfile {
+  color: white;
+  border-color: white;
+}
+
+.navbarLight .navbarLinks a::after {
+  background-color: white;
+}
+
+/* Dark text for light backgrounds (e.g. support page) */
+.navbarDark {
+  color: #ff5c00;
+  background: white;
+}
+
+.navbarDark .navbarLinks a,
+.navbarDark .navbarCta,
+.navbarDark .avatarProfile {
+  color: #ff5c00;
+  border-color: #ff5c00;
+}
+
+.navbarDark .navbarLinks a::after {
+  background-color: #ff5c00;
+}
+
+.navbarDark .navbarCta:hover {
+  background: #ff5c00;
+  color: white;
+}
+
+.navbarDark .avatarProfile:hover {
+  background: #ff5c00;
+  color: white;
+}
+

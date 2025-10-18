@@ -1,6 +1,6 @@
 .reviewSection {
   padding: 80px 24px;
-  background: #8b3905;
+  background: white;
   min-height: 100 vh;
   text-align: center;
   overflow: hidden;
@@ -12,7 +12,7 @@
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 40px;
-  color: white;
+  color: black;
   letter-spacing: -0.02em;
 }
 

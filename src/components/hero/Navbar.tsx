@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname  } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
@@ -12,6 +12,9 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const chipRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isDarkBackground = pathname === "/"; 
 
   // Check session on load
   useEffect(() => {
@@ -52,8 +55,11 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={styles.navbar}>
-      {/* ✅ Logo */}
+    <nav
+      className={`${styles.navbar} ${
+        isDarkBackground ? styles.navbarLight : styles.navbarDark
+      }`}
+    >
       <div
         className={styles.navbarLogo}
         onClick={() => router.push("/")}
@@ -67,6 +73,7 @@ export default function Navbar() {
         <li><Link href="/">Home</Link></li>
         <li><Link href="/products">Products</Link></li>
       <li><Link href="/pricing">Pricing</Link></li>
+      <li><Link href="/support">Support</Link></li>
       </ul>
   
       {/* ✅ User Section (stays on the right) */}
