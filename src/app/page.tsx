@@ -5,7 +5,6 @@ import Features from "@/components/hero/Features"
 import Footer from "@/components/hero/Footer";
 import CustomerReview from "@/components/hero/CustomerReview";
 import CompanyList from "@/components/hero/CompanyList";
-import Benefit from "@/components/hero/Benefit";
 import AboutUs from "@/components/AboutUs";
 
 export default function Home() {
@@ -19,7 +18,6 @@ export default function Home() {
       <AboutUs />
       <HowItWorks />
       <Features />
-      <Benefit />
       <CustomerReview />
       <Footer />
     </main>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "@/styles/AboutUs.module.css";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function AboutUs() {
   const sections = [
@@ -17,9 +18,18 @@ export default function AboutUs() {
       text: `Our mission is to empower professionals, entrepreneurs and eventgoers to create instant, meaningful connections — delivering a smarter, more elegant way to network in a world that values both efficiency and authenticity.`,
     },
     {
-      id: 3,
+        id: 3,
+        image:"/images/features/feature2.jpg",
+        text: `While other companies limit you to a single use or static design, TapInk lets you do more
+        with just one card. You can create and manage multiple profiles for work, personal use
+        or events - all within the same TapInk card. Switch between them anytime to match how
+        and where you connect.`
+    },
+    {
+      id: 4,
       image: "/images/features/feature3.jpg",
-      text: `With TapInk, you don't just share — you keep connections flowing with every tap. Whether it's networking, social sharing, events or product engagement, every interaction becomes a lasting digital experience.`,
+      text: `TapInk goes beyond digital convenience. It's built for professionals, creators and
+businesses that value meaningful, lasting connections without waste, reprints or limits.`
     },
   ];
 
@@ -100,7 +110,15 @@ export default function AboutUs() {
 
       {/* Sticky Text Area */}
       <div className={styles.textArea}>
-        <h2 className={styles.aboutTitle}>About TapInk</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as const }}
+        >
+          <p className={styles.overline}>About Us</p>
+          <h2 className={styles.aboutTitle}>Redefining connections.</h2>
+        </motion.div>
 
         <div className={styles.textContainer}>
           {sections.map((s, i) => {

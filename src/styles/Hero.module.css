@@ -35,7 +35,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, #ff6600 0%, #ff5c00 100%);
+  background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
   opacity: 0.85; /* Adjust gradient overlay */
   z-index: 1;
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import styles from "../../styles/HowItWork.module.css";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HowItWorks() {
   const [activeTab, setActiveTab] = useState("Share");
@@ -10,80 +11,199 @@ export default function HowItWorks() {
     {
       name: "Share",
       icon: "🔗",
-      description: "Instantly share your profile with a single tap",
+      title: "Share instantly",
+      description: "Tap your TapInk card to any smartphone. No app required. Your digital profile appears instantly, making connections effortless.",
       video:
         "https://cizagqdvmcdhqbkxpopx.supabase.co/storage/v1/object/public/videos/tapink-share.mp4",
     },
     {
       name: "Design",
       icon: "🎨",
-      description: "Customize your card to match your brand",
+      title: "Design beautifully",
+      description: "Customize your card to match your brand with our intuitive design tools. Choose colors, layouts, and add your unique touch.",
+      image: "/images/design-preview.jpg",
     },
     {
       name: "Analyse",
       icon: "📊",
-      description: "Track engagement and grow your network",
+      title: "Analyse deeply",
+      description: "Track engagement, understand your audience, and grow your network with powerful analytics. See who viewed your profile and when.",
+      image: "/images/analytics-preview.jpg",
     },
   ];
 
-  const renderContent = () => {
-    const content = tabs.find((tab) => tab.name === activeTab);
+  const currentTab = tabs.find((tab) => tab.name === activeTab);
 
-    // ✅ If the current tab has a video, only show the video
-    if (content?.video) {
-      return (
-        <div className={styles.videoContainer} key={activeTab}>
-          <video
-            key={content.video}
-            src={content.video}
-            controls
-            autoPlay
-            loop
-            muted
-            playsInline
-            className={styles.videoPlayer}
-          />
-        </div>
-      );
-    }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
 
-    // ✅ Otherwise, show the icon, title, and description
-    return (
-      <div className={styles.videoContainer} key={activeTab}>
-        <div className={styles.contentIcon}>{content?.icon}</div>
-        <h3 className={styles.contentTitle}>{activeTab}</h3>
-        <p className={styles.contentDescription}>{content?.description}</p>
-      </div>
-    );
+  const tabVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.25, 0.46, 0.45, 0.94] as const,
+      },
+    },
+  };
+
+  const contentVariants = {
+    hidden: { 
+      opacity: 0,
+      scale: 0.95,
+      y: 20,
+    },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.46, 0.45, 0.94] as const,
+      },
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.95,
+      y: -20,
+      transition: {
+        duration: 0.3,
+        ease: [0.25, 0.46, 0.45, 0.94] as const,
+      },
+    },
   };
 
   return (
     <section className={styles.howItWorks}>
       {/* Section Header */}
-      <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>How It Works</h2>
-        <p className={styles.sectionDescription}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as const }}
+        className={styles.sectionHeader}
+      >
+        <motion.p 
+          className={styles.overline}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+        >
+          How It Works
+        </motion.p>
+        <h2 className={styles.sectionTitle}>
+          Simple. Powerful. Instant.
+        </h2>
+        <motion.p 
+          className={styles.sectionDescription}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+        >
           Three simple steps to revolutionize the way you connect
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
 
-      {/* Tabs */}
-      <div className={styles.tabs}>
-        {tabs.map((tab) => (
-          <span
-            key={tab.name}
-            className={`${styles.tab} ${
-              activeTab === tab.name ? styles.active : ""
-            }`}
-            onMouseEnter={() => setActiveTab(tab.name)}
-          >
-            {tab.name}
-          </span>
-        ))}
-      </div>
+      {/* Main Content Container */}
+      <div className={styles.mainContainer}>
+        {/* Tabs */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          className={styles.tabs}
+        >
+          {tabs.map((tab, index) => (
+            <motion.div
+              key={tab.name}
+              variants={tabVariants}
+              className={`${styles.tab} ${
+                activeTab === tab.name ? styles.active : ""
+              }`}
+              onClick={() => setActiveTab(tab.name)}
+              onMouseEnter={() => setActiveTab(tab.name)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className={styles.tabNumber}>
+                {String(index + 1).padStart(2, '0')}
+              </div>
+              <div className={styles.tabContent}>
+                <span className={styles.tabIcon}>{tab.icon}</span>
+                <span className={styles.tabName}>{tab.name}</span>
+              </div>
+              <div className={styles.tabIndicator}></div>
+            </motion.div>
+          ))}
+        </motion.div>
 
-      {/* Dynamic Content */}
-      {renderContent()}
+        {/* Dynamic Content */}
+        <div className={styles.contentArea}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              variants={contentVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className={styles.contentWrapper}
+            >
+              {currentTab?.video ? (
+                <div className={styles.mediaContainer}>
+                  <video
+                    key={currentTab.video}
+                    src={currentTab.video}
+                    controls
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className={styles.videoPlayer}
+                  />
+                </div>
+              ) : (
+                <div className={styles.mediaContainer}>
+                  <div className={styles.placeholderContent}>
+                    <div className={styles.largeIcon}>{currentTab?.icon}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.textContent}>
+                <motion.h3
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className={styles.contentTitle}
+                >
+                  {currentTab?.title}
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className={styles.contentDescription}
+                >
+                  {currentTab?.description}
+                </motion.p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
     </section>
   );
 }

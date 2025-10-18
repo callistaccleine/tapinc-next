@@ -1,214 +1,370 @@
 .howItWorks {
-  padding: 100px 80px;
-  background: #fff;
-  font-family: 'Poppins', sans-serif;
-  min-height: 100vh;
+  padding: 120px 40px;
+  background: #fdfdfd;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Section Header */
+/* Header Styling */
 .sectionHeader {
   text-align: center;
-  margin-bottom: 60px;
-  opacity: 0;
-  animation: fadeInUp 0.6s ease forwards;
+  max-width: 800px;
+  margin: 0 auto 80px;
+}
+
+.overline {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6e6e73;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
 }
 
 .sectionTitle {
-  font-size: 3rem;
+  font-size: 56px;
   font-weight: 700;
-  color: black;
-  margin-bottom: 16px;
+  color: #1d1d1f;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin-bottom: 20px;
 }
 
 .sectionDescription {
-  font-size: 1.15rem;
-  color: black;
-  max-width: 600px;
+  font-size: 21px;
+  color: #6e6e73;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* Main Container */
+.mainContainer {
+  max-width: 1200px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 60px;
+  align-items: start;
 }
 
 /* Tabs */
 .tabs {
   display: flex;
-  justify-content: center;
-  gap: 60px;
-  margin-bottom: 48px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 120px;
 }
 
 .tab {
-  cursor: pointer;
   position: relative;
-  padding-bottom: 8px;
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: black;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px;
+  background: #f5f5f7;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow: hidden;
 }
 
 .tab:hover {
-  color: #ff5c00;
+  background: #e8e8ed;
+  transform: translateX(4px);
 }
 
-.active {
+.tab.active {
+  background: #e85c05;
+  color: white;
+  transform: translateX(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.tabNumber {
+  font-size: 14px;
   font-weight: 600;
-  color: #ff5c00;
+  color: #86868b;
+  transition: color 0.3s ease;
 }
 
-.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #ff6600 0%, #ff5c00 100%);
-  border-radius: 2px;
-  animation: slideIn 0.3s ease;
+.tab.active .tabNumber {
+  color: #ffffff;
+  opacity: 0.6;
 }
 
-/* Content Container */
-.videoContainer {
-  background: linear-gradient(135deg, #fff5f0 0%, #ffffff 100%);
-  border-radius: 24px;
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(255, 92, 0, 0.08);
-  border: 1px solid rgba(255, 92, 0, 0.1);
+.tabContent {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  animation: fadeInUp 0.4s ease;
-  position: relative;
-  transition: all 0.4s ease;
-  padding: 60px 40px;
+  gap: 12px;
+  flex: 1;
 }
 
-/* 🎥 Video Styling */
-.videoPlayer {
-  width: 100%;
-  max-width: 700px;
-  height: auto;
-  object-fit: cover;
-  border-radius: 16px;
-  opacity: 0;
-  transform: scale(1.03);
-  animation: fadeZoomIn 0.9s ease forwards;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+.tabIcon {
+  font-size: 24px;
   transition: transform 0.3s ease;
 }
 
-.videoPlayer:hover {
-  transform: scale(1.05);
+.tab.active .tabIcon {
+  transform: scale(1.1);
 }
 
-/* Text-based content (Design / Analyse) */
-.contentIcon {
-  font-size: 80px;
-  margin-bottom: 24px;
-  animation: fadeInUp 0.5s ease;
+.tabName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d1d1f;
+  transition: color 0.3s ease;
+}
+
+.tab.active .tabName {
+  color: white;
+}
+
+.tabIndicator {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 4px 0 0 4px;
+}
+
+.tab.active .tabIndicator {
+  opacity: 1;
+}
+
+/* Content Area */
+.contentArea {
+  position: relative;
+  min-height: 600px;
+}
+
+.contentWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.mediaContainer {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  background: #f5f5f7;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+.videoPlayer {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 24px;
+}
+
+.placeholderContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+}
+
+.largeIcon {
+  font-size: 120px;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2));
+}
+
+.textContent {
+  padding: 20px 0;
 }
 
 .contentTitle {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-size: 36px;
+  font-weight: 700;
+  color: #1d1d1f;
   margin-bottom: 16px;
-  animation: fadeInUp 0.5s ease 0.1s forwards;
+  letter-spacing: -0.5px;
 }
 
 .contentDescription {
-  font-size: 1.1rem;
-  color: #666;
-  max-width: 500px;
+  font-size: 19px;
+  color: #6e6e73;
   line-height: 1.6;
+  max-width: 600px;
+}
+
+/* Highlights Section */
+.highlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: 1200px;
+  margin: 100px auto 0;
+  padding-top: 80px;
+  border-top: 1px solid #d2d2d7;
+}
+
+.highlight {
   text-align: center;
-  animation: fadeInUp 0.5s ease 0.2s forwards;
+  padding: 32px 24px;
+  background: #fbfbfd;
+  border-radius: 20px;
+  transition: all 0.3s ease;
 }
 
-/* ✨ Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.highlight:hover {
+  background: #f5f5f7;
+  transform: translateY(-4px);
 }
 
-@keyframes fadeZoomIn {
-  0% {
-    opacity: 0;
-    transform: scale(1.05);
-  }
-  60% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+.highlightIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: inline-block;
+  transition: transform 0.3s ease;
 }
 
-@keyframes slideIn {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
+.highlight:hover .highlightIcon {
+  transform: scale(1.1);
 }
 
-/* Responsive */
+.highlight h4 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 8px;
+}
+
+.highlight p {
+  font-size: 15px;
+  color: #6e6e73;
+}
+
+/* Responsive Design */
 @media (max-width: 1024px) {
-  .videoContainer {
-    max-width: 90%;
+  .mainContainer {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .tabs {
+    position: relative;
+    top: 0;
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    min-width: 200px;
+  }
+
+  .sectionTitle {
+    font-size: 44px;
   }
 }
 
 @media (max-width: 768px) {
   .howItWorks {
+    padding: 80px 24px;
+  }
+
+  .sectionHeader {
+    margin-bottom: 60px;
+  }
+
+  .sectionTitle {
+    font-size: 36px;
+    letter-spacing: -1px;
+  }
+
+  .sectionDescription {
+    font-size: 18px;
+  }
+
+  .tabs {
+    gap: 8px;
+  }
+
+  .tab {
+    min-width: 160px;
+    padding: 20px 24px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .tabNumber {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 12px;
+  }
+
+  .tabContent {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mediaContainer {
+    height: 400px;
+  }
+
+  .contentTitle {
+    font-size: 28px;
+  }
+
+  .contentDescription {
+    font-size: 17px;
+  }
+
+  .highlights {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-top: 60px;
+    padding-top: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .howItWorks {
     padding: 60px 20px;
   }
 
   .sectionTitle {
-    font-size: 2rem;
+    font-size: 28px;
   }
 
   .sectionDescription {
-    font-size: 1rem;
-  }
-
-  .tabs {
-    gap: 30px;
+    font-size: 16px;
   }
 
   .tab {
-    font-size: 1.1rem;
+    min-width: 140px;
+    padding: 16px 20px;
   }
 
-  .videoContainer {
-    padding: 40px 20px;
+  .mediaContainer {
+    height: 300px;
   }
 
-  .videoPlayer {
-    max-width: 100%;
-  }
-
-  .contentIcon {
-    font-size: 60px;
+  .largeIcon {
+    font-size: 80px;
   }
 
   .contentTitle {
-    font-size: 1.5rem;
+    font-size: 24px;
   }
 
   .contentDescription {
-    font-size: 1rem;
+    font-size: 16px;
   }
 }
