@@ -57,14 +57,14 @@ html, body{
   }
   
   .toggleButtonActive {
-    background: #6da8ff;
+    background: #ff9502;
     color: white;
     box-shadow: 0 4px 12px rgba(34, 127, 136, 0.3);
   }
   
   .toggleButton:hover:not(.toggleButtonActive) {
     background: rgba(34, 127, 136, 0.1);
-    color: #6da8ff;
+    color: #ff9502;
   }
   
   .pricingGrid {
@@ -181,7 +181,7 @@ html, body{
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: linear-gradient(135deg, #227F88 0%, #57C1BD 100%);
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
     color: white;
   }
   
@@ -199,7 +199,7 @@ html, body{
   .linkButton {
     background: none;
     border: none;
-    color: #227F88;
+    color: black;
     text-decoration: underline;
     cursor: pointer;
   }

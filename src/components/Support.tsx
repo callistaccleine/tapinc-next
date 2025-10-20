@@ -28,6 +28,11 @@ export default function Support() {
       answer:
         "Yes, we do offer custom NFC cards for teams or businesses. Contact our sales team using the form above.",
     },
+    {
+      question: "What if I'm not good at designing my card",
+      answer:
+        "No worries, Our professional designers can help you create a polished, eye-catching card that suits your style.",
+    },
   ];
 
   return (

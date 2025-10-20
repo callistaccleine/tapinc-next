@@ -15,15 +15,13 @@ export default function Checkout() {
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
   useEffect(() => {
-    const key =
-    process.env.NODE_ENV === "production"
-      ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-      : process.env.NEXT_PUBLIC_STRIPE_TEST_PUBLISHABLE_KEY;
-
+    const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  
     if (!key) {
       console.error("Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
       return;
     }
+  
     setStripePromise(loadStripe(key));
   }, []);
 

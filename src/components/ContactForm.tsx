@@ -22,6 +22,7 @@ export default function ContactForm({ isModal = false, onClose }: ContactFormPro
     "Connections",
     "Sign in & up",
     "Workspace managing",
+    "Design",
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -126,7 +127,7 @@ export default function ContactForm({ isModal = false, onClose }: ContactFormPro
             value={form.message}
             onChange={handleChange}
             required
-            className={styles.textarea}
+            className={styles.input}
           />
 
           <button type="submit" className={styles.submitBtn} disabled={status.loading}>

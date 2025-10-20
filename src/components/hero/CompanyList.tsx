@@ -7,7 +7,7 @@ import styles from "../../styles/CompanyList.module.css";
 const companies = [
   { image: "/images/companies/o3_Logo.png", name: "O3 Collective" },
   { image: "/images/companies/kalti_logo.png", name: "Kalti" },
-  { image: "/images/companies/Westminster_logo.png", name: "Westminster" },
+  { image: "/images/companies/westminster.png", name: "Westminster" },
   { image: "/images/companies/moneyquest_Logo.png", name: "Money Quest Lonsdale" },
   { image: "/images/companies/jett_logo.webp", name: "Jett" },
 ];
