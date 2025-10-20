@@ -85,9 +85,7 @@ const Contacts: React.FC = () => {
         <table className={styles.contactsTable}>
           <thead>
             <tr className={styles.tableHeader}>
-              <th className={styles.checkboxColumn}>
-                <input type={styles.checkbox} />
-              </th>
+              <th className={styles.indexColumn}>#</th>
               <th className={styles.nameColumn}>Name</th>
               <th className={styles.emailColumn}>Email</th>
               <th className={styles.statusColumn}>Status</th>
@@ -105,11 +103,9 @@ const Contacts: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              sortedContacts.map((contact) => (
+              sortedContacts.map((contact,index) => (
                 <tr key={contact.name} className={styles.tableRow}>
-                  <td className={styles.checkboxCell}>
-                    <input type={styles.checkboxInput} />
-                  </td>
+                  <td className={styles.indexCell}>{index + 1}</td>
                   <td className={styles.nameCell}>
                     <div className={styles.contactInfo}>
                       <div className={styles.avatar}>
@@ -127,15 +123,15 @@ const Contacts: React.FC = () => {
                   </td>
                   <td className={styles.emailCell}>{contact.email}</td>
                   <td className={styles.statusCell}>
-                    <span
-                      className={`{styles.statusBadge}${
-                        contact.status === 'Active'
-                          ? 'status-active'
-                          : 'status-inactive'
-                      }`}
-                    >
-                      {contact.status}
-                    </span>
+                  <span
+                    className={`${styles.statusBadge} ${
+                      contact.status === 'Active'
+                        ? styles.statusActive
+                        : styles.statusInactive
+                    }`}
+                  >
+                    {contact.status}
+                  </span>
                   </td>
                   <td className={styles.locationCell}>
                     {contact.location || 'N/A'}
