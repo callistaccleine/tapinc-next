@@ -1,117 +1,220 @@
 .featuresSection {
-  padding: 80px 24px;
-  font-family: 'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
-  color: #111;
-  overflow: hidden;
+  position: relative;
+  padding: 120px 40px;
+  background: #fdfdfd;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #f5f5f7;
+  min-height: 100vh;
+}
+
+/* Header Styling */
+.headerContainer {
+  text-align: center;
+  margin-bottom: 60px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.overline {
+  font-size: 14px;
+  font-weight: 600;
+  color: #86868b;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 12px;
 }
 
 .featuresTitle {
-  font-size: 40px;
-  text-align: center;
-  margin-bottom: 40px;
-  color: #111;
+  font-size: 64px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  text-rendering: optimizeLegibility;
+  color: black;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin: 0;
 }
 
-.featuresSubtitle {
-  text-align: center;
-  font-size: 18px;
-  color: #555;
-  max-width: 600px;
-  margin: 0 auto 60px;
-  line-height: 1.5;
-}
-
-.featuresSlider::-webkit-scrollbar {
-  display: none;
-}
-
-.featureCard {
-  scroll-snap-align: start;
-  flex: 0 0 calc(33.33% - 20px);
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 24px;
-  min-width: 320px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  transition: all 0.4s ease;
-  transform: translateY(0);
-  position: relative;
-}
-
-.featureCard:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
-}
-
-.featureImage {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 16px;
-  margin-bottom: 20px;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.featureCard:hover .featureImage {
-  transform: scale(1.03);
-}
-
-.featureTitle {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111;
-  margin-bottom: 8px;
-  letter-spacing: -0.01em;
-}
-
-.featureText {
-  font-size: 16px;
-  color: #555;
-  line-height: 1.6;
-  margin-bottom: 0;
-}
-
-.featuresSlider {
+/* 🔹 Container with equal spacing */
+.featuresContainer {
   display: flex;
-  gap: 32px;
-  overflow-x: auto;
-  scroll-snap-type: none; /* disable snap for smooth auto scroll */
-  scroll-behavior: auto; /* prevent interference with animation */
-  padding: 0 12px 24px;
-  scrollbar-width: none;
-  touch-action: pan-x;
-  -webkit-overflow-scrolling: touch;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+/* 🔹 Card base */
+.featureCard {
   position: relative;
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  flex: 1;
+  height: 500px;
+  border-radius: 24px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  filter: brightness(0.7);
+  transform: scale(0.96);
 }
 
+/* 🔹 Expanded card */
+.featureCard.active {
+  flex: 3;
+  filter: brightness(1);
+  transform: scale(1);
+  z-index: 2;
+  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.15);
+}
 
+/* 🔹 Image fill */
+.featureImage {
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.featureCard.active .featureImage {
+  transform: scale(1.05);
+}
+
+/* 🔹 Number Badge */
+.featureId {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s ease;
+  opacity: 0.8;
+  z-index: 10;
+}
+
+/* 🔸 When active — enlarge and highlight */
+.activeId {
+  background: white;
+  color: #ff5c00;
+  border: none;
+  transform: scale(1.2);
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(255, 92, 0, 0.3);
+}
+
+/* 🔹 Gradient overlay */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 40%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 30px;
+  transition: background 0.3s ease;
+}
+
+/* 🔹 Text section */
+.featureContent {
+  color: white;
+  transition: all 0.4s ease;
+  max-width: 80%;
+}
+
+.featureContent h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.featureContent p {
+  font-size: 1rem;
+  color: #ddd;
+  line-height: 1.5;
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+}
+
+/* ✅ When active, show description */
+.featureCard.active .featureContent p {
+  opacity: 1;
+  max-height: 200px;
+  transform: translateY(0);
+}
+
+/* Responsive */
 @media (max-width: 1024px) {
-  .featureCard {
-    flex: 0 0 calc(50% - 16px);
-  }
-}
-
-@media (max-width: 640px) {
-  .featureCard {
-    flex: 0 0 90%;
-    padding: 20px;
+  .featuresSection {
+    padding: 80px 20px;
   }
 
-  .featureImage {
-    height: 180px;
+  .headerContainer {
+    margin-bottom: 40px;
+  }
+
+  .overline {
+    font-size: 12px;
   }
 
   .featuresTitle {
-    font-size: 32px;
+    font-size: 48px;
+    letter-spacing: -1.5px;
   }
 
-  .featuresSubtitle {
-    font-size: 16px;
+  .featuresContainer {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .featureCard {
+    height: 380px;
+    flex: 1 !important;
+    filter: brightness(0.85);
+    transform: scale(0.98);
+  }
+
+  .featureCard.active {
+    height: 450px;
+    filter: brightness(1);
+    transform: scale(1);
+  }
+
+  .featureContent {
+    max-width: 90%;
+  }
+
+  .featureContent h3 {
+    font-size: 1.2rem;
+  }
+
+  .featureContent p {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .featuresTitle {
+    font-size: 36px;
+    letter-spacing: -1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .featuresSection {
+    padding: 60px 20px;
+  }
+
+  .featuresTitle {
+    font-size: 28px;
   }
 }

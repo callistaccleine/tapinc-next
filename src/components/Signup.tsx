@@ -20,10 +20,37 @@ export default function Signup() {
   const [message, setMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  const passwordRules = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const isPasswordValid =
+  passwordRules.length &&
+  passwordRules.uppercase &&
+  passwordRules.lowercase &&
+  passwordRules.number &&
+  passwordRules.special;
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
+
+    if (!isPasswordValid) {
+      setMessage("Password does not meet all security requirements.")
+      return;
+    }
+
+    if (!agree) {
+      setMessage("You must agree to the Terms and Privacy Policy.");
+      return;
+    }
+
+    setIsLoading(true); 
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -86,7 +113,6 @@ export default function Signup() {
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
 
-            {/* ✅ Password with toggle */}
             <label className={styles.signupLabel}>Password*</label>
             <div className={styles.passwordWrapper}>
               <input
@@ -105,6 +131,27 @@ export default function Signup() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
+
+            {/* ✅ Password strength checklist */}
+            {password && (
+              <ul className={styles.passwordChecklist}>
+                <li className={passwordRules.length ? styles.valid : styles.invalid}>
+                  {passwordRules.length ? "✓" : "✗"} At least 8 characters
+                </li>
+                <li className={passwordRules.uppercase ? styles.valid : styles.invalid}>
+                  {passwordRules.uppercase ? "✓" : "✗"} One uppercase letter
+                </li>
+                <li className={passwordRules.lowercase ? styles.valid : styles.invalid}>
+                  {passwordRules.lowercase ? "✓" : "✗"} One lowercase letter
+                </li>
+                <li className={passwordRules.number ? styles.valid : styles.invalid}>
+                  {passwordRules.number ? "✓" : "✗"} One number
+                </li>
+                <li className={passwordRules.special ? styles.valid : styles.invalid}>
+                  {passwordRules.special ? "✓" : "✗"} One special character
+                </li>
+              </ul>
+            )}
 
             <label className={styles.agreeRow}>
               <input

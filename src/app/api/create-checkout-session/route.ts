@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_LIVE_SECRET_KEY || process.env.STRIPE_SECRET_KEY!, {
+// const stripe = new Stripe(process.env.STRIPE_LIVE_SECRET_KEY || process.env.STRIPE_SECRET_KEY!, {
+//   apiVersion: "2025-08-27.basil",
+// });
+
+const isProd = process.env.NODE_ENV === "production";
+
+const stripe = new Stripe(process.env.STRIPE_LIVE_SECRET_KEY!, {
   apiVersion: "2025-08-27.basil",
 });
 

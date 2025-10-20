@@ -51,7 +51,7 @@ export default function DesignProfilesTable() {
               <td>{d.email}</td>
               <td>{new Date(d.updated_at).toLocaleString()}</td>
               <td>
-                <button onClick={() => deleteDesignProfile(d.id)}>🗑️</button>
+                <button onClick={() => deleteDesignProfile(d.id)}>Delete</button>
               </td>
             </tr>
           ))}

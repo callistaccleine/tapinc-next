@@ -16,10 +16,12 @@ export default function Checkout() {
 
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  
     if (!key) {
       console.error("Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
       return;
     }
+  
     setStripePromise(loadStripe(key));
   }, []);
 

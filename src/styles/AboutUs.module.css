@@ -1,0 +1,171 @@
+.aboutSection {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: black;
+    background: #fdfdfd;
+    /* Height based on number of sections - each section gets about 100vh */
+    height: 300vh;
+    overflow: visible;
+    padding: 80px 40px;
+    box-sizing: border-box;
+  }
+  
+  /* 🔹 Image stays fixed while scrolling */
+  .imageArea {
+    position: sticky;
+    top: 80px;
+    left: 40px;
+    width: calc(50% - 60px);
+    height: calc(100vh - 160px);
+    overflow: hidden;
+    border-radius: 24px;
+    margin-right: 40px;
+  }
+  
+  .imageWrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.6s ease;
+  }
+  
+  .aboutImage {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* 🔹 Text area also sticky */
+  .textArea {
+    position: sticky;
+    top: 80px;
+    width: calc(50% - 60px);
+    height: calc(100vh - 160px);
+    padding: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  /* Overline text */
+  .overline {
+    font-size: 14px;
+    font-weight: 600;
+    color: #86868b;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 12px;
+  }
+  
+  .aboutTitle {
+    font-size: 64px;
+    font-weight: 700;
+    color: black;
+    margin-bottom: 48px;
+    position: relative;
+    z-index: 2;
+    line-height: 1.05;
+    letter-spacing: -2px;
+  }
+  
+  .textContainer {
+    position: relative;
+    min-height: 280px;
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 60px;
+  }
+  
+  .textBlock {
+    width: 100%;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  
+  .textBlock p {
+    font-size: 21px;
+    line-height: 1.5;
+    color: grey;
+    margin: 0;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  
+  /* Progress Indicator */
+  .progressIndicator {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .progressDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: grey;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .progressDot.activeDot {
+    background: grey;
+    width: 36px;
+    border-radius: 3px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 900px) {
+    .aboutSection {
+      flex-direction: column;
+      height: 400vh;
+      padding: 40px 20px;
+      background: #000000;
+    }
+  
+    .imageArea {
+      position: sticky;
+      top: 40px;
+      width: 100%;
+      height: 50vh;
+      border-radius: 24px;
+      margin-right: 0;
+      margin-bottom: 40px;
+    }
+  
+    .textArea {
+      position: sticky;
+      top: calc(50vh + 80px);
+      width: 100%;
+      height: auto;
+      padding: 0 20px;
+    }
+  
+    .overline {
+      font-size: 12px;
+    }
+  
+    .aboutTitle {
+      font-size: 44px;
+      text-align: left;
+      margin-bottom: 32px;
+      letter-spacing: -1.5px;
+    }
+  
+    .textContainer {
+      max-width: 100%;
+      min-height: 220px;
+    }
+  
+    .textBlock p {
+      font-size: 18px;
+      line-height: 1.5;
+    }
+  
+    .progressIndicator {
+      justify-content: flex-start;
+    }
+  }

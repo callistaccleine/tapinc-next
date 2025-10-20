@@ -1,69 +1,97 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import FeatureCard from "../FeatureCard";
+import { useState } from "react";
 import styles from "../../styles/Features.module.css";
-
-const features = [
-  { title: "Links", desc: "Description of first product", image: "/images/features/feature1.jpg" },
-  { title: "Custom Exchange Form", desc: "Description of second product", image: "/images/features/feature2.jpg" },
-  { title: "Analytics", desc: "Description of third product", image: "/images/features/feature3.jpg" },
-  { title: "Google Review", desc: "Description of fourth product", image: "/images/features/feature4.jpg" },
-  { title: "Integration", desc: "Description of fifth product", image: "/images/features/feature5.jpg" },
-  { title: "Save Contact to Device", desc: "Description of sixth product", image: "/images/features/feature6.jpg" },
-];
+import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function Features() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const features = [
+    {
+      id: 1,
+      title: "Instant Sharing",
+      text: "Share your digital profile, contact info, social links or product details with a single tap.",
+      image: "/images/features/feature1.jpg",
+    },
+    {
+      id: 2,
+      title: "Update Anytime",
+      text: "Update your TapInk profile at any time without needing to reprint cards or brochures.",
+      image: "/images/features/feature2.jpg",
+    },
+    {
+      id: 3,
+      title: "Eco-Friendly",
+      text: "Eliminate paper waste and outdated materials. One tap replaces thousands of printed cards.",
+      image: "/images/features/feature3.jpg",
+    },
+    {
+      id: 4,
+      title: "Smart & Versatile",
+      text: "Perfect for personal networking, business promotions, events or product information sharing.",
+      image: "/images/features/feature4.jpg",
+    },
+    {
+      id: 5,
+      title: "Multiple Profiles",
+      text: "Create and switch between multiple profiles such as personal, professional or event-based, all from a single TapInk card.",
+      image: "/images/features/feature5.jpg",
+    },
+  ];
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let scrollSpeed = 0.6; // pixels per frame
-    let rafId: number;
-
-    const scroll = () => {
-      container.scrollLeft += scrollSpeed;
-
-      // If at the end, jump back smoothly
-      if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
-        container.scrollLeft = 0;
-      }
-
-      rafId = requestAnimationFrame(scroll);
-    };
-
-    rafId = requestAnimationFrame(scroll);
-
-    // Pause on hover
-    const pause = () => cancelAnimationFrame(rafId);
-    const resume = () => {
-      rafId = requestAnimationFrame(scroll);
-    };
-
-    container.addEventListener("mouseenter", pause);
-    container.addEventListener("mouseleave", resume);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      container.removeEventListener("mouseenter", pause);
-      container.removeEventListener("mouseleave", resume);
-    };
-  }, []);
+  const [activeId, setActiveId] = useState<number>(1);
 
   return (
     <section className={styles.featuresSection}>
-      <h2 className={styles.featuresTitle}>Features</h2>
-      <div className={styles.featuresSlider} ref={containerRef}>
-        {[...features, ...features].map((item, index) => (
-          <FeatureCard
-            key={index}
-            image={item.image}
-            title={item.title}
-            description={item.desc}
-          />
-        ))}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        className={styles.headerContainer}
+      >
+        <p className={styles.overline}>Features</p>
+        <h2 className={styles.featuresTitle}>Everything you need.</h2>
+      </motion.div>
+
+      <div className={styles.featuresContainer}>
+        {features.map((f, index) => {
+          const isActive = activeId === f.id;
+
+          return (
+            <div
+              key={f.id}
+              className={`${styles.featureCard} ${
+                isActive ? styles.active : ""
+              }`}
+              onClick={() => setActiveId(f.id)}
+            >
+              <Image
+                src={f.image}
+                alt={f.title}
+                fill
+                className={styles.featureImage}
+                priority={index === 0}
+              />
+
+              {/* 🔹 ID Badge */}
+              <div
+                className={`${styles.featureId} ${
+                  isActive ? styles.activeId : ""
+                }`}
+              >
+                {f.id}
+              </div>
+
+              <div className={styles.overlay}>
+                <div className={styles.featureContent}>
+                  <h3>{f.title}</h3>
+                  <p>{f.text}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 .container {
   min-height: 100vh;
   background-color: #fff;
+  padding: 60px;
 }
 
 .header {
@@ -185,7 +186,7 @@
 .addBtn {
   margin-top: 1rem;
   width: 100%;
-  background: #2563eb;
+  background: #ff9502;
   color: white;
   font-weight: 500;
   padding: 0.75rem 1.5rem;

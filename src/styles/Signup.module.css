@@ -258,6 +258,28 @@
   color: #444;
   line-height: 1.5;
 }
+
+.passwordChecklist {
+  list-style: none;
+  margin: 8px 0 16px;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.passwordChecklist li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.valid {
+  color: #22c55e; /* green */
+}
+
+.invalid {
+  color: #ef4444; /* red */
+}
   
   /* Footer */
   .signupFoot {

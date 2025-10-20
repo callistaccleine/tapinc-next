@@ -7,9 +7,9 @@ export async function POST(req: Request) {
     console.log('Contact form API called');
     
     const body = await req.json();
-    const { name, email, message } = body;
+    const { name, email, message, category } = body;
     
-    console.log('Received contact form data:', { name, email, messageLength: message?.length });
+    console.log('Received contact form data:', { name, email, category, messageLength: message?.length });
 
     if (!name || !email || !message) {
       console.log('Missing required fields');
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
         name, 
         email, 
         message, 
+        category: category,
         status: "Pending",
         created_at: new Date().toISOString()
       }])
@@ -53,16 +54,17 @@ export async function POST(req: Request) {
           from: process.env.EMAIL_USER, 
           replyTo: email, 
           to: "tapinc.io.au@gmail.com",
-          subject: `Customer Support ID ${data?.id} from ${name}`,
+          subject: `📬 Inquiry #${data?.id} (${category}) from ${name}`,
           html: `
             <h3>New Contact Form Submission - ID: ${data?.id}</h3>
+            <p><strong>Category:</strong> ${category}</p>
             <p><strong>Submission ID:</strong> ${data?.id}</p>
             <p><strong>Name:</strong> ${name}</p>
             <p><strong>Email:</strong> ${email}</p>
             <p><strong>Message:</strong></p>
             <p>${message.replace(/\n/g, '<br>')}</p>
           `,
-          text: `Submission ID: ${data?.id}\nName: ${name}\nEmail: ${email}\nMessage: ${message}`,
+          text: `Submission ID: ${data?.id}\nName: ${name}\nEmail: ${email}\nCategory: ${category}\nMessage: ${message}`,
         });
 
         console.log('Email sent successfully');
