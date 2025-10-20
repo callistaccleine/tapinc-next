@@ -69,9 +69,11 @@ const AddProfiles = () => {
       return;
     }
 
-    // Check other plan limits
-    // You can add logic here for other plans (teams, enterprise, etc.)
-    // For example: teams plan might allow 5 profiles, etc.
+    if (userPlan?.category === "teams" && existingProfilesCount >= 25) {
+      alert("Your Teams plan allows up to 25 profiles. Please upgrade to add more.");
+      setLoading(false);
+      return;
+    }
 
     // Create a new profile (comes with both physical and virtual cards)
     const { error } = await supabase.from("profiles").insert([{
@@ -141,6 +143,16 @@ const AddProfiles = () => {
       {userPlan?.category === "free" && existingProfilesCount >= 1 ? (
         <div className={styles.upgradePrompt}>
           <p>You've reached the free plan limit of 1 profile.</p>
+          <button
+            onClick={() => router.push("/pricing")}
+            className={styles.upgradeButton}
+          >
+            Upgrade Plan
+          </button>
+        </div>
+      ) : userPlan?.category === "teams" && existingProfilesCount >= 25 ? (
+        <div className={styles.upgradePrompt}>
+          <p>You've reached the Teams plan limit of 25 profiles.</p>
           <button
             onClick={() => router.push("/pricing")}
             className={styles.upgradeButton}
