@@ -70,7 +70,7 @@ export default function Hero() {
 
       {/* Social media sidebar */}
       <div className={styles.socialSidebar}>
-        <a href="https://www.instagram.com/tapinc_official" target="_blank" rel="noopener noreferrer">
+        <a href="https://www.instagram.com/tapink_official" target="_blank" rel="noopener noreferrer">
           <FaInstagram />
         </a>
         <a href="https://www.tiktok.com/@tapink_official" target="_blank" rel="noopener noreferrer">

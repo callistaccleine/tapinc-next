@@ -79,7 +79,7 @@ export default function Footer() {
                 <FaTiktok size={20} />
               </a>
               <a
-                href="https://www.instagram.com/tapinc_official"
+                href="https://www.instagram.com/tapink_official"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
