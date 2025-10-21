@@ -1,5 +1,5 @@
 import styles from "../../styles/Footer.module.css";
-import { FaLinkedin, FaInstagram } from "react-icons/fa";
+import { FaLinkedin, FaInstagram, FaTiktok } from "react-icons/fa";
 import Link from "next/link";
 
 export default function Footer() {
@@ -71,12 +71,12 @@ export default function Footer() {
 
             <div className={styles.footerSocials}>
               <a
-                href="https://www.linkedin.com/company/tapinc"
+                href="https://www.tiktok.com/@tapink_official"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="LinkedIn"
+                aria-label="Tiktok"
               >
-                <FaLinkedin size={20} />
+                <FaTiktok size={20} />
               </a>
               <a
                 href="https://www.instagram.com/tapinc_official"
