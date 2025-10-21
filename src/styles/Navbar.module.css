@@ -21,17 +21,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-left: 60px; /* Push logo right of sidebar */
-}
-
-@media (max-width: 768px) {
-  .navbar::before {
-    display: none;
-  }
-  
-  .navbarLogo {
-    margin-left: 0;
-  }
+  margin-left: 60px;
+  z-index: 21;
 }
 
 /* When user scrolls (optional sticky behavior) */
@@ -41,12 +32,6 @@
 }
 
 /* Logo section */
-.navbarLogo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .logoImg {
   object-fit: contain;
 }
@@ -64,7 +49,7 @@
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 4rem; /* Adjust spacing between links */
+  gap: 4rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -72,6 +57,10 @@
 
 .navbarRight {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 21;
 }
 
 .userChip {
@@ -119,6 +108,7 @@
   border-radius: 9999px;
   font-weight: 500;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .navbarCta:hover {
@@ -127,10 +117,6 @@
 }
 
 /* User profile chip */
-.userChip {
-  position: relative;
-}
-
 .avatarProfile {
   background: none;
   border: 1px solid white;
@@ -191,7 +177,39 @@
   color: #b22222;
 }
 
-/* Light text for dark backgrounds (e.g. hero) */
+/* Hamburger Menu Button */
+.menuToggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 21;
+}
+
+.menuToggle span {
+  width: 25px;
+  height: 2px;
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.menuToggle.open span:nth-child(1) {
+  transform: rotate(45deg) translate(7px, 7px);
+}
+
+.menuToggle.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menuToggle.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* Light text for dark backgrounds */
 .navbarLight {
   color: white;
 }
@@ -207,7 +225,11 @@
   background-color: white;
 }
 
-/* Dark text for light backgrounds (e.g. support page) */
+.navbarLight .menuToggle span {
+  background-color: white;
+}
+
+/* Dark text for light backgrounds */
 .navbarDark {
   color: #ff5c00;
   background: white;
@@ -234,3 +256,145 @@
   color: white;
 }
 
+.navbarDark .menuToggle span {
+  background-color: #ff5c00;
+}
+
+/* Tablet breakpoint */
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 0 2rem;
+  }
+
+  .navbarLogo {
+    margin-left: 40px;
+  }
+
+  .navbarLinks {
+    gap: 2.5rem;
+  }
+
+  .logoText {
+    font-size: 1.2rem;
+  }
+}
+
+/* Mobile breakpoint */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 1.5rem;
+    height: 70px;
+  }
+
+  .navbar::before {
+    display: none;
+  }
+  
+  .navbarLogo {
+    margin-left: 0;
+  }
+
+  .logoText {
+    font-size: 1.1rem;
+  }
+
+  /* Show hamburger menu */
+  .menuToggle {
+    display: flex;
+  }
+
+  /* Mobile menu */
+  .navbarLinks {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    padding: 2rem 1.5rem;
+    background: rgba(255, 94, 0, 0.98);
+    backdrop-filter: blur(10px);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    height: calc(100vh - 70px);
+    overflow-y: auto;
+  }
+
+  .navbarLinks.open {
+    transform: translateX(0);
+  }
+
+  .navbarLinks a {
+    padding: 1rem 0;
+    font-size: 1.1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .navbarLinks a::after {
+    display: none;
+  }
+
+  /* Keep CTA and avatar visible on mobile */
+  .navbarCta {
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .avatarProfile {
+    width: 35px;
+    height: 35px;
+  }
+
+  .navbarDark .navbarLinks {
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .navbarDark .navbarLinks a {
+    color: #ff5c00;
+    border-bottom-color: rgba(255, 92, 0, 0.1);
+  }
+}
+
+/* Small mobile breakpoint */
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 1rem;
+  }
+
+  .logoText {
+    font-size: 1rem;
+  }
+
+  .navbarRight {
+    gap: 0.5rem;
+  }
+
+  .navbarCta {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .avatarProfile {
+    width: 32px;
+    height: 32px;
+  }
+
+  .navbarLinks {
+    padding: 1.5rem 1rem;
+  }
+
+  .navbarLinks a {
+    font-size: 1rem;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-height: 600px) and (orientation: landscape) {
+  .navbarLinks {
+    padding: 1rem 1.5rem;
+  }
+
+  .navbarLinks a {
+    padding: 0.7rem 0;
+  }
+}
