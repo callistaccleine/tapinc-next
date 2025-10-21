@@ -1318,25 +1318,41 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               Share Your Profile
             </h3>
 
-            <div style={{ 
-              marginBottom: '20px',
-              padding: '20px',
-              background: '#f5f5f7',
-              borderRadius: '12px'
-            }}>
-              <div style={{
-                width: '200px',
-                height: '200px',
-                margin: '0 auto',
-                background: '#ffffff',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '48px'
-              }}>
+            <div
+              style={{
+                marginBottom: '20px',
+                padding: '20px',
+                background: '#f5f5f7',
+                borderRadius: '12px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '200px',
+                  height: '200px',
+                  margin: '0 auto',
+                  background: '#ffffff',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <ProfileQRCode profileId={designProfileId} />
               </div>
+
+              <p
+                style={{
+                  marginTop: '12px',
+                  fontSize: '14px',
+                  color: '#000',
+                  fontWeight: 400,
+                }}
+              >
+                Scan to view profile
+              </p>
+
             </div>
 
             <p style={{

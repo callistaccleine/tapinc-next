@@ -17,7 +17,6 @@ export default function ProfileQRCode({ profileId }: { profileId: string }) {
         level="H" // high error correction
         includeMargin={true}
       />
-      <p style={{ marginTop: "5px", fontSize: "14px", color: "#000" }}>Scan to view profile</p>
     </div>
   );
 }
