@@ -73,7 +73,7 @@ export default function Hero() {
         <a href="https://www.instagram.com/tapinc_official" target="_blank" rel="noopener noreferrer">
           <FaInstagram />
         </a>
-        <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">
+        <a href="https://www.tiktok.com/@tapink_official" target="_blank" rel="noopener noreferrer">
           <FaTiktok />
         </a>
         {/* <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">

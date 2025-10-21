@@ -364,3 +364,96 @@
   background: #ffffff;
   border-color: #d2d2d7;
 }
+
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .mainContent {
+    padding: 20px;
+  }
+
+  .dashboardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dashboardHeader h2 {
+    font-size: 22px;
+  }
+
+  .btnPrimary {
+    width: 100%;
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+
+  .searchRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .searchRow input,
+  .searchRow select {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .tableWrapper {
+    border-radius: 12px;
+    box-shadow: none;
+    overflow-x: auto;
+  }
+
+  .profileTable th,
+  .profileTable td {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .avatarWrapper {
+    width: 32px;
+    height: 32px;
+  }
+
+  .profileName {
+    font-size: 14px;
+  }
+
+  .profileId {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard {
+    grid-template-columns: 200px 1fr;
+  }
+
+  .mainContent {
+    padding: 30px;
+  }
+
+  .dashboardHeader h2 {
+    font-size: 24px;
+  }
+
+  .btnPrimary {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .mainContent {
+    padding: 60px;
+  }
+
+  .dashboardHeader h2 {
+    font-size: 32px;
+  }
+}

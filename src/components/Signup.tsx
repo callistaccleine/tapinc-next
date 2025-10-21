@@ -35,46 +35,166 @@ export default function Signup() {
   passwordRules.number &&
   passwordRules.special;
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage("");
-
-    if (!isPasswordValid) {
-      setMessage("Password does not meet all security requirements.")
-      return;
-    }
-
-    if (!agree) {
-      setMessage("You must agree to the Terms and Privacy Policy.");
-      return;
-    }
-
-    setIsLoading(true); 
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth`, // where Supabase redirects after confirmation
-        data: {
-          display_name: fullName,
-          fullName,
-          phone: phoneNumber,
-        },
-      },
-    });
-
-    if (error) {
-      setMessage(error.message || "Sign up failed.");
-      setIsLoading(false);
-      return;
-    }
-
-    // ✅ Show confirmation modal instead of redirecting
-    setShowConfirmation(true);
-    setIsLoading(false);
+  const phoneNumberRules = {
+    validPrefix: /^(\+61|0)/.test(phoneNumber),
+    validLength: (phoneNumber.startsWith('+61') && phoneNumber.length == 12) || 
+    (phoneNumber.startsWith('0') && phoneNumber.length == 10), 
+    validCharacters: /^\+?[0-9]+$/.test(phoneNumber),
+    validSecondDigit: phoneNumber.startsWith('+61') 
+    ? /^\+61[2-478]/.test(phoneNumber)
+    : /^0[2-478]/.test(phoneNumber),
   };
+
+  const isPhoneNumberValid =
+  phoneNumberRules.validPrefix &&
+  phoneNumberRules.validLength &&
+  phoneNumberRules.validCharacters &&
+  phoneNumberRules.validSecondDigit;
+
+const normalizePhoneNumber = (phone: string): string => {
+  let cleaned = phone.replace(/[\s\-()]/g, '');
+  
+  if (cleaned.startsWith('0')) {
+    cleaned = '+61' + cleaned.substring(1);
+  }
+  
+  if (!cleaned.startsWith('+61')) {
+    cleaned = '+61' + cleaned;
+  }
+  
+  return cleaned;
+};
+
+const checkExistingEmail = async (email: string) => {
+  try {
+    // Check auth.users table via RPC function
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('check_email_exists', { 
+        email_address: email.toLowerCase()
+      });
+
+    if (rpcError) {
+      console.error('Email check error:', rpcError);
+      return false;
+    }
+
+    return rpcData === true;
+  } catch (error) {
+    console.error('Error checking email:', error);
+    return false;
+  }
+};
+
+const checkExistingPhoneNumber = async (phone: string) => {
+  try {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    
+    const alternatePhone = normalizedPhone.startsWith('+61')
+      ? '0' + normalizedPhone.substring(3)
+      : normalizedPhone;
+
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('phone')
+      .or(`phone.eq.${normalizedPhone},phone.eq.${alternatePhone}`)
+      .maybeSingle();
+  
+    if (profileError) {
+      console.error('Profile check error:', profileError);
+    }
+
+    if (profileData) {
+      return true; 
+    }
+
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('check_phone_exists_normalized', { 
+        phone_number: normalizedPhone,
+        alternate_phone: alternatePhone 
+      });
+
+    if (rpcError) {
+      console.error('RPC check error:', rpcError);
+    }
+
+    if (rpcData) {
+      return true; 
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error checking phone number:', error);
+    return false;
+  }
+};
+
+const handleSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setMessage("");
+
+  if (!isPasswordValid) {
+    setMessage("Password does not meet all security requirements.");
+    setIsLoading(false);
+    return;
+  }
+
+  if (!isPhoneNumberValid) {
+    setMessage("Phone number does not meet Australian phone number requirements.");
+    setIsLoading(false);
+    return;
+  }
+
+  if (!agree) {
+    setMessage("You must agree to the Terms and Privacy Policy.");
+    setIsLoading(false);
+    return;
+  }
+
+  // Check if email already exists
+  const emailExists = await checkExistingEmail(email);
+  if (emailExists) {
+    setMessage("This email is already registered. Please log in instead.");
+    setIsLoading(false);
+    return;
+  }
+
+  // Check if phone number already exists
+  const phoneExists = await checkExistingPhoneNumber(phoneNumber);
+  if (phoneExists) {
+    setMessage("This phone number is already registered. Please use a different number.");
+    setIsLoading(false);
+    return;
+  }
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth`,
+      data: {
+        display_name: fullName,
+        fullName,
+        phone: normalizePhoneNumber(phoneNumber),
+      },
+    },
+  });
+
+  if (error) {
+    if (error.message.toLowerCase().includes('user already registered') || 
+        error.message.toLowerCase().includes('already exists')) {
+      setMessage("This email is already registered. Please log in instead.");
+    } else {
+      setMessage(error.message || "Sign up failed.");
+    }
+    setIsLoading(false);
+    return;
+  }
+
+  // Show confirmation modal on success
+  setShowConfirmation(true);
+  setIsLoading(false);
+};
 
   return (
     <div className={styles.signupSplit}>
@@ -104,13 +224,14 @@ export default function Signup() {
               required
             />
 
-            <label className={styles.signupLabel}>Phone</label>
+            <label className={styles.signupLabel}>Phone*</label>
             <input
               className={`${styles.signupInput} ${styles.pill}`}
               type="tel"
               placeholder="Enter your phone"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
+              required
             />
 
             <label className={styles.signupLabel}>Password*</label>
@@ -132,7 +253,7 @@ export default function Signup() {
               </button>
             </div>
 
-            {/* ✅ Password strength checklist */}
+            {/* Password strength checklist */}
             {password && (
               <ul className={styles.passwordChecklist}>
                 <li className={passwordRules.length ? styles.valid : styles.invalid}>
@@ -167,7 +288,7 @@ export default function Signup() {
             <button
               type="submit"
               className={styles.btnDark}
-              disabled={isLoading || !agree}
+              disabled={isLoading || !agree || !password || !email || !phoneNumber || !fullName}
             >
               {isLoading ? "Creating…" : "Sign Up"}
             </button>
@@ -209,7 +330,7 @@ export default function Signup() {
           <div className={styles.modalContent}>
             <h2>Check your email ✉️</h2>
             <p>
-              We’ve sent a confirmation link to <strong>{email}</strong>.
+              We've sent a confirmation link to <strong>{email}</strong>.
               <br />
               Please verify your account before logging in.
             </p>
