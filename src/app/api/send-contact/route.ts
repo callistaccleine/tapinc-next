@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         await transporter.sendMail({
           from: process.env.EMAIL_USER, 
           replyTo: email, 
-          to: "tapinc.io.au@gmail.com",
+          to: "hello@tapink.com.au",
           subject: `📬 Inquiry #${data?.id} (${category}) from ${name}`,
           html: `
             <h3>New Contact Form Submission - ID: ${data?.id}</h3>

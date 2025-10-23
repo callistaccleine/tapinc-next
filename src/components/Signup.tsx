@@ -85,48 +85,48 @@ const checkExistingEmail = async (email: string) => {
   }
 };
 
-const checkExistingPhoneNumber = async (phone: string) => {
-  try {
-    const normalizedPhone = normalizePhoneNumber(phone);
+// const checkExistingPhoneNumber = async (phone: string) => {
+//   try {
+//     const normalizedPhone = normalizePhoneNumber(phone);
     
-    const alternatePhone = normalizedPhone.startsWith('+61')
-      ? '0' + normalizedPhone.substring(3)
-      : normalizedPhone;
+//     const alternatePhone = normalizedPhone.startsWith('+61')
+//       ? '0' + normalizedPhone.substring(3)
+//       : normalizedPhone;
 
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('phone')
-      .or(`phone.eq.${normalizedPhone},phone.eq.${alternatePhone}`)
-      .maybeSingle();
+//     const { data: profileData, error: profileError } = await supabase
+//       .from('profiles')
+//       .select('phone')
+//       // .or(`phone.eq.${normalizedPhone},phone.eq.${alternatePhone}`)
+//       .maybeSingle();
   
-    if (profileError) {
-      console.error('Profile check error:', profileError);
-    }
+//     if (profileError) {
+//       console.error('Profile check error:', profileError);
+//     }
 
-    if (profileData) {
-      return true; 
-    }
+//     if (profileData) {
+//       return true; 
+//     }
 
-    const { data: rpcData, error: rpcError } = await supabase
-      .rpc('check_phone_exists_normalized', { 
-        phone_number: normalizedPhone,
-        alternate_phone: alternatePhone 
-      });
+//     const { data: rpcData, error: rpcError } = await supabase
+//       .rpc('check_phone_exists_normalized', { 
+//         phone_number: normalizedPhone,
+//         alternate_phone: alternatePhone 
+//       });
 
-    if (rpcError) {
-      console.error('RPC check error:', rpcError);
-    }
+//     if (rpcError) {
+//       console.error('RPC check error:', rpcError);
+//     }
 
-    if (rpcData) {
-      return true; 
-    }
+//     if (rpcData) {
+//       return true; 
+//     }
 
-    return false;
-  } catch (error) {
-    console.error('Error checking phone number:', error);
-    return false;
-  }
-};
+//     return false;
+//   } catch (error) {
+//     console.error('Error checking phone number:', error);
+//     return false;
+//   }
+// };
 
 const handleSignup = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -160,12 +160,12 @@ const handleSignup = async (e: React.FormEvent) => {
   }
 
   // Check if phone number already exists
-  const phoneExists = await checkExistingPhoneNumber(phoneNumber);
-  if (phoneExists) {
-    setMessage("This phone number is already registered. Please use a different number.");
-    setIsLoading(false);
-    return;
-  }
+  // const phoneExists = await checkExistingPhoneNumber(phoneNumber);
+  // if (phoneExists) {
+  //   setMessage("This phone number is already registered. Please use a different number.");
+  //   setIsLoading(false);
+  //   return;
+  // }
 
   const { error } = await supabase.auth.signUp({
     email,
