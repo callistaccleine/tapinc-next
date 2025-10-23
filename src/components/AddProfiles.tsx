@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ProfileCardOption from "./ProfileCardOption";
 import styles from "@/styles/AddProfiles.module.css";
-import businessCard from "@/../public/images/cards/Physical Card Option 1.png";
-import { supabase } from "@/lib/supabaseClient"; 
+import { supabase } from "@/lib/supabaseClient";
 
 const AddProfiles = () => {
   const [loading, setLoading] = useState(false);
@@ -13,13 +11,13 @@ const AddProfiles = () => {
   const [existingProfilesCount, setExistingProfilesCount] = useState(0);
   const router = useRouter();
 
-  // Fetch user's current plan and profile count on mount
+  // Fetch user data (plan + profile count)
   useEffect(() => {
     const fetchUserData = async () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) return;
 
-      // Get user's subscription to find their plan
+      // Fetch active subscription plan
       const { data: subscription } = await supabase
         .from("subscriptions")
         .select("plan_id, plans(*)")
@@ -27,16 +25,15 @@ const AddProfiles = () => {
         .eq("status", "active")
         .single();
 
-      if (subscription) {
+      if (subscription?.plans) {
         setUserPlan(subscription.plans);
       } else {
-        // Default to free plan if no active subscription
+        // Default to free plan if none active
         const { data: freePlan } = await supabase
           .from("plans")
           .select("*")
           .eq("category", "free")
           .single();
-        
         setUserPlan(freePlan);
       }
 
@@ -62,7 +59,7 @@ const AddProfiles = () => {
       return;
     }
 
-    // Check free plan limits - only 1 profile allowed
+    // Plan limits
     if (userPlan?.category === "free" && existingProfilesCount >= 1) {
       alert("Free plan allows only one profile. Upgrade your plan to add more profiles.");
       setLoading(false);
@@ -75,13 +72,12 @@ const AddProfiles = () => {
       return;
     }
 
-    // Create a new profile (comes with both physical and virtual cards)
+    // Create new profile
     const { error } = await supabase.from("profiles").insert([{
       user_id: user.id,
       plan_id: userPlan?.id,
       title: `Profile ${existingProfilesCount + 1}`,
       subtitle: "New Profile",
-      image_url: "/images/cards/Physical Card Option 1.png",
       physical_activated: false,
       virtual_activated: false,
     }]);
@@ -106,10 +102,11 @@ const AddProfiles = () => {
         ← Back
       </button>
 
+      {/* Header */}
       <div className={styles.addProfilesHeader}>
         <h2>Add New Profile</h2>
         <p className={styles.subtext}>
-          Each profile includes both Physical NFC Card and Digital Profile
+          Each profile includes both a Physical NFC Card and a Digital Profile.
           {userPlan && (
             <>
               <br />
@@ -122,24 +119,7 @@ const AddProfiles = () => {
         </p>
       </div>
 
-      <div className={styles.profileIncludes}>
-        <div className={styles.includeItem}>
-          <img src={businessCard.src} alt="Physical Card" />
-          <div>
-            <h3>Physical NFC Card</h3>
-            <p>Tap to share your profile</p>
-          </div>
-        </div>
-        <div className={styles.plusIcon}>+</div>
-        <div className={styles.includeItem}>
-          <img src={businessCard.src} alt="Virtual Card" />
-          <div>
-            <h3>Digital Profile</h3>
-            <p>Share via link or QR code</p>
-          </div>
-        </div>
-      </div>
-
+      {/* Profile creation section */}
       {userPlan?.category === "free" && existingProfilesCount >= 1 ? (
         <div className={styles.upgradePrompt}>
           <p>You've reached the free plan limit of 1 profile.</p>
