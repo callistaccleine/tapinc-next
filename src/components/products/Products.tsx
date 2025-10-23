@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/Products.module.css";
+import ProductDetails from "./ProductDetails";
 
 type ProductRow = {
   id: number;
@@ -18,33 +19,44 @@ type SortOption = {
   label: string;
 };
 
+import Link from "next/link";
+
 function ProductsCard({ id, image, title, price, badge }: ProductRow) {
   const [isHovered, setIsHovered] = useState(false);
 
+  const getProductRoute = (id: number) => {
+    switch (id) {
+      case 1:
+        return "/products/plastic";
+      case 2:
+        return "/products/digital";
+      case 3:
+        return "/products/metal";
+      default:
+        return `/products/${id}`;
+    }
+  };
+
   return (
-    <div
-      className={`${styles.card}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className={styles.imageContainer}>
-        <img src={image || ""} alt={title} className={styles.image} />
-        {badge && <div className={styles.badge}>{badge}</div>}
-      </div>
+    <Link href={getProductRoute(id)} className={styles.linkWrapper}>
+      <div
+        className={styles.card}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className={styles.imageContainer}>
+          <img src={image || ""} alt={title} className={styles.image} />
+          {badge && <div className={styles.badge}>{badge}</div>}
+        </div>
 
-      <div className={styles.cardBody}>
-        <h3 className={styles.title}>{title}</h3>
-        <p className={styles.price}>
-          {typeof price === "number" ? `$${price}` : price}
-        </p>
-
-        <button
-          className={`${styles.addBtn} ${isHovered ? styles.addBtnVisible : styles.addBtnHidden}`}
-        >
-          Add to Bag
-        </button>
+        <div className={styles.cardBody}>
+          <h3 className={styles.title}>{title}</h3>
+          <p className={styles.price}>
+            {typeof price === "number" ? `$${price}` : price}
+          </p>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

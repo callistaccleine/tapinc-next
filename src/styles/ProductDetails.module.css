@@ -1,0 +1,422 @@
+/* =========================
+   GLOBAL PAGE STYLING
+   ========================= */
+   .productPage {
+    background: #ffffff;
+    min-height: 100vh;
+    font-family: "SF Pro Display", "Manrope", -apple-system, BlinkMacSystemFont,
+      "Helvetica Neue", Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem 2rem;
+    color: #222;
+  }
+  
+  .container {
+    display: flex;
+    gap: 4rem;
+    max-width: 1200px;
+    width: 100%;
+    align-items: flex-start;
+  }
+  
+  /* =========================
+     LEFT COLUMN (IMAGE)
+     ========================= */
+  .leftColumn {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .mainImageWrapper {
+    width: 100%;
+    max-width: 500px;
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    animation: fadeInUp 0.8s ease forwards;
+  }
+  
+  .mainImage {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+  
+  /* =========================
+     RIGHT COLUMN (DETAILS)
+     ========================= */
+  .rightColumn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.9s ease forwards;
+  }
+  
+  /* BACK BUTTON */
+  .backLink {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  .backLink:hover {
+    color: #e85c05;
+    transform: translateX(-3px);
+  }
+  
+  /* TITLE */
+  .title {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.8rem;
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: slideIn 0.8s ease;
+  }
+  
+  /* PRICE */
+  .price {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+  
+  /* DESCRIPTION */
+  .description {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.7;
+    margin-bottom: 1.8rem;
+    max-width: 600px;
+  }
+  
+  /* =========================
+     PRINTING STYLES
+     ========================= */
+  .optionSection {
+    margin-top: 1rem;
+  }
+  
+  .optionLabel {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #222;
+    margin-bottom: 0.8rem;
+  }
+  
+  .optionButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+  
+  .optionBtn {
+    background: white;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 9999px;
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .optionBtn:hover {
+    border-color: #ff7e1b;
+    background: #fff6f0;
+    transform: translateY(-2px);
+  }
+  
+  .optionActive {
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(255, 149, 2, 0.25);
+    transform: translateY(-2px);
+  }
+  
+  /* =========================
+     QUANTITY SELECTOR
+     ========================= */
+  .quantityRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0 1.5rem;
+  }
+  
+  .qtyBtn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  
+  .qtyBtn:hover {
+    transform: scale(1.05);
+  }
+  
+  .qtyValue {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  /* =========================
+     ADD TO CART BUTTON
+     ========================= */
+  .addToCart {
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+    color: white;
+    border: none;
+    border-radius: 9999px;
+    padding: 14px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: fit-content;
+    box-shadow: 0 8px 18px rgba(255, 149, 2, 0.3);
+    transition: all 0.3s ease;
+    align-self: flex-start;
+  }
+  
+  .addToCart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(255, 149, 2, 0.4);
+  }
+  
+  /* =========================
+     SHIPPING NOTE
+     ========================= */
+  .shippingNote {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #777;
+  }
+  
+  /* =========================
+     SHIPPING & FAQ SECTION
+     ========================= */
+  .faqSection {
+    margin-top: 2rem;
+    border-radius: 20px;
+    background: #fff;
+    /* box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05); */
+    animation: fadeInUp 1s ease forwards;
+  }
+  
+  .faqTitle {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: left;
+  }
+  
+  .faqList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .faqItem {
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03);
+  }
+  
+  .faqItem:hover {
+    box-shadow: 0 6px 14px rgba(255, 149, 2, 0.15);
+  }
+  
+  .faqQuestion {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .faqQuestion:hover {
+    color: #e85c05;
+  }
+  
+  .faqItem.open .faqQuestion {
+    background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
+    color: white;
+  }
+  
+  .chevron {
+    transition: transform 0.25s ease, color 0.3s ease;
+    color: #999;
+  }
+  
+  .faqItem.open .chevron {
+    transform: rotate(180deg);
+    color: white;
+  }
+  
+  .faqAnswer {
+    padding: 0.8rem 1.2rem 1.2rem;
+    color: #555;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  /* =========================
+     RESPONSIVE DESIGN
+     ========================= */
+  
+  /* TABLET */
+  @media (max-width: 1024px) {
+    .container {
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+  
+    .leftColumn,
+    .rightColumn {
+      width: 100%;
+    }
+  
+    .title {
+      font-size: 2rem;
+    }
+  
+    .price {
+      font-size: 1.4rem;
+    }
+  }
+  
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .productPage {
+      padding: 2rem 1rem;
+    }
+  
+    .title {
+      font-size: 1.8rem;
+      text-align: left;
+    }
+  
+    .price {
+      font-size: 1.3rem;
+    }
+  
+    .description {
+      font-size: 0.95rem;
+    }
+  
+    .optionBtn {
+      font-size: 0.9rem;
+      padding: 9px 18px;
+    }
+  
+    .addToCart {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  
+    .faqSection {
+      padding: 1.5rem 1rem;
+    }
+  
+    .faqTitle {
+      font-size: 1.2rem;
+    }
+  
+    .faqAnswer {
+      font-size: 0.9rem;
+    }
+  }
+  
+  /* LARGE SCREENS */
+  @media (min-width: 1440px) {
+    .container {
+      max-width: 1400px;
+      gap: 5rem;
+    }
+  
+    .title {
+      font-size: 2.8rem;
+    }
+  
+    .price {
+      font-size: 1.8rem;
+    }
+  }
+  
+  /* =========================
+     ANIMATIONS
+     ========================= */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  

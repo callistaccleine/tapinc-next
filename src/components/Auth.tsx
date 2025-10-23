@@ -19,6 +19,7 @@ export default function Auth() {
     setIsLoading(true);
     setMessage("");
 
+    // ✅ Step 1: Log in with Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -30,13 +31,29 @@ export default function Auth() {
       return;
     }
 
-    // ✅ Normalize the email
-    const userEmail = (data?.user?.email || "").trim().toLowerCase();
+    const user = data?.user;
+    if (!user) {
+      setMessage("User not found.");
+      setIsLoading(false);
+      return;
+    }
 
-    setMessage("Login successful!");
+    // ✅ Step 2: Fetch the user's role from your public.users table
+    const { data: userProfile, error: profileError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-    // ✅ Redirect based on email
-    if (userEmail === "tapinc.io.au@gmail.com") {
+    if (profileError) {
+      console.error("Error fetching role:", profileError);
+      setMessage("Unable to fetch user role. Please try again.");
+      setIsLoading(false);
+      return;
+    }
+
+    // ✅ Step 3: Redirect based on role
+    if (userProfile?.role === "admin") {
       router.replace("/admin");
     } else {
       router.replace("/dashboard");
@@ -65,7 +82,7 @@ export default function Auth() {
               required
             />
 
-            {/* Password field with toggle */}
+            {/* Password field */}
             <label className={styles.authLabel}>Password*</label>
             <div className={styles.passwordWrapper}>
               <input
@@ -105,7 +122,7 @@ export default function Auth() {
         </div>
       </section>
 
-      {/* Right: visual panel */}
+      {/* Right visual */}
       <aside className={styles.authRight}>
         <div className={styles.authArt}>
           <div className={styles.authArtImg} role="img" aria-label="Decorative" />

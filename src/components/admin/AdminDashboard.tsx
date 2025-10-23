@@ -31,7 +31,7 @@ export default function AdminDashboard() {
       const userEmail = (data.user.email || "").trim().toLowerCase();
       setEmail(userEmail);
 
-      if (userEmail === "tapinc.io.au@gmail.com") {
+      if (userEmail === "tapinc.io.au@gmail.com" || "hello@tapink.com.au") {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);

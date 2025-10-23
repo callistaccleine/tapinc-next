@@ -23,6 +23,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/orders/[id]"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/orders/[id]", "src/app/products/metal", "src/app/products/digital", "src/app/products/plastic"],
   "exclude": ["node_modules", "tapinc-card-design"]
 }
