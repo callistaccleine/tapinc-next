@@ -127,7 +127,7 @@ export default function CartPage() {
                     </div>
                   )}
                   <div>
-c                    <h3>{item.name}</h3>
+                    <h3>{item.name}</h3>
                     {item.description && <p>{item.description}</p>}
                     <span className={styles.badge}>
                       {item.mode === "subscription"
