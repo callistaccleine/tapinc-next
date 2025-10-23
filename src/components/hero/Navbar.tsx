@@ -65,7 +65,7 @@ export default function Navbar() {
         onClick={() => router.push("/")}
         style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
       >
-        <Image src="/images/Tapink-logo.png" alt="TapINK Logo" className={styles.logoImg} width={70} height={70} />
+        <Image src="/images/Tapink-logo.png" alt="TapInk" className={styles.logoImg} width={70} height={70} />
       </div>
   
       {/* ✅ Centered Nav Links */}
