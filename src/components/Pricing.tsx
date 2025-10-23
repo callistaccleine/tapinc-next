@@ -87,66 +87,75 @@ export default function Pricing() {
       const ctaText =
         p.cta_label || (p.action === "contact" ? "Contact Us" : "Get Started");
 
-      const buttonAction = async () => {
-        try {
-          // check if user is logged in
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-
-          if (!user) {
-            router.push("/signup");
-            return;
-          }
-
-          // handle plan actions
-          if (p.action === "contact") return setShowContact(true);
-
-          if (p.action === "link" && p.cta_url)
-            return window.open(p.cta_url, "_blank", "noopener,noreferrer");
-
-          // ✅ SKIP CHECKOUT — redirect to products instead
-          if (p.action === "products") {
-            router.push("/products");
-            return;
-          }
-
-          // checkout flow
-          if (p.action === "checkout" && p.price_id) {
-            const res = await fetch("/api/create-checkout-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                price_id: p.price_id,
-                quantity: 1,
-              }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok)
-              throw new Error(data.error || "Failed to create checkout session");
-
-            if (data.clientSecret) {
-              router.push(
-                `/checkout?client_secret=${encodeURIComponent(
-                  data.clientSecret
-                )}`
-              );
-            } else if (data.url) {
-              window.location.href = data.url;
-            } else {
-              throw new Error("No checkout URL or client secret received");
+        const buttonAction = async () => {
+          try {
+            // check if user is logged in
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+        
+            // ✅ handle Free Plan separately
+            if (norm(p.category) === "free") {
+              if (!user) {
+                router.push("/auth"); // redirect to login/signup
+              } else {
+                router.push("/dashboard"); // already logged in
+              }
+              return;
             }
-          } else if (!p.price_id) {
-            console.warn("No price_id found for plan:", p.name);
-            alert("This plan is not available for checkout. Please contact us.");
+        
+            // if not logged in, block other actions
+            if (!user) {
+              router.push("/signup");
+              return;
+            }
+        
+            // handle plan actions
+            if (p.action === "contact") return setShowContact(true);
+        
+            if (p.action === "link" && p.cta_url)
+              return window.open(p.cta_url, "_blank", "noopener,noreferrer");
+        
+            // redirect to products
+            if (p.action === "products") {
+              router.push("/products");
+              return;
+            }
+        
+            // checkout flow
+            if (p.action === "checkout" && p.price_id) {
+              const res = await fetch("/api/create-checkout-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  price_id: p.price_id,
+                  quantity: 1,
+                }),
+              });
+        
+              const data = await res.json();
+        
+              if (!res.ok)
+                throw new Error(data.error || "Failed to create checkout session");
+        
+              if (data.clientSecret) {
+                router.push(
+                  `/checkout?client_secret=${encodeURIComponent(data.clientSecret)}`
+                );
+              } else if (data.url) {
+                window.location.href = data.url;
+              } else {
+                throw new Error("No checkout URL or client secret received");
+              }
+            } else if (!p.price_id) {
+              console.warn("No price_id found for plan:", p.name);
+              alert("This plan is not available for checkout. Please contact us.");
+            }
+          } catch (err: any) {
+            console.error("Error in buttonAction:", err);
+            alert(`Error: ${err.message}`);
           }
-        } catch (err: any) {
-          console.error("Error in buttonAction:", err);
-          alert(`Error: ${err.message}`);
-        }
-      };
+        };        
 
       return {
         id: p.id,
