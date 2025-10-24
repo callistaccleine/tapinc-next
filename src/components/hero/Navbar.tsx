@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, usePathname  } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
@@ -10,13 +10,14 @@ import styles from "../../styles/Navbar.module.css";
 export default function Navbar() {
   const [user, setUser] = useState<any>(undefined); // undefined=loading, null=logged out, object=logged in
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const chipRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
-  const isDarkBackground = pathname === "/"; 
+  const isDarkBackground = pathname === "/";
 
-  // Check session on load
+  // ✅ Check session on load
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) console.error("getSession error:", error);
@@ -30,18 +31,18 @@ export default function Navbar() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // ✅ Close menu when clicking outside
+  // ✅ Close user dropdown when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!chipRef.current) return;
-      if (!chipRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (!chipRef.current.contains(e.target as Node)) setUserMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const handleLogout = async () => {
-    setMenuOpen(false);
+    setUserMenuOpen(false);
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Error signing out:", error);
@@ -60,30 +61,48 @@ export default function Navbar() {
         isDarkBackground ? styles.navbarLight : styles.navbarDark
       }`}
     >
+      {/* ✅ Logo */}
       <div
         className={styles.navbarLogo}
         onClick={() => router.push("/")}
         style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
       >
-        <Image src="/images/Tapink-logo.png" alt="TapInk" className={styles.logoImg} width={70} height={70} />
+        <Image
+          src="/images/Tapink-logo.png"
+          alt="TapInk"
+          className={styles.logoImg}
+          width={70}
+          height={70}
+        />
       </div>
-  
-      {/* ✅ Centered Nav Links */}
-      <ul className={styles.navbarLinks}>
-        <li><Link href="/">Home</Link></li>
-        <li><Link href="/products">Products</Link></li>
-      <li><Link href="/pricing">Pricing</Link></li>
-      <li><Link href="/support">Support</Link></li>
+
+      {/* ✅ Nav Links (slide in/out on mobile) */}
+      <ul
+        className={`${styles.navbarLinks} ${menuOpen ? styles.open : ""}`}
+        onClick={() => setMenuOpen(false)} // close menu when clicking a link
+      >
+        <li>
+          <Link href="/">Home</Link>
+        </li>
+        <li>
+          <Link href="/products">Products</Link>
+        </li>
+        <li>
+          <Link href="/pricing">Pricing</Link>
+        </li>
+        <li>
+          <Link href="/support">Support</Link>
+        </li>
       </ul>
-  
-      {/* ✅ User Section (stays on the right) */}
+
+      {/* ✅ Right Section (CTA + User Dropdown + Menu Button) */}
       <div className={styles.navbarRight}>
         {user ? (
           <div className={styles.userChip} ref={chipRef}>
             <button
               type="button"
               className={styles.avatarProfile}
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => setUserMenuOpen((v) => !v)}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path
@@ -92,22 +111,22 @@ export default function Navbar() {
                 />
               </svg>
             </button>
-  
-            {menuOpen && (
+
+            {userMenuOpen && (
               <div className={styles.userMenu} role="menu">
                 <button
                   className={styles.menuItem}
                   type="button"
                   onClick={() => {
-                    setMenuOpen(false);
+                    setUserMenuOpen(false);
                     router.push("/dashboard");
                   }}
                 >
                   Dashboard
                 </button>
-  
+
                 <div className={styles.menuSep} />
-  
+
                 <button
                   className={`${styles.menuItem} ${styles.logout}`}
                   type="button"
@@ -123,6 +142,18 @@ export default function Navbar() {
             Register
           </Link>
         )}
+
+        {/* ✅ Menu Toggle */}
+        <button
+          className={`${styles.menuToggle} ${menuOpen ? styles.open : ""}`}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
       </div>
     </nav>
   );

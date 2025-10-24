@@ -312,7 +312,7 @@
     flex-direction: column;
     gap: 0;
     padding: 2rem 1.5rem;
-    background: rgba(255, 94, 0, 0.98);
+    background: #f78f3e;
     backdrop-filter: blur(10px);
     transform: translateX(-100%);
     transition: transform 0.3s ease;
@@ -353,6 +353,10 @@
     color: #ff5c00;
     border-bottom-color: rgba(255, 92, 0, 0.1);
   }
+  .navbarLinks.open {
+    transform: translateX(0);
+  }
+  
 }
 
 /* Small mobile breakpoint */
@@ -386,6 +390,10 @@
   .navbarLinks a {
     font-size: 1rem;
   }
+  .navbarLinks.open {
+    transform: translateX(0);
+  }
+  
 }
 
 /* Landscape mobile optimization */

@@ -11,39 +11,39 @@ export default function Footer() {
           <div className={styles.footerGrid}>
             <div className={styles.footerColumn}>
               <h4>Product</h4>
-              <Link href="/overview">Product Overview</Link>
+              <Link href="/products">Product Overview</Link>
               <Link href="/features">Features</Link>
               <Link href="/pricing">Pricing</Link>
-              <Link href="/enterprise">Enterprise</Link>
+              {/* <Link href="/enterprise">Enterprise</Link> */}
             </div>
 
             <div className={styles.footerColumn}>
               <h4>Solutions</h4>
-              <Link href="/business">For Business</Link>
-              <Link href="/events">For Events</Link>
-              <Link href="/personal">Personal Use</Link>
-              <Link href="/integrations">Integrations</Link>
+              <Link href="/pricing">For Business</Link>
+              <Link href="/pricing">For Events</Link>
+              {/* <Link href="/personal">Personal Use</Link>
+              <Link href="/integrations">Integrations</Link> */}
             </div>
 
             <div className={styles.footerColumn}>
               <h4>Resources</h4>
               <Link href="/support">Support</Link>
-              <Link href="/documentation">Documentation</Link>
+              {/* <Link href="/documentation">Documentation</Link>
               <Link href="/blog">Blog</Link>
-              <Link href="/guides">Guides</Link>
+              <Link href="/guides">Guides</Link> */}
             </div>
 
             <div className={styles.footerColumn}>
               <h4>Company</h4>
-              <Link href="/about">About TapInk</Link>
-              <Link href="/careers">Careers</Link>
-              <Link href="/press">Press Kit</Link>
-              <Link href="/contact">Contact</Link>
+              <Link href="/">About TapInk</Link>
+              {/* <Link href="/careers">Careers</Link>
+              <Link href="/press">Press Kit</Link> */}
+              <Link href="/support">Contact</Link>
             </div>
 
             <div className={styles.footerColumn}>
               <h4>Legal</h4>
-              <Link href="/terms">Terms of Service</Link>
+              <Link href="/terms-of-service">Terms of Service</Link>
               <Link href="/privacy">Privacy Policy</Link>
               <Link href="/cookies">Cookie Policy</Link>
               <Link href="/security">Security</Link>
@@ -66,7 +66,7 @@ export default function Footer() {
               <span className={styles.divider}>|</span>
               <Link href="/accessibility">Accessibility</Link>
               <span className={styles.divider}>|</span>
-              <a href="tel:+61 9428 2408">+61 9428 2408</a>
+              <a href="/support">Contact Us</a>
             </div>
 
             <div className={styles.footerSocials}>
