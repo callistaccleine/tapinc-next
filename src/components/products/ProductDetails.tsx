@@ -180,7 +180,7 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
             {isProcessing ? "Processing..." : "ADD TO CART"}
           </button>
 
-          <p className={styles.shippingNote}>Ships within 3–5 business days.</p>
+          {/* <p className={styles.shippingNote}>Ships within 3–5 business days.</p> */}
 
           {/* SHIPPING & FAQ Section */}
           <div className={styles.faqSection}>
