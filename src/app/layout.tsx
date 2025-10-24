@@ -9,8 +9,8 @@ export const metadata = {
   description:
     "TapInk makes sharing your contact info seamless with NFC-powered digital cards.",
   icons: {
-    icon: "/favicon.png", 
-    shortcut: "/favicon.png",
+    icon: "public/favicon.png", 
+    shortcut: "public/favicon.png",
     apple: "/favicon.png",
   },
 };
@@ -24,9 +24,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" type="image/png" href="/favicon.png" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
-        <meta name="theme-color" content="#ff7a00" />
+      <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
+      <link rel="apple-touch-icon" href="/favicon.png" />
+      <link rel="shortcut icon" href="/favicon.png" />
+      <meta name="theme-color" content="#ff7a00" />
+
+
         <meta property="og:image" content="/images/features/Tapink-logo.png" />
         <meta property="og:title" content="TapINK — Smart Digital Business Cards" />
         <meta property="og:description" content="Create instant, meaningful connections with TapINK." />
