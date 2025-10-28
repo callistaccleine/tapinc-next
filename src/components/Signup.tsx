@@ -315,16 +315,17 @@ const handleSignup = async (e: React.FormEvent) => {
           <div className={styles.signupArtImg} role="img" aria-label="Decorative" />
           <div className={styles.signupArtCaption}>
             <h3>Discovering the way to share your details</h3>
-            <p>Fill in something</p>
+            <p>Create your digital profile and start connecting with others using just a tap.</p>
             <div className={styles.signupChips}>
-              <span className={styles.chip}>something</span>
-              <span className={styles.chip}>something</span>
+              <span className={styles.chip}>NFC-enabled</span>
+              <span className={styles.chip}>Eco-friendly</span>
+              <span className={styles.chip}>Customisable</span>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* ✅ Confirmation Modal */}
+      {/* Confirmation Modal */}
       {showConfirmation && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>

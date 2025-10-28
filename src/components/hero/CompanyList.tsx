@@ -4,10 +4,22 @@ import { useRef, useEffect } from "react";
 import Image from "next/image";
 import styles from "../../styles/CompanyList.module.css";
 
-const companies = [
+type CompanyLogo = {
+  image: string;
+  name: string;
+  width?: number;
+  height?: number;
+};
+
+const companies: CompanyLogo[] = [
   { image: "/images/companies/o3_Logo.png", name: "O3 Collective" },
   { image: "/images/companies/kalti_logo.png", name: "Kalti" },
-  { image: "/images/companies/westminster.png", name: "Westminster" },
+  {
+    image: "/images/companies/westminster.png",
+    name: "Westminster",
+    width: 170,
+    height: 70,
+  },
   { image: "/images/companies/moneyquest.png", name: "Money Quest Lonsdale" },
   { image: "/images/companies/jett_logo.webp", name: "Jett" },
 ];
@@ -55,10 +67,14 @@ export default function CompanyList() {
             <Image
               src={company.image}
               alt={company.name}
-              width={100}
-              height={50}
+              width={company.width ?? 140}
+              height={company.height ?? 60}
               className={styles.companyLogo}
               priority
+              style={{
+                width: company.width ?? 140,
+                height: company.height ?? 60,
+              }}
             />
           </div>
         ))}

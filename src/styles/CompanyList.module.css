@@ -1,11 +1,11 @@
 .companyListSection {
   width: 100%;
-  background: #fbfbfd;
   padding: 40px 0;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  background-color: #fdfdfd;
 }
 
 .companySlider {
@@ -15,7 +15,6 @@
   scroll-behavior: smooth;
   scrollbar-width: none;
 }
-
 .companySlider::-webkit-scrollbar {
   display: none;
 }
@@ -36,31 +35,19 @@
 .companyLogo {
   /* Use object-fit contain to maintain aspect ratio */
   object-fit: contain;
-  /* Set max dimensions so all logos fit within the same bounds */
-  max-width: 100%;
-  max-height: 100%;
-  /* Fixed dimensions to ensure uniform sizing */
-  width: auto;
-  height: auto;
+  /* Fixed dimensions so every logo renders consistently */
+  width: 140px;
+  height: 60px;
   opacity: 0.95;
   transition: transform 0.3s ease, opacity 0.3s ease;
   /* Prevent images from being smaller than container */
-  min-width: 80px;
-  min-height: 40px;
+  /* filter: grayscale(100%); */
 }
 
 .companyLogo:hover {
   transform: scale(1.05);
   opacity: 1;
-}
-
-/* Optional: Add filter for grayscale effect on inactive logos */
-.companyLogo {
-  filter: grayscale(0%);
-}
-
-.companyLogo:hover {
-  filter: grayscale(0%);
+  filter: grayscale(100%);
 }
 
 /* For responsive design */

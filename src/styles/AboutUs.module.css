@@ -1,225 +1,148 @@
-.aboutSection {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  background: #fdfdfd;
-  color: black;
-  padding: 120px 100px;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  flex-wrap: wrap;
-  gap: 80px;
-  box-sizing: border-box;
-}
-
-/* 🖥️ Large Screens (1440px and above) */
-@media (min-width: 1440px) {
-  .aboutSection {
-    max-width: 1600px;
+.aboutUsSection {
+    background: #fff;
+    padding: 140px 60px;
+    font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #111827;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .sectionTitle {
+    text-align: center;
+    font-size: clamp(32px, 5vw, 46px);
+    font-weight: 700;
+    margin-bottom: 100px;
+    line-height: 1.3;
+    color: #111827;
+  }
+  
+  /* Timeline structure */
+.timeline {
+    --timeline-gap: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--timeline-gap);
+    max-width: 1000px;
     margin: 0 auto;
-    padding: 140px 160px;
-    gap: 100px;
   }
-
-  .aboutTitle {
-    font-size: 72px;
-    letter-spacing: -2.5px;
+  
+  .timelineItem {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    align-items: start;
+    gap: 20px;
   }
-
-  .textBlock p {
-    font-size: 22px;
-    line-height: 1.75;
+  
+  .timelineLeft {
+    text-align: right;
   }
-}
-
-/* 📸 Image area */
-.imageArea {
-  flex: 1 1 48%;
-  position: relative;
-  border-radius: 24px;
-  overflow: hidden;
-  max-width: 700px;
-  height: 70vh;
-  min-height: 500px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.imageWrapper {
-  position: absolute;
-  inset: 0;
-}
-
-.aboutImage {
-  object-fit: cover;
-  width: 100%;
-  height: 100%;
-  border-radius: 24px;
-}
-
-/* 🧾 Text Area */
-.textArea {
-  flex: 1 1 45%;
-  max-width: 650px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.overline {
-  font-size: 15px;
-  font-weight: 600;
-  color: #86868b;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 16px;
-}
-
-.aboutTitle {
-  font-size: clamp(36px, 4vw, 60px);
-  font-weight: 700;
-  line-height: 1.1;
-  color: black;
-  margin-bottom: 32px;
-  letter-spacing: -1.5px;
-}
-
-.textContainer {
-  position: relative;
-  min-height: 200px;
-  margin-bottom: 40px;
-}
-
-.textBlock p {
-  font-size: clamp(17px, 1.2vw, 20px);
-  line-height: 1.6;
-  color: grey;
-  margin: 0;
-  letter-spacing: -0.015em;
-}
-
-/* 🔘 Dots Navigation */
-.progressIndicator {
-  display: flex;
-  gap: 12px;
-}
-
-.progressDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ccc;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.progressDot:hover {
-  background: #999;
-}
-
-.activeDot {
-  width: 36px;
-  border-radius: 4px;
-  background: #86868b;
-}
-
-/* Tablet (768px - 1024px) */
-@media (max-width: 1024px) {
-  .aboutSection {
-    padding: 80px 40px;
-    gap: 60px;
+  
+  .featureLabel {
+    display: inline-block;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
   }
-
-  .imageArea {
-    height: 55vh;
-    min-height: 400px;
-    max-width: 100%;
+  
+  .featureTitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: #ff9502;
+    margin: 0;
   }
-
-  .textArea {
-    max-width: 100%;
-  }
-
-  .aboutTitle {
-    font-size: 42px;
-    margin-bottom: 24px;
-  }
-
-  .textBlock p {
-    font-size: 18px;
-    line-height: 1.6;
-  }
-
-  .progressIndicator {
-    margin-top: 10px;
-  }
-}
-
-/* Mobile (≤768px) */
-@media (max-width: 768px) {
-  .aboutSection {
+  
+  /* Center timeline bar */
+  .timelineCenter {
+    position: relative;
+    display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 60px 20px;
-    gap: 40px;
   }
-
-  .imageArea {
-    width: 100%;
-    height: 50vh;
-    min-height: 300px;
+  
+  .timelineDot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid #ff9502;
+    position: relative;
+    z-index: 2;
   }
-
-  .textArea {
-    width: 100%;
-    text-align: left;
-    align-items: flex-start;
-  }
-
-  .aboutTitle {
-    font-size: 32px;
-    margin-bottom: 20px;
-    letter-spacing: -0.8px;
-  }
-
-  .textBlock p {
-    font-size: 16px;
-    line-height: 1.55;
-  }
-
-  .progressIndicator {
-    justify-content: center;
-    margin-top: 20px;
-  }
-}
-
-/* 📲 Small Mobile (≤480px) */
-@media (max-width: 480px) {
-  .aboutSection {
-    padding: 50px 16px;
-    gap: 30px;
-  }
-
-  .imageArea {
-    height: 45vh;
-    min-height: 260px;
-  }
-
-  .aboutTitle {
-    font-size: 28px;
-    margin-bottom: 18px;
-  }
-
-  .textBlock p {
-    font-size: 15px;
-    line-height: 1.5;
-  }
-
-  .progressDot {
-    width: 8px;
-    height: 8px;
-  }
-
+  
   .activeDot {
-    width: 28px;
+    background: #ff9502;
   }
-}
+  
+  /* Right content */
+  .timelineRight p {
+    color: #4b5563;
+    font-size: 17px;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .timelineItem {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    align-items: start;
+    gap: 20px;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.6s ease;
+  }
+
+  
+  /* Subtle shadow glow when each feature becomes visible */
+  .timelineItem:has(.activeDot) {
+    filter: drop-shadow(0 2px 6px rgba(79, 70, 229, 0.2));
+  }
+  
+  /* Make the center line animate cleanly */
+  .timelineLine {
+    position: absolute;
+    top: 18px;
+    left: calc(50% - 1px);
+    width: 2px;
+    height: calc(100% + var(--timeline-gap));
+    background: linear-gradient(to bottom, #ff9502, #e5e7eb);
+    border-radius: 2px;
+    pointer-events: none;
+    transform-origin: top center;
+  }
+  
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .timelineItem {
+      grid-template-columns: 1fr;
+      text-align: left;
+      gap: 16px;
+    }
+  
+    .timelineLeft {
+      text-align: left;
+    }
+  
+    .timelineCenter {
+      display: none;
+    }
+  
+    .featureTitle {
+      font-size: 18px;
+    }
+  
+    .timelineRight p {
+      font-size: 16px;
+    }
+  
+    .sectionTitle {
+      margin-bottom: 60px;
+    }
+  }
+  

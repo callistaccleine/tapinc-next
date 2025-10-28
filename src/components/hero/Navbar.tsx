@@ -91,6 +91,9 @@ export default function Navbar() {
           <Link href="/pricing">Pricing</Link>
         </li>
         <li>
+          <Link href="/about-us">About Us</Link>
+        </li>
+        <li>
           <Link href="/support">Support</Link>
         </li>
       </ul>

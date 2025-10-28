@@ -42,18 +42,19 @@ export default function Support() {
       ========================== */}
       <section className={styles.contactSection}>
         <div className={styles.contactLeft}>
-          <h1 className={styles.title}>Contact Us</h1>
-          <p className={styles.subtitle}>
-            Need help using TapInk? Sign in so we can assist you better.  
-            If that's not possible, simply send us your request below.
-          </p>
-        </div>
-
-        <div className={styles.contactRight}>
-          <ContactForm isModal={false} />
+          <div className={styles.contactIntro}>
+            <h1 className={styles.title}>Contact Us</h1>
+            <p className={styles.subtitle}>
+              Need help using TapInk? Sign in so we can assist you better.  
+              If that's not possible, simply send us your request below.
+            </p>
+          </div>
+          <div className={styles.contactCardWrapper}>
+            <ContactForm isModal={false} layout="embedded" />
+          </div>
         </div>
       </section>
-
+ 
       {/* =========================
           FAQ SECTION
       ========================== */}
