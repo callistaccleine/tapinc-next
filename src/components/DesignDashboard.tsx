@@ -396,12 +396,58 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       showNotification("Failed to save socials", "error");
     }
   };
-  
+
+  const updateVirtualActivation = async (status: boolean) => {
+    if (!profile?.id) {
+      throw new Error("Profile not found");
+    }
+
+    if (virtualActivated === status) {
+      setVirtualActivated(status);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ virtual_activated: status })
+      .eq("id", profile.id);
+
+    if (error) {
+      throw error;
+    }
+
+    setVirtualActivated(status);
+  };
+
   const saveTemplateTab = async () => {
     try {
       await saveToDatabase({ template });
-      await toggleActivation('virtual');
+
+      const hasTemplate = Boolean(template);
+      const basicInfoReady = isBasicInfoComplete();
+      let message = "Template updated successfully.";
+
+      if (hasTemplate) {
+        if (!basicInfoReady) {
+          showNotification(
+            "Template saved. Complete Profile, Links, and Socials tabs before activating your virtual card.",
+            "error"
+          );
+          return;
+        }
+
+        if (!virtualActivated) {
+          await updateVirtualActivation(true);
+          message = "Your virtual card is now active. Share your profile instantly.";
+        }
+      } else {
+        await updateVirtualActivation(false);
+        message = "Virtual card deactivated. Select a template to activate it again.";
+      }
+
+      showNotification(message, "success");
     } catch (error) {
+      console.error("Error saving template:", error);
       showNotification("Failed to save template", "error");
     }
   };

@@ -26,25 +26,19 @@
 
 .contactIntro {
   max-width: 720px;
-  margin: 0 auto;
-  text-align: center;
 }
-
-.title {
-  font-size: 42px;
-  font-weight: 700;
+  
+  .title {
+    font-size: 42px;
+    font-weight: 700;
     margin-bottom: 16px;
     letter-spacing: -0.02em;
-    text-align: center;
   }
-
+  
 .subtitle {
   font-size: 18px;
   color: #555;
   line-height: 1.6;
-  margin: 0 auto;
-  max-width: 640px;
-  text-align: center;
 }
 
 .contactCardWrapper {
