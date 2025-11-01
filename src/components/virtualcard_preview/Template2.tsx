@@ -40,7 +40,7 @@ END:VCARD`;
     <div
       style={{
         minHeight: "100vh",
-        width: isMobile ? "100vw" : "min(460px, 100vw)",
+        width: isMobile ? "100vw" : "min(480px, 100vw)",
         margin: isMobile ? "0" : "40px auto",
         borderRadius: isMobile ? "0" : "28px",
         boxShadow: isMobile ? "none" : "0 18px 48px rgba(15,23,42,0.12)",

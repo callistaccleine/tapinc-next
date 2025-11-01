@@ -34,3 +34,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Physical Card Export Setup
+
+The physical card designer now generates a PDF and zipped PNG assets in Google Drive when users activate their card. Configure the following environment variables so the API route can authenticate with Google:
+
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (use `\n` escapes in `.env` for newlines)
+- `GOOGLE_DRIVE_CARD_DESIGNS_FOLDER_ID` (share this folder with the service account or grant access to `tapinc.io.au@gmail.com`)
+
+These credentials must have permission to write into the TapInk Drive account. The ZIP file contains front/back PNG exports at the selected DPI plus metadata describing the design configuration.

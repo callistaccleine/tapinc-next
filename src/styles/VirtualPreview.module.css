@@ -1,0 +1,91 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: #eef1f6;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 9999;
+}
+
+.logo {
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  background: linear-gradient(120deg, #ff7a00 0%, #ff9502 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: logoFade 1.2s ease forwards;
+}
+
+.tagline {
+  font-size: 12px;
+  opacity: 0.7;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.loader {
+  position: relative;
+  width: 92px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.loader::after {
+  content: "";
+  position: absolute;
+  left: -40px;
+  top: 0;
+  width: 40px;
+  height: 100%;
+  border-radius: inherit;
+  background: #ffffff;
+  animation: slide 1.8s ease-in-out infinite;
+}
+
+.emptyState {
+  min-height: 60vh;
+  width: 100%;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+@keyframes slide {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(140px);
+    opacity: 0;
+  }
+}
+
+@keyframes logoFade {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

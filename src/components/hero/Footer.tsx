@@ -43,7 +43,7 @@ export default function Footer() {
 
             <div className={styles.footerColumn}>
               <h4>Legal</h4>
-              <Link href="/terms-of-service">Terms of Service</Link>
+              <Link href="/policies/terms-of-service">Terms of Service</Link>
               <Link href="/privacy">Privacy Policy</Link>
             </div>
           </div>

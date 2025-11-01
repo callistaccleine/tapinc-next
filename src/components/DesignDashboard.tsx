@@ -6,6 +6,15 @@ import Select from "react-select";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProfileQRCode from "@/components/ProfileQRCode";
+import VirtualPreview from "@/components/virtualcard_preview/VirtualPreview";
+import { CardData } from "@/types/CardData";
+import {
+  PhysicalCardDesigner,
+  DEFAULT_CARD_DESIGN,
+  CardDesignSettings,
+  parseCardDesign,
+  CardExportPayload,
+} from "@/components/PhysicalCardDesigner";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 
 interface Link {
@@ -50,7 +59,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [socials, setSocials] = useState<Socials>({});
   const [newLink, setNewLink] = useState<Link>({ title: "", url: "" });
   const [template, setTemplate] = useState("");
-  const [cardDesign, setCardDesign] = useState("");
+  const [cardDesign, setCardDesign] = useState<CardDesignSettings>({ ...DEFAULT_CARD_DESIGN });
   const [headerBanner, setHeaderBanner] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -62,6 +71,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   // Activation state
   const [physicalActivated, setPhysicalActivated] = useState(false);
   const [virtualActivated, setVirtualActivated] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<string>("template1_blank.svg");
+  const [cardLogoUploading, setCardLogoUploading] = useState(false);
+  const [profileUrl, setProfileUrl] = useState("");
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
@@ -87,17 +99,33 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
 
-  const templateMap: Record<string, string> = {
-    "Template 1": "template1_blank.svg",
-    "Template 2": "template2_blank.svg",
-    "Template 3": "template3_blank.svg",
-  };
+  const templateOptions = [
+    {
+      name: "Template 1",
+      file: "template1_blank.svg",
+      persona: "Modern Gradient",
+      description: "Curved hero with soft gradients ideal for creative professionals.",
+      thumbnail: "/templates/Template 1.png",
+    },
+    {
+      name: "Template 2",
+      file: "template2_blank.svg",
+      persona: "Polished Minimal",
+      description: "Clean card with centered bio and neutral palette for consultants.",
+      thumbnail: "/templates/Template 2.png",
+    },
+    {
+      name: "Template 3",
+      file: "template3_blank.svg",
+      persona: "Executive Formal",
+      description: "Structured layout with crisp dividers made for corporate teams.",
+      thumbnail: "/templates/Template 3.png",
+    },
+  ];
 
-  const cardDesignMap: Record<string, string> = {
-    "Sunset": "/images/cards/Physical Card Option 1.png",
-    "Sea": "/images/cards/Physical Card Option 2.png",
-    "Flowery": "/images/cards/Physical Card Option 3.png",
-  };
+
+  const updateCardDesign = (changes: Partial<CardDesignSettings>) =>
+    setCardDesign((prev) => ({ ...prev, ...changes }));
 
   const options = [
     { value: "She/Her", label: "She/Her" },
@@ -142,11 +170,25 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setBio(designData.bio || "");
           setProfilePic(designData.profile_pic || null);
           setHeaderBanner(designData.header_banner || null);
-          setTemplate(designData.template || "");
-          setCardDesign(designData.cardDesign || "");
-          setLinks(designData.links || []);
+          const loadedTemplate = designData.template || "";
+          setTemplate(loadedTemplate);
+          setPreviewTemplate(loadedTemplate || templateOptions[0].file);
+          setCardDesign(parseCardDesign(designData.cardDesign));
+          let loadedLinks: any = designData.links || [];
+          if (typeof designData.links === "string") {
+            try {
+              loadedLinks = JSON.parse(designData.links);
+            } catch (err) {
+              console.warn("Failed to parse saved links", err);
+              loadedLinks = [];
+            }
+          }
+          setLinks(Array.isArray(loadedLinks) ? loadedLinks : []);
           setSocials(designData.socials || {});
           setAddress(designData.address || "");
+        } else {
+          setPreviewTemplate(templateOptions[0].file);
+          setCardDesign({ ...DEFAULT_CARD_DESIGN });
         }
 
         // Load activation status from profiles table
@@ -163,49 +205,21 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     loadProfile();
   }, [profile]);
 
+  useEffect(() => {
+    if (template) {
+      setPreviewTemplate(template);
+    }
+  }, [template]);
+
+  useEffect(() => {
+    if (profile?.id && typeof window !== "undefined") {
+      setProfileUrl(`${window.location.origin}/user/${profile.id}`);
+    }
+  }, [profile?.id]);
+
   // Check if basic info is complete
   const isBasicInfoComplete = () => {
     return firstname && surname && email;
-  };
-
-  // Toggle activation
-  const toggleActivation = async (type: 'physical' | 'virtual') => {
-    if (!profile?.id) {
-      showNotification("Profile not found", "error");
-      return;
-    }
-
-    if (!isBasicInfoComplete()) {
-      showNotification("Please complete Profile, Links, and Socials tabs first", "error");
-      return;
-    }
-
-    try {
-      const newStatus = type === 'physical' ? !physicalActivated : !virtualActivated;
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          [type === 'physical' ? 'physical_activated' : 'virtual_activated']: newStatus
-        })
-        .eq("id", profile.id);
-
-      if (error) throw error;
-
-      if (type === 'physical') {
-        setPhysicalActivated(newStatus);
-      } else {
-        setVirtualActivated(newStatus);
-      }
-
-      showNotification(
-        `${type === 'physical' ? 'Physical' : 'Virtual'} card ${newStatus ? 'activated' : 'deactivated'} successfully!`,
-        "success"
-      );
-    } catch (error: any) {
-      console.error("Error toggling activation:", error);
-      showNotification("Failed to update activation status", "error");
-    }
   };
 
   // Save functions
@@ -275,12 +289,15 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
-    fieldName: "profile_pic" | "header_banner"
+    fieldName: "profile_pic" | "header_banner" | "card_logo"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
+      if (fieldName === "card_logo") {
+        setCardLogoUploading(true);
+      }
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user || !profile?.id) {
@@ -301,7 +318,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
       showNotification("Uploading image...", "success");
 
-      const bucketName = fieldName === "profile_pic" ? "profile-pics" : "header-banner";
+      const bucketName =
+        fieldName === "profile_pic"
+          ? "profile-pics"
+          : fieldName === "header_banner"
+          ? "header-banner"
+          : "card-logo";
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
@@ -325,18 +347,26 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
       const publicUrl = publicUrlData.publicUrl;
 
-      await saveToDatabase({ [fieldName]: publicUrl });
-
       if (fieldName === "profile_pic") {
         setProfilePic(publicUrl);
-      } else {
+        await saveToDatabase({ profile_pic: publicUrl });
+      } else if (fieldName === "header_banner") {
         setHeaderBanner(publicUrl);
+        await saveToDatabase({ header_banner: publicUrl });
+      } else {
+        updateCardDesign({ logoUrl: publicUrl });
+        showNotification("Logo uploaded. Don't forget to save your card design.", "success");
+        return;
       }
 
       showNotification("Image uploaded successfully!", "success");
     } catch (err: any) {
       console.error("Upload error:", err);
       showNotification(err.message || "Upload failed", "error");
+    } finally {
+      if (fieldName === "card_logo") {
+        setCardLogoUploading(false);
+      }
     }
   };
 
@@ -419,11 +449,35 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     setVirtualActivated(status);
   };
 
+  const updatePhysicalActivation = async (status: boolean) => {
+    if (!profile?.id) {
+      throw new Error("Profile not found");
+    }
+
+    if (physicalActivated === status) {
+      setPhysicalActivated(status);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ physical_activated: status })
+      .eq("id", profile.id);
+
+    if (error) {
+      throw error;
+    }
+
+    setPhysicalActivated(status);
+  };
+
   const saveTemplateTab = async () => {
     try {
-      await saveToDatabase({ template });
+      const templateToPersist = previewTemplate || template || templateOptions[0].file;
+      setTemplate(templateToPersist);
+      await saveToDatabase({ template: templateToPersist });
 
-      const hasTemplate = Boolean(template);
+      const hasTemplate = Boolean(templateToPersist);
       const basicInfoReady = isBasicInfoComplete();
       let message = "Template updated successfully.";
 
@@ -436,7 +490,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           return;
         }
 
-        if (!virtualActivated) {
+        if (!virtualActivated || profile?.virtual_activated !== true) {
           await updateVirtualActivation(true);
           message = "Your virtual card is now active. Share your profile instantly.";
         }
@@ -452,11 +506,66 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
 
-  const saveCardDesignTab = async () => {
+  const saveCardDesignTab = async (exportPayload?: CardExportPayload) => {
     try {
-      await saveToDatabase({ cardDesign });
-      await toggleActivation('physical');
+      const savedRecord = await saveToDatabase({ cardDesign: JSON.stringify(cardDesign) });
+      const currentDesignId = savedRecord?.id || designProfileId;
+
+      let message = "Card design saved.";
+
+      if (!physicalActivated) {
+        await updatePhysicalActivation(true);
+        message = "Physical card activated. Your latest design is ready.";
+      } else {
+        message = "Card design updated.";
+      }
+
+      if (
+        exportPayload &&
+        exportPayload.frontImage &&
+        exportPayload.backImage &&
+        currentDesignId
+      ) {
+        try {
+          const response = await fetch("/api/physical-card/export", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              designProfileId: currentDesignId,
+              frontImage: exportPayload.frontImage,
+              backImage: exportPayload.backImage,
+              resolution: exportPayload.resolution,
+              widthPx: exportPayload.widthPx,
+              heightPx: exportPayload.heightPx,
+              designSettings: cardDesign,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.json().catch(() => null);
+            console.error("Failed to export card assets:", errorBody);
+            showNotification(
+              "Card design saved but exporting assets to Google Drive failed.",
+              "error"
+            );
+            return;
+          }
+          message += " Assets exported to Google Drive.";
+        } catch (err) {
+          console.error("Export error:", err);
+          showNotification(
+            "Card design saved but exporting assets to Google Drive failed.",
+            "error"
+          );
+          return;
+        }
+      }
+
+      showNotification(message, "success");
     } catch (error) {
+      console.error("Error saving card design", error);
       showNotification("Failed to save card design", "error");
     }
   };
@@ -574,49 +683,184 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               </div>
             ) : (
               <>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: '16px',
-                  marginBottom: '24px'
-                }}>
-                  {Object.keys(templateMap).map((templateName) => (
+                {(() => {
+                  const socialArray = Object.entries(socials || {})
+                    .filter(([_, url]) => Boolean(url))
+                    .map(([platform, url]) => ({
+                      platform,
+                      url: typeof url === 'string' ? url : String(url),
+                    }));
+                  const filteredLinks = (links || []).filter((link) => link.title && link.url);
+                  const selectedPreviewTemplate = previewTemplate || template || templateOptions[0].file;
+                  const previewData: CardData = {
+                    name: `${firstname} ${surname}`.trim() || 'Your Name',
+                    title: title || '',
+                    company,
+                    phone: phone || '',
+                    email: email || '',
+                    bio,
+                    address,
+                    socials: socialArray,
+                    links: filteredLinks,
+                    headerBanner: headerBanner || undefined,
+                    profilePic: profilePic ?? undefined,
+                    template: selectedPreviewTemplate,
+                  };
+
+                  return (
                     <div
-                      key={templateName}
-                      onClick={() => setTemplate(templateMap[templateName])}
                       style={{
-                        background: '#ffffff',
-                        border: template === templateMap[templateName] ? '2px solid #D3d3d3' : '1px solid #e5e5e5',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '24px',
+                        alignItems: 'start',
+                        marginBottom: '24px',
                       }}
                     >
-                      <img
-                        src={`/templates/${templateName}.png`}
-                        alt={templateName}
-                        style={{ width: '100%', borderRadius: '8px', marginBottom: '12px' }}
-                      />
-                      <p style={{ textAlign: 'center', fontWeight: 500, color: "black" }}>{templateName}</p>
-                    </div>
-                  ))}
-                </div>
+                      <div
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #e5e5e5',
+                          borderRadius: '18px',
+                          padding: '20px',
+                          boxShadow: '0 20px 45px rgba(15,23,42,0.08)',
+                        }}
+                      >
+                        <div style={{ marginBottom: '16px' }}>
+                          <span style={{ fontSize: '12px', letterSpacing: '0.14em', color: '#667085' }}>
+                            LIVE PREVIEW
+                          </span>
+                          <h4 style={{ margin: '8px 0 0', fontSize: '18px', fontWeight: 500, color: '#0f172a' }}>
+                            {templateOptions.find((opt) => opt.file === selectedPreviewTemplate)?.name}
+                          </h4>
+                        </div>
+                        <div
+                          style={{
+                            background: '#f5f6f8',
+                            borderRadius: '16px',
+                            padding: '20px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <VirtualPreview data={previewData} showSplash={false} />
+                        </div>
+                      </div>
 
-                <button 
-                  onClick={saveTemplateTab}
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '16px',
+                        }}
+                      >
+                        {templateOptions.map((option) => {
+                          const isSelected = template === option.file;
+                          const isPreviewed = selectedPreviewTemplate === option.file;
+                          return (
+                            <button
+                              key={option.file}
+                              type="button"
+                              onClick={() => {
+                                setTemplate(option.file);
+                                setPreviewTemplate(option.file);
+                              }}
+                              onMouseEnter={() => setPreviewTemplate(option.file)}
+                              onFocus={() => setPreviewTemplate(option.file)}
+                              style={{
+                                textAlign: 'left',
+                                border: isSelected ? '2px solid #111827' : '1px solid #d0d5dd',
+                                borderRadius: '16px',
+                                background: '#ffffff',
+                                boxShadow: isSelected
+                                  ? '0 18px 40px rgba(17,24,39,0.12)'
+                                  : '0 10px 24px rgba(17,24,39,0.05)',
+                                padding: '16px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                gap: '16px',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <img
+                                src={option.thumbnail}
+                                alt={option.name}
+                                style={{
+                                  width: '80px',
+                                  height: '120px',
+                                  objectFit: 'cover',
+                                  borderRadius: '12px',
+                                  border: '1px solid rgba(17,24,39,0.08)',
+                                }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                    {option.name}
+                                  </h5>
+                                  {isSelected && (
+                                    <span style={{
+                                      fontSize: '11px',
+                                      letterSpacing: '0.14em',
+                                      color: '#111827',
+                                    }}>
+                                      SELECTED
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{ margin: 0, fontSize: '12px', letterSpacing: '0.12em', color: '#667085' }}>
+                                  {option.persona.toUpperCase()}
+                                </p>
+                                <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#475467', lineHeight: 1.5 }}>
+                                  {option.description}
+                                </p>
+                                {isPreviewed && !isSelected && (
+                                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#111827', opacity: 0.65 }}>
+                                    Previewing
+                                  </p>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div
                   style={{
-                    background: '#000000',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    fontWeight: 500,
-                    cursor: 'pointer'
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '16px',
                   }}
                 >
-                  {virtualActivated ? 'Update & Save Template' : 'Save & Activate Virtual Card'}
-                </button>
+                  <div style={{ fontSize: '13px', color: '#475467' }}>
+                    {template
+                      ? `Current selection: ${
+                          templateOptions.find((opt) => opt.file === template)?.name || 'Template'
+                        }`
+                      : 'Choose a template to activate your virtual card.'}
+                  </div>
+
+                  <button
+                    onClick={saveTemplateTab}
+                    style={{
+                      background: '#000000',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {virtualActivated ? 'Update Template' : 'Save & Activate Virtual Card'}
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -660,62 +904,38 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   Complete Your Basic Information First
                 </h3>
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Please fill out Profile, Links, and Socials tabs before choosing a card design
+                  Please fill out Profile, Links, and Socials tabs before designing your physical card
                 </p>
               </div>
             ) : (
-              <>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: '16px',
-                  marginBottom: '24px'
-                }}>
-                  {Object.entries(cardDesignMap).map(([designName, imagePath]) => (
-                <div
-                  key={designName}
-                  onClick={() => setCardDesign(imagePath)}
-                  style={{
-                    background: '#ffffff',
-                    border: cardDesign === imagePath ? '2px solid #D3d3d3' : '1px solid #e5e5e5',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <img
-                    src={imagePath}
-                    alt={designName}
-                    style={{
-                      width: '100%',
-                      borderRadius: '8px',
-                      marginBottom: '12px',
-                      objectFit: 'cover',
-                    }}
-                  />
-                  <p style={{ textAlign: 'center', fontWeight: 500, color: "black" }}>
-                    {designName}
-                  </p>
-                </div>
-              ))}
-                </div>
-
-                <button 
-                  onClick={saveCardDesignTab}
-                  style={{
-                    background: '#000000',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    fontWeight: 500,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {physicalActivated ? 'Update & Save Card Design' : 'Save & Activate Physical Card'}
-                </button>
-              </>
+              <PhysicalCardDesigner
+                cardDesign={cardDesign}
+                updateCardDesign={updateCardDesign}
+                previewData={{
+                  name: `${firstname} ${surname}`.trim() || 'Your Name',
+                  title: title || '',
+                  company: company || '',
+                  phone: phone || '000 000 000',
+                  email: email || 'hello@tapink.com',
+                  bio,
+                  address,
+                  socials: Object.entries(socials || {})
+                    .filter(([_, url]) => Boolean(url))
+                    .map(([platform, url]) => ({
+                      platform,
+                      url: typeof url === 'string' ? url : String(url),
+                    })),
+                  links: links || [],
+                  headerBanner: headerBanner || undefined,
+                  profilePic: profilePic ?? undefined,
+                  template: previewTemplate,
+                }}
+                profileUrl={profileUrl}
+                physicalActivated={physicalActivated}
+                onSave={saveCardDesignTab}
+                onUploadLogo={(e) => handleFileUpload(e, 'card_logo')}
+                uploadingLogo={cardLogoUploading}
+              />
             )}
           </div>
         )}

@@ -34,7 +34,7 @@ END:VCARD`;
     URL.revokeObjectURL(url);
   };
 
-  const containerWidth = isMobile ? "100vw" : "min(430px, 100vw)";
+  const containerWidth = isMobile ? "100vw" : "min(480px, 100vw)";
   const sectionPadding = isMobile ? "26px 22px" : "34px 30px";
 
   const infoRow = (
@@ -82,7 +82,7 @@ END:VCARD`;
       style={{
         minHeight: "100vh",
         width: containerWidth,
-        margin: isMobile ? "0" : "48px auto",
+        margin: isMobile ? "0" : "40px auto",
         borderRadius: isMobile ? "0" : "26px",
         overflow: "hidden",
         boxShadow: isMobile ? "none" : "0 24px 70px rgba(15,23,42,0.16)",
