@@ -50,15 +50,16 @@ END:VCARD`;
     <div
       style={{
         minHeight: "100vh",
-        background: "#fff", // unified white background
-        borderRadius: "40px",
-        boxShadow: "0 10px 35px rgba(0,0,0,0.06)",
-        maxWidth: "480px",
-        margin: "40px auto",
+        width: isMobile ? "100vw" : "min(480px, 100vw)",
+        background: "#fff",
+        borderRadius: isMobile ? "0" : "32px",
+        boxShadow: isMobile ? "none" : "0 10px 35px rgba(0,0,0,0.06)",
+        margin: isMobile ? "0" : "40px auto",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
+        alignItems: "stretch",
+        boxSizing: "border-box",
         fontFamily:
           "'SF Pro Display', -apple-system, BlinkMacSystemFont, Helvetica, sans-serif",
         color: "#111",
@@ -96,7 +97,8 @@ END:VCARD`;
       <div
         style={{
           width: "100%",
-          padding: "60px 30px 20px",
+          padding: isMobile ? "60px 20px 28px" : "60px 30px 28px",
+          boxSizing: "border-box",
         }}
       >
         <h2
@@ -211,17 +213,24 @@ END:VCARD`;
 
         {/* Address */}
         {data.address && (
-          <p
+          <a
             style={{
               margin: "10px 0",
               fontSize: "13px",
-              color: "#444",
+              color: "#2b2dbd",
               borderBottom: "1px solid #eee",
               paddingBottom: "6px",
+              textDecoration: "none",
+              display: "inline-block",
             }}
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              data.address
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             {data.address}
-          </p>
+          </a>
         )}
 
         {/* Links */}
@@ -253,7 +262,6 @@ END:VCARD`;
           width: "100%",
           background: "#fff",
           padding: "30px 0 40px",
-          borderTop: "1px solid #f1f1f1",
           textAlign: "center",
         }}
       >
@@ -270,6 +278,9 @@ END:VCARD`;
             cursor: "pointer",
             boxShadow: "0 6px 14px rgba(59,62,255,0.25)",
             transition: "transform 0.25s ease, box-shadow 0.25s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "10px",
           }}
           onMouseEnter={(e) =>
             ((e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)")
@@ -279,34 +290,47 @@ END:VCARD`;
           }
         >
           Save Contact
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "20px",
+              height: "20px",
+            }}
+            aria-hidden="true"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 12L20 4L12 20L10.5 13.5L4 12Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
         </button>
       </div>
 
       {/* Footer */}
       <footer
         style={{
-          marginBottom: "20px",
+          width: "100%",
+          padding: "24px 0 30px",
           fontSize: "13px",
           color: "#999",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
+          textAlign: "center",
+          borderTop: "1px solid #f1f1f1",
         }}
       >
-        <span>TapInk 2025</span>
-        <a
-          href="https://tapink.com.au"
-          style={{
-            background:
-              "linear-gradient(135deg, #ff7a00 0%, #ff9502 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            fontWeight: 600,
-          }}
-          target="_blank"
-        >
-          TapINK
-        </a>
+        <span>© TapInk 2025 — All rights reserved.</span>
       </footer>
     </div>
   );

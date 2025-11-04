@@ -31,8 +31,8 @@ export default function RootLayout({
 
 
         <meta property="og:image" content="/images/features/Tapink-logo.png" />
-        <meta property="og:title" content="TapINK — Smart Digital Business Cards" />
-        <meta property="og:description" content="Create instant, meaningful connections with TapINK." />
+        <meta property="og:title" content="TapInk — Smart Digital Business Cards" />
+        <meta property="og:description" content="Create instant, meaningful connections with TapInk." />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
       <body

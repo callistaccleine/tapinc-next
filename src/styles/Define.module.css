@@ -1,0 +1,281 @@
+.aboutUsSection {
+  text-align: center;
+  padding: 140px 60px 100px;
+  background: #fdfdfd;
+  color: #111827;
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.tagline {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6e6e73;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+/* Main headline */
+.mainHeading {
+  font-size: clamp(32px, 5vw, 46px);
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  max-width: 900px;
+  margin: 0 auto 20px;
+}
+
+/* Supporting paragraph */
+.subtext {
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1.7;
+  max-width: 850px;
+  margin: 0 auto 60px;
+}
+
+/* Divider line */
+.divider {
+  width: 80px;
+  height: 3px;
+  background: #ff9502;
+  border-radius: 4px;
+  margin: 0 auto 60px;
+}
+
+/* NFC section */
+.nfcSection {
+  max-width: 900px;
+  margin: 0 auto 80px;
+}
+
+.nfcSection h3 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.nfcSection p {
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1.8;
+}
+
+/* Stats section */
+.statsContainer {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 60px;
+}
+
+.statBox {
+  border: none;
+  outline: none;
+  flex: 1 1 250px;
+  background: var(--stat-gradient, linear-gradient(135deg, rgba(255, 149, 2, 0.12), rgba(255, 140, 0, 0.35)));
+  border: 1px solid var(--stat-border, rgba(255, 149, 2, 0.25));
+  border-radius: 20px;
+  padding: 36px 28px;
+  box-shadow: var(--stat-shadow, 0 20px 45px rgba(255, 122, 0, 0.18));
+  transition: transform 0.35s ease, box-shadow 0.35s ease, background 0.35s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.statBox::before {
+  content: "";
+  position: absolute;
+  inset: -60px;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.35), transparent 60%);
+  opacity: 0;
+  transform: translate3d(0, 12px, 0);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+
+.statBox:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: var(--stat-shadow-hover, 0 32px 60px rgba(255, 140, 0, 0.32));
+  background: var(--stat-gradient-hover, linear-gradient(150deg, rgba(255, 162, 35, 0.24), rgba(255, 140, 0, 0.5)));
+}
+
+.statBox:hover::before {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.statBox:focus-visible {
+  box-shadow: 0 0 0 3px var(--stat-focus-ring, rgba(255, 149, 2, 0.4)),
+    var(--stat-shadow-hover, 0 32px 60px rgba(255, 140, 0, 0.32));
+}
+
+.statBox h4 {
+  font-size: 34px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.statBox p {
+  color: rgba(17, 24, 39, 0.7);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.statLabel {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.75);
+  background: rgba(255, 255, 255, 0.65);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
+.statMeta {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(17, 24, 39, 0.64);
+}
+
+.statBox:hover .statMeta {
+  color: rgba(17, 24, 39, 0.85);
+}
+
+.statIcon {
+  font-size: 28px;
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 10px 24px rgba(255, 122, 0, 0.25);
+}
+
+.statBoxPrimary .statIcon {
+  color: #ff6b00;
+  box-shadow: 0 10px 24px rgba(255, 107, 0, 0.28);
+}
+
+.statBoxSecondary .statIcon {
+  color: #0f6bff;
+  box-shadow: 0 10px 24px rgba(0, 98, 255, 0.25);
+}
+
+.statBoxTertiary .statIcon {
+  color: #0bb48f;
+  box-shadow: 0 10px 24px rgba(12, 182, 150, 0.24);
+}
+
+.statCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff7a00;
+  position: relative;
+}
+
+.statCta::after {
+  content: "→";
+  transition: transform 0.25s ease;
+}
+
+.statBox:hover .statCta::after {
+  transform: translateX(6px);
+}
+
+.statBoxPrimary {
+  --stat-gradient: linear-gradient(140deg, rgba(255, 143, 0, 0.2), rgba(255, 82, 0, 0.42));
+  --stat-gradient-hover: linear-gradient(150deg, rgba(255, 170, 0, 0.28), rgba(255, 94, 0, 0.55));
+  --stat-border: rgba(255, 139, 0, 0.45);
+  --stat-shadow: 0 22px 45px rgba(255, 140, 0, 0.25);
+  --stat-shadow-hover: 0 34px 64px rgba(255, 140, 0, 0.38);
+  --stat-focus-ring: rgba(255, 143, 0, 0.45);
+}
+
+.statBoxSecondary {
+  --stat-gradient: linear-gradient(140deg, rgba(63, 151, 255, 0.2), rgba(0, 91, 234, 0.38));
+  --stat-gradient-hover: linear-gradient(150deg, rgba(106, 180, 255, 0.26), rgba(0, 104, 255, 0.48));
+  --stat-border: rgba(63, 151, 255, 0.45);
+  --stat-shadow: 0 22px 45px rgba(0, 98, 255, 0.22);
+  --stat-shadow-hover: 0 34px 64px rgba(0, 98, 255, 0.32);
+  --stat-focus-ring: rgba(0, 104, 255, 0.42);
+}
+
+.statBoxTertiary {
+  --stat-gradient: linear-gradient(140deg, rgba(24, 231, 186, 0.2), rgba(12, 182, 150, 0.34));
+  --stat-gradient-hover: linear-gradient(150deg, rgba(80, 242, 208, 0.26), rgba(12, 182, 150, 0.44));
+  --stat-border: rgba(24, 231, 186, 0.45);
+  --stat-shadow: 0 22px 45px rgba(12, 182, 150, 0.22);
+  --stat-shadow-hover: 0 34px 64px rgba(12, 182, 150, 0.32);
+  --stat-focus-ring: rgba(24, 231, 186, 0.42);
+}
+
+.statBoxPrimary .statLabel {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(17, 17, 17, 0.25);
+}
+
+.statBoxSecondary .statLabel {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(9, 20, 41, 0.35);
+}
+
+.statBoxTertiary .statLabel {
+  color: rgba(17, 17, 17, 0.85);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.statBoxSecondary .statCta {
+  color: #0f6bff;
+}
+
+.statBoxTertiary .statCta {
+  color: #0bb48f;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .aboutUsSection {
+    padding: 80px 24px;
+  }
+
+  .mainHeading {
+    font-size: 30px;
+  }
+
+  .subtext,
+  .nfcSection p {
+    font-size: 16px;
+  }
+
+  .nfcSection h3 {
+    font-size: 24px;
+  }
+
+  .statBox {
+    flex: 1 1 100%;
+  }
+}
