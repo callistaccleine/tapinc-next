@@ -5,10 +5,15 @@ import styles from "@/styles/ContactForm.module.css";
 
 interface ContactFormProps {
   isModal?: boolean;
+  layout?: "standalone" | "embedded";
   onClose?: () => void;
 }
 
-export default function ContactForm({ isModal = false, onClose }: ContactFormProps) {
+export default function ContactForm({
+  isModal = false,
+  layout = "standalone",
+  onClose,
+}: ContactFormProps) {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [status, setStatus] = useState<{ loading: boolean; ok: boolean | null; msg: string }>({
@@ -20,7 +25,9 @@ export default function ContactForm({ isModal = false, onClose }: ContactFormPro
   const categories = [
     "Billing & plans",
     "Connections",
-    "Sign in & up",
+    "Signup & account",
+    "Technical support",
+    "Feedback & suggestions",
     "Workspace managing",
     "Design",
   ];
@@ -68,83 +75,104 @@ export default function ContactForm({ isModal = false, onClose }: ContactFormPro
     }
   };
 
-  return (
-    <div className={`${isModal ? styles.modalOverlay : ""}`}>
-      <div className={`${isModal ? styles.modalContent : styles.contactSection}`}>
-        {isModal && (
+  const formContent = (
+    <form onSubmit={onSubmit} className={styles.form}>
+      <label>Name*</label>
+      <input
+        type="text"
+        name="name"
+        placeholder="Enter your name"
+        value={form.name}
+        onChange={handleChange}
+        required
+        className={styles.input}
+      />
+
+      <label>Email*</label>
+      <input
+        type="email"
+        name="email"
+        placeholder="Enter your email"
+        value={form.email}
+        onChange={handleChange}
+        required
+        className={styles.input}
+      />
+
+      <div className={styles.categoryContainer}>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setSelectedCategory(cat)}
+            className={`${styles.categoryButton} ${
+              selectedCategory === cat ? styles.activeCategory : ""
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      <label>Message*</label>
+      <textarea
+        name="message"
+        placeholder="Enter your message"
+        value={form.message}
+        onChange={handleChange}
+        required
+        className={styles.input}
+      />
+
+      <button type="submit" className={styles.submitBtn} disabled={status.loading}>
+        {status.loading ? "Sending..." : "Send your request →"}
+      </button>
+
+      {status.msg && (
+        <p
+          className={`${styles.statusMsg} ${
+            status.ok ? styles.successMsg : styles.errorMsg
+          }`}
+        >
+          {status.msg}
+        </p>
+      )}
+    </form>
+  );
+
+  if (isModal) {
+    return (
+      <div className={styles.modalOverlay}>
+        <div className={styles.modalContent}>
           <button className={styles.closeBtn} onClick={onClose}>
             ✕
           </button>
-        )}
-
-        <h2 className={styles.title}>Contact Us</h2>
-        <p className={styles.subtitle}>
-          Reach out to us for any inquiry, feedback, or support request. We’re here to help!
-        </p>
-
-        <form onSubmit={onSubmit} className={styles.form}>
-          <label>Name*</label>
-          <input
-            type="text"
-            name="name"
-            placeholder="Enter your name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            className={styles.input}
-          />
-
-          <label>Email*</label>
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter your email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className={styles.input}
-          />
-
-          <div className={styles.categoryContainer}>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`${styles.categoryButton} ${
-                  selectedCategory === cat ? styles.activeCategory : ""
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <label>Message*</label>
-          <textarea
-            name="message"
-            placeholder="Enter your message"
-            value={form.message}
-            onChange={handleChange}
-            required
-            className={styles.input}
-          />
-
-          <button type="submit" className={styles.submitBtn} disabled={status.loading}>
-            {status.loading ? "Sending..." : "Send your request →"}
-          </button>
-
-          {status.msg && (
-            <p
-              className={`${styles.statusMsg} ${
-                status.ok ? styles.successMsg : styles.errorMsg
-              }`}
-            >
-              {status.msg}
-            </p>
-          )}
-        </form>
+          <h2 className={styles.title}>Contact Us</h2>
+          <p className={styles.subtitle}>
+            Reach out to us for any inquiry, feedback, or support request. We're here to help!
+          </p>
+          {formContent}
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <section
+      className={`${styles.contactSection} ${
+        layout === "embedded"
+          ? styles.contactSectionEmbedded
+          : styles.contactSectionStandalone
+      }`}
+    >
+      <div className={styles.landscapeIntro}>
+        <ul className={styles.highlightList}>
+          <li>Personal responses within one business day.</li>
+          <li>Custom guidance for team deployments and bulk orders.</li>
+          <li>Expert support for integrations, design, and analytics.</li>
+        </ul>
+      </div>
+      <div className={styles.landscapeForm}>{formContent}</div>
+    </section>
   );
 }

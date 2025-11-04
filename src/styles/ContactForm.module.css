@@ -1,12 +1,27 @@
 .contactSection {
   background: #fff;
-  border-radius: 16px;
-  max-width: 480px;
-  margin: 60px auto;
-  padding: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border-radius: 24px;
+  padding: 56px 64px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
   font-family: "Manrope", sans-serif;
   color: #111;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(380px, 1.1fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.contactSectionStandalone {
+  max-width: 1040px;
+  margin: 80px auto;
+}
+
+.contactSectionEmbedded {
+  width: 100%;
+  max-width: 960px;
+  margin: 40px auto 0;
+  padding: 48px 48px;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
 }
 
 .title {
@@ -20,6 +35,36 @@
   font-size: 15px;
   color: #666;
   margin-bottom: 24px;
+}
+
+.landscapeIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: center;
+}
+
+.highlightList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #444;
+}
+
+.highlightList li::before {
+  content: "•";
+  margin-right: 10px;
+  color: #ff7a00;
+  font-weight: 700;
+}
+
+.landscapeForm {
+  background: rgba(17, 17, 17, 0.02);
+  border-radius: 20px;
+  padding: 32px;
 }
 
 .form {
@@ -36,7 +81,7 @@
   font-size: 15px;
   width: 100%;
   transition: border 0.2s;
-  color: grey;
+  color: black;
 }
 
 .input:focus {
@@ -101,6 +146,22 @@
   font-size: 16px;
 }
 
+.statusMsg {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.errorMsg {
+  background: #fdecec;
+  border: 1px solid #f6b7b7;
+  color: #b42318;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  font-size: 15px;
+}
+
 /* ✅ Modal variant */
 .modalOverlay {
   position: fixed;
@@ -134,4 +195,58 @@
   font-size: 20px;
   cursor: pointer;
   color: #555;
+}
+
+@media (max-width: 1024px) {
+  .contactSection {
+    padding: 48px;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+
+  .contactSectionEmbedded {
+    padding: 40px 32px;
+  }
+
+  .landscapeForm {
+    padding: 28px;
+  }
+}
+
+@media (max-width: 768px) {
+  .contactSection {
+    grid-template-columns: 1fr;
+    padding: 40px 28px;
+    margin: 60px auto;
+    gap: 32px;
+  }
+
+  .contactSectionEmbedded {
+    padding: 32px 24px;
+    margin: 32px auto 0;
+  }
+
+  .landscapeForm {
+    padding: 24px;
+  }
+
+  .highlightList li::before {
+    margin-right: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contactSection {
+    padding: 32px 20px;
+    margin: 40px auto;
+  }
+
+  .contactSectionEmbedded {
+    padding: 28px 18px;
+    margin: 24px auto 0;
+  }
+
+  .landscapeForm {
+    padding: 20px;
+  }
 }

@@ -1,179 +1,132 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import styles from "@/styles/AboutUs.module.css";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import styles from "../styles/AboutUs.module.css";
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.3 },
+};
+
+const companyLogos = [
+  { image: "/images/companies/o3_Logo.png", name: "O3 Collective" },
+  { image: "/images/companies/kalti_logo.png", name: "Kalti" },
+  {
+    image: "/images/companies/westminster.png",
+    name: "Westminster",
+  },
+  { image: "/images/companies/moneyquest.png", name: "Money Quest Lonsdale" },
+  { image: "/images/companies/jett_logo.webp", name: "Jett" },
+] as const;
 
 export default function AboutUs() {
-  const sections = [
+  const statements = [
     {
-      id: 1,
-      image: "/images/features/feature1.jpg",
-      text: `TapInk is a digital-first company redefining how people connect in professional and social settings. By replacing traditional paper business cards with sleek NFC-enabled physical cards and dynamic virtual profiles, TapInk makes sharing and saving contact information seamless, secure and sustainable.`,
+      title: "Our Mission",
+      description:
+        "Our mission is to empower professionals, entrepreneurs and eventgoers to create instant, meaningful connections, delivering a smarter, more elegant way to network in a world that values both efficiency and authenticity.",
     },
     {
-      id: 2,
-      image: "/images/features/feature2.jpg",
-      text: `Our mission is to empower professionals, entrepreneurs and eventgoers to create instant, meaningful connections — delivering a smarter, more elegant way to network in a world that values both efficiency and authenticity.`,
-    },
-    {
-        id: 3,
-        image:"/images/features/feature2.jpg",
-        text: `While other companies limit you to a single use or static design, TapInk lets you do more
-        with just one card. You can create and manage multiple profiles for work, personal use
-        or events - all within the same TapInk card. Switch between them anytime to match how
-        and where you connect.`
-    },
-    {
-      id: 4,
-      image: "/images/features/feature3.jpg",
-      text: `TapInk goes beyond digital convenience. It's built for professionals, creators and
-businesses that value meaningful, lasting connections without waste, reprints or limits.`
+      title: "Every Tap Counts",
+      description:
+        "With TapInk, you don't just share. You keep connections flowing with every tap. Whether it's networking, social sharing, events or product engagement, every interaction becomes a lasting digital experience.",
     },
   ];
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      const containerHeight = container.offsetHeight;
-      const windowHeight = window.innerHeight;
-
-      // Calculate scroll progress through the container
-      const scrollStart = rect.top;
-      const scrollEnd = rect.bottom - windowHeight;
-      
-      // Progress from 0 to 1 as user scrolls through the section
-      const progress = Math.max(0, Math.min(1, -scrollStart / (containerHeight - windowHeight)));
-      setScrollProgress(progress);
-
-      // Calculate which section should be active based on scroll progress
-      const sectionProgress = progress * sections.length;
-      const newIndex = Math.min(Math.floor(sectionProgress), sections.length - 1);
-      
-      setActiveIndex(newIndex);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [sections.length]);
-
   return (
-    <section ref={containerRef} className={styles.aboutSection}>
-      {/* Sticky Image Area */}
-      <div className={styles.imageArea}>
-        {sections.map((s, i) => {
-          // Calculate opacity for smooth transitions
-          const sectionSize = 1 / sections.length;
-          const sectionStart = i * sectionSize;
-          const sectionEnd = (i + 1) * sectionSize;
-          
-          let opacity = 0;
-          if (scrollProgress >= sectionStart && scrollProgress <= sectionEnd) {
-            // Fade in/out during transition
-            const localProgress = (scrollProgress - sectionStart) / sectionSize;
-            if (localProgress < 0.3) {
-              opacity = localProgress / 0.3; // Fade in
-            } else if (localProgress > 0.7) {
-              opacity = 1 - ((localProgress - 0.7) / 0.3); // Fade out
-            } else {
-              opacity = 1; // Fully visible
-            }
-          }
-
-          return (
-            <div
-              key={s.id}
-              className={styles.imageWrapper}
-              style={{ opacity }}
-            >
-              <Image
-                src={s.image}
-                alt={`About TapInk ${i + 1}`}
-                fill
-                className={styles.aboutImage}
-                priority={i === 0}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Sticky Text Area */}
-      <div className={styles.textArea}>
+    <section className={styles.aboutUsSection}>
+      <div className={styles.inner}>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as const }}
+          className={styles.hero}
+          {...fadeInUp}
+          transition={{ duration: 0.7 }}
         >
-          <p className={styles.overline}>About Us</p>
-          <h2 className={styles.aboutTitle}>Redefining connections.</h2>
+          <span className={styles.heroBadge}>ABOUT TAPINK</span>
+          <h1 className={styles.heroTitle}>
+            Connections designed for the modern world.
+          </h1>
+          <p className={styles.heroSubtitle}>
+            TapInk is a digital-first company redefining how people connect in
+            professional and social settings. By replacing traditional paper
+            business cards with sleek NFC-enabled physical cards and dynamic
+            virtual profiles, TapInk makes sharing and saving contact
+            information seamless, secure and sustainable.
+          </p>
+          <div className={styles.heroHighlights}>
+            {[
+              "Instant NFC introductions",
+              "Profiles that adapt on demand",
+              "Thoughtful, lasting follow-ups",
+            ].map((highlight) => (
+              <motion.span
+                key={highlight}
+                className={styles.heroHighlight}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              >
+                {highlight}
+              </motion.span>
+            ))}
+          </div>
         </motion.div>
 
-        <div className={styles.textContainer}>
-          {sections.map((s, i) => {
-            // Calculate opacity for text
-            const sectionSize = 1 / sections.length;
-            const sectionStart = i * sectionSize;
-            const sectionEnd = (i + 1) * sectionSize;
-            
-            let opacity = 0;
-            let transform = 0;
-            
-            if (scrollProgress >= sectionStart && scrollProgress <= sectionEnd) {
-              const localProgress = (scrollProgress - sectionStart) / sectionSize;
-              if (localProgress < 0.3) {
-                opacity = localProgress / 0.3;
-                transform = (1 - localProgress / 0.3) * 20;
-              } else if (localProgress > 0.7) {
-                opacity = 1 - ((localProgress - 0.7) / 0.3);
-                transform = -((localProgress - 0.7) / 0.3) * 20;
-              } else {
-                opacity = 1;
-                transform = 0;
-              }
-            }
-
-            return (
-              <div
-                key={s.id}
-                className={styles.textBlock}
-                style={{
-                  opacity,
-                  transform: `translateY(${transform}px)`,
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                }}
+        <motion.div
+          className={styles.partners}
+          {...fadeInUp}
+          transition={{ duration: 0.7, delay: 0.08 }}
+        >
+          <div className={styles.partnersHeader}>
+            <span>Trusted by teams who lead with design</span>
+            <h2>Brands tapping into TapInk</h2>
+          </div>
+          <div className={styles.partnersGrid}>
+            {companyLogos.map((company, index) => (
+              <motion.div
+                key={company.name}
+                className={styles.partnerCard}
+                whileHover={{ y: -6 }}
+                transition={{ duration: 0.25, delay: index * 0.02 }}
               >
-                <p>{s.text}</p>
-              </div>
-            );
-          })}
-        </div>
+                <div className={styles.partnerLogoWrapper}>
+                  <Image
+                    src={company.image}
+                    alt={company.name}
+                    fill
+                    sizes="(max-width: 768px) 160px, 200px"
+                    className={styles.partnerLogo}
+                    priority={index < 2}
+                  />
+                </div>
+                <span className={styles.partnerName}>{company.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
 
-        {/* Progress Indicator */}
-        <div className={styles.progressIndicator}>
-          {sections.map((_, i) => (
-            <div
-              key={i}
-              className={`${styles.progressDot} ${
-                i === activeIndex ? styles.activeDot : ""
-              }`}
-            />
+        <motion.div
+          className={styles.statements}
+          {...fadeInUp}
+          transition={{ duration: 0.7, delay: 0.1 }}
+        >
+          {statements.map((statement, index) => (
+            <motion.article
+              key={statement.title}
+              className={styles.statementCard}
+              {...fadeInUp}
+              transition={{ duration: 0.6, delay: index * 0.12 }}
+              whileHover={{ y: -6 }}
+            >
+              <span className={styles.statementAccent} />
+              <h2 className={styles.statementTitle}>{statement.title}</h2>
+              <p className={styles.statementDescription}>
+                {statement.description}
+              </p>
+            </motion.article>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

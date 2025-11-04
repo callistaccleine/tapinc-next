@@ -68,7 +68,7 @@ export default function Auth() {
       <section className={styles.authLeft}>
         <div className={styles.authCard}>
           <h1 className={styles.authTitle}>Welcome back</h1>
-          <p className={styles.authSubtitle}>Log in to your account</p>
+          <p className={styles.authSubtitle}>Login to your account</p>
 
           <form onSubmit={handleLogin} className={styles.authForm}>
             {/* Email field */}
@@ -127,8 +127,8 @@ export default function Auth() {
         <div className={styles.authArt}>
           <div className={styles.authArtImg} role="img" aria-label="Decorative" />
           <div className={styles.authArtCaption}>
-            <h3>Seamlessly access your TapINC dashboard</h3>
-            <p>Log in to manage your digital cards and connections.</p>
+            <h3>Seamlessly access your TapInk dashboard</h3>
+            <p>Login to manage your digital cards, monitor engagement, and grow your connections.</p>
             <div className={styles.authChips}>
               <span className={styles.chip}>Quick</span>
               <span className={styles.chip}>Secure</span>

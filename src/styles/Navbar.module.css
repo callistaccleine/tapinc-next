@@ -78,6 +78,7 @@
 
 .navbarLinks a:hover {
   opacity: 0.8;
+  text-decoration: none; 
 }
 
 .navbarLinks a::after {
@@ -97,6 +98,12 @@
 .navbarLinks a:hover::after,
 .navbarLinks a.active::after {
   opacity: 1;
+}
+
+.navbarLinks a:hover,
+.navbarLinks a:focus,
+.navbarLinks a:active {
+  text-decoration: none; 
 }
 
 /* Register CTA */
@@ -312,7 +319,7 @@
     flex-direction: column;
     gap: 0;
     padding: 2rem 1.5rem;
-    background: rgba(255, 94, 0, 0.98);
+    background: #f78f3e;
     backdrop-filter: blur(10px);
     transform: translateX(-100%);
     transition: transform 0.3s ease;
@@ -328,6 +335,8 @@
     padding: 1rem 0;
     font-size: 1.1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: inherit;
+    text-decoration: none;
   }
 
   .navbarLinks a::after {
@@ -353,6 +362,10 @@
     color: #ff5c00;
     border-bottom-color: rgba(255, 92, 0, 0.1);
   }
+  .navbarLinks.open {
+    transform: translateX(0);
+  }
+  
 }
 
 /* Small mobile breakpoint */
@@ -381,11 +394,18 @@
 
   .navbarLinks {
     padding: 1.5rem 1rem;
+
   }
 
   .navbarLinks a {
     font-size: 1rem;
+    color: inherit;
+    text-decoration: none; 
   }
+  .navbarLinks.open {
+    transform: translateX(0);
+  }
+  
 }
 
 /* Landscape mobile optimization */
@@ -396,5 +416,7 @@
 
   .navbarLinks a {
     padding: 0.7rem 0;
+    color: inherit;
+    text-decoration: none;
   }
 }

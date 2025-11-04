@@ -112,7 +112,7 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
-          Three simple steps to revolutionize the way you connect
+          Three simple steps to revolutionise the way you connect
         </motion.p>
       </motion.div>
 

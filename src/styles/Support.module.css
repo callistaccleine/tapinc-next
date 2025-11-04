@@ -2,38 +2,61 @@
     font-family: "Manrope", sans-serif;
     background-color: #ffff;
     color: #111;
-    padding: 160px 24px 80px; 
+    padding: 80px 24px 80px; 
   } 
   
-  /* CONTACT SECTION */
-  .contactSection {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 60px;
+/* CONTACT SECTION */
+.contactSection {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  margin-bottom: 100px;
+}
+  
+.contactLeft {
+  flex: 1;
+  min-width: 280px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 
-    margin-bottom: 100px;
-  }
+.contactIntro {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding-block: clamp(32px, 12vh, 72px);
+}
   
-  .contactLeft {
-    flex: 1;
-    min-width: 280px;
-    max-width: 400px;
-  }
+.title {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
   
-  .title {
-    font-size: 42px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    letter-spacing: -0.02em;
-  }
-  
-  .subtitle {
-    font-size: 18px;
-    color: #555;
-    line-height: 1.6;
-  }
+.subtitle {
+  font-size: 18px;
+  color: #555;
+  line-height: 1.6;
+  text-align: center;
+  margin: 0;
+}
+
+.contactCardWrapper {
+  margin-top: 16px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
   
   
   /* FAQ SECTION */
@@ -98,17 +121,21 @@
   
   /* Responsive */
   @media (max-width: 768px) {
-    .contactSection {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-  
-    .contactRight {
-      max-width: 100%;
-    }
-  
-    .faqTitle {
+  .contactSection {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .contactLeft {
+    max-width: 520px;
+  }
+
+  .contactRight {
+    max-width: 100%;
+  }
+
+  .faqTitle {
       font-size: 28px;
     }
   }
