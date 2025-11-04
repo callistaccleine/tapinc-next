@@ -1,44 +1,53 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-
-
-export const metadata = {
+export const metadata: Metadata = {
   title: "TapInk — Smart Digital Business Cards",
   description:
     "TapInk makes sharing your contact info seamless with NFC-powered digital cards.",
+  metadataBase: new URL("https://tapink.com.au"),
   icons: {
-    icon: "public/favicon.png", 
-    shortcut: "public/favicon.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
     apple: "/favicon.png",
+  },
+  openGraph: {
+    title: "TapInk — Smart Digital Business Cards",
+    description:
+      "Create instant, meaningful connections with TapInk.",
+    url: "https://tapink.com.au",
+    siteName: "TapInk",
+    images: [
+      {
+        url: "https://tapink.com.au/images/Tapink-logo.png", 
+        width: 1024,
+        height: 1024,
+        alt: "TapInk logo",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TapInk — Smart Digital Business Cards",
+    description:
+      "Create instant, meaningful connections with TapInk digital business cards.",
+    images: ["https://tapink.com.au/images/Tapink-logo.png"],
   },
 };
 
-
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <head>
-      <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
-      <link rel="apple-touch-icon" href="/favicon.png" />
-      <link rel="shortcut icon" href="/favicon.png" />
-      <meta name="theme-color" content="#ff7a00" />
-
-
-        <meta property="og:image" content="/images/features/Tapink-logo.png" />
-        <meta property="og:title" content="TapInk — Smart Digital Business Cards" />
-        <meta property="og:description" content="Create instant, meaningful connections with TapInk." />
+        <meta name="theme-color" content="#ff7a00" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
