@@ -20,7 +20,7 @@ export default function HowItWorks() {
       name: "Design",
       icon: "🎨",
       title: "Design beautifully",
-      description: "Customize your card to match your brand with our intuitive design tools. Choose colors, layouts, and add your unique touch.",
+      description: "Customise your card to match your brand with our intuitive design tools. Choose colors, layouts, and add your unique touch.",
       image: "/images/design-preview.jpg",
     },
     {
