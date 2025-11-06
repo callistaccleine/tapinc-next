@@ -1,19 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-interface CardData {
-  name: string;
-  title?: string;
-  company?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  bio?: string;
-  profilePic?: string;
-  socials?: { platform: string; url: string }[];
-  links?: { title: string; url: string }[];
-}
+import { CardData } from "@/types/CardData";
 
 export default function Template1({ data }: { data: CardData }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -65,15 +53,31 @@ END:VCARD`;
         color: "#111",
       }}
     >
-      {/* Header Gradient */}
+      {/* Header Banner */}
       <div
         style={{
           width: "100%",
           height: "180px",
-          background: "linear-gradient(135deg, #1b1a2f 0%, #2b2dbd 100%)",
+          backgroundImage: data.headerBanner
+            ? `url(${data.headerBanner})`
+            : "linear-gradient(135deg, #1b1a2f 0%, #2b2dbd 100%)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
           position: "relative",
+          overflow: "visible",
         }}
       >
+        {data.headerBanner && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.55) 100%)",
+            }}
+          />
+        )}
         {data.profilePic && (
           <img
             src={data.profilePic}
@@ -88,6 +92,7 @@ END:VCARD`;
               left: "40px",
               objectFit: "cover",
               boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+              zIndex: 1,
             }}
           />
         )}

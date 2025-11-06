@@ -1,7 +1,7 @@
 .sidebar {
   background: #ffffff;
   color: #000000;
-  padding: 24px 16px;
+  padding: 24px 24px 24px 0;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -9,28 +9,57 @@
   box-shadow: none;
   border-right: 1px solid #e5e5e5;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 210;
+}
+
+.sidebarInner {
+  padding-left: 16px;
+  padding-right: 24px;
+  height: 100%;
+}
+
+.sidebar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #e5e5e5;
+}
+
+.sidebar.open {
+  transform: translateX(0);
 }
 
 /* brand */
 .brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 8px 12px;
   margin-bottom: 24px;
 }
 
+.brandInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .brandLogo {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
-  background: #000000;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-weight: 600;
-  color: #ffffff;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandLogo :global(img) {
+  width: 100%;
+  height: auto;
 }
 
 .brandName {
@@ -38,6 +67,24 @@
   font-size: 20px;
   letter-spacing: -0.5px;
   color: #000000;
+}
+
+.closeBtn {
+  display: none;
+  border: none;
+  background: #f5f5f7;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #000000;
+  transition: background 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: #e5e5e5;
 }
 
 /* nav list */
@@ -114,4 +161,29 @@
   height: 1px;
   background: #e5e5e5;
   margin: 16px 8px;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: min(70vw, 320px);
+    max-width: 360px;
+    transform: translateX(-100%);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .closeBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    width: 85vw;
+  }
 }

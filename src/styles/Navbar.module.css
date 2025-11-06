@@ -291,6 +291,12 @@
   .navbar {
     padding: 0 1.5rem;
     height: 70px;
+    background: #f2843d;
+    border-bottom: none;
+  }
+
+  .navbar.navbarDark {
+    background: #ffffff;
   }
 
   .navbar::before {
@@ -319,7 +325,7 @@
     flex-direction: column;
     gap: 0;
     padding: 2rem 1.5rem;
-    background: #f78f3e;
+    background: #f68d3d;
     backdrop-filter: blur(10px);
     transform: translateX(-100%);
     transition: transform 0.3s ease;
@@ -334,7 +340,7 @@
   .navbarLinks a {
     padding: 1rem 0;
     font-size: 1.1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
     color: inherit;
     text-decoration: none;
   }
