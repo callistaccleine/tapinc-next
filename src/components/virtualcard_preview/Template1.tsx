@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import { CardData } from "@/types/CardData";
 
+const normalizeName = (name?: string) => {
+  const formattedName = name?.trim() || "TapInk Contact";
+  const [firstName = "", ...rest] = formattedName.split(/\s+/);
+  const lastName = rest.join(" ");
+  const structuredName = `${lastName};${firstName};;;`;
+  return { formattedName, structuredName };
+};
+
 export default function Template1({ data }: { data: CardData }) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -14,9 +22,11 @@ export default function Template1({ data }: { data: CardData }) {
   }, []);
 
   const handleSaveContact = () => {
+    const { formattedName, structuredName } = normalizeName(data.name);
     const vCard = `BEGIN:VCARD
 VERSION:3.0
-FN:${data.name}
+FN:${formattedName}
+N:${structuredName}
 TITLE:${data.title || ""}
 ORG:${data.company || ""}
 TEL;TYPE=WORK,VOICE:${data.phone || ""}

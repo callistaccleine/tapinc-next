@@ -893,14 +893,21 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         </div>
                         <div
                           style={{
-                            background: '#f5f6f8',
-                            borderRadius: '16px',
-                            padding: '20px',
+                            background: 'transparent',
+                            borderRadius: '0',
+                            padding: '0',
                             display: 'flex',
                             justifyContent: 'center',
                           }}
                         >
-                          <VirtualPreview data={previewData} showSplash={false} />
+                          <div
+                            style={{
+                              width: isSmallScreen ? '100%' : 'auto',
+                              maxWidth: isSmallScreen ? '100%' : 'inherit',
+                            }}
+                          >
+                            <VirtualPreview data={previewData} showSplash={false} />
+                          </div>
                         </div>
                       </div>
 
