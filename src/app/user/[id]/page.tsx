@@ -86,7 +86,7 @@ export default function UserVirtualPage() {
       style={{
         display: "flex",
         justifyContent: "center",
-        padding: "2rem",
+        padding: "0 rem",
         background: "#f5f7fb",
         minHeight: "100vh",
         boxSizing: "border-box",
