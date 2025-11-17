@@ -16,6 +16,9 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const isDarkBackground = pathname === "/";
+  const logoSrc = isDarkBackground
+    ? "/images/TAPINK_ICON_WHITE.png"
+    : "/images/Tapink-logo.png";
 
   // ✅ Check session on load
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function Navbar() {
         style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
       >
         <Image
-          src="/images/Tapink-logo.png"
+          src={logoSrc}
           alt="TapInk"
           className={styles.logoImg}
           width={70}

@@ -130,6 +130,10 @@ export default function Pricing() {
                 body: JSON.stringify({
                   price_id: p.price_id,
                   quantity: 1,
+                  plan_id: p.id,
+                  plan_category: p.category,
+                  plan_name: p.name,
+                  user_id: user.id,
                 }),
               });
         
