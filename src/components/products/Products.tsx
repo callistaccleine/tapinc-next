@@ -155,29 +155,18 @@ export default function Products() {
     <div className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <h1 className={styles.heroTitle}>
-            TapInc, refined
-          </h1>
+          <h1 className={styles.heroTitle}>TapInk Products</h1>
           <p className={styles.heroSubtitle}>
-            Our signature cards are sculpted with the same restraint and calm detail as
-            the brands that inspire us—think gallery lighting, not storefront clutter.
+            Explore the current lineup and pick the finish that suits the way you connect.
           </p>
-          <div className={styles.heroMeta}>
+          {/* <div className={styles.heroMeta}>
             <span>Curated edit · {curatedProducts.length} signatures</span>
-            <span>Complimentary engraving on every piece</span>
-          </div>
-        </div>
-        <div className={styles.heroPanel}>
-          <div className={styles.heroPanelGlow} />
-          <div className={styles.heroPanelInner}>
-            <span>Edition 2025</span>
-            <p>Reserve yours</p>
-          </div>
+          </div> */}
         </div>
       </section>
 
       <section className={styles.collectionIntro}>
-        <p>Each profile comes paired with both a physical card and a living digital identity. Pricing is revealed privately once you begin checkout—for now, simply choose the piece that resonates.</p>
+        <p>Each profile comes paired with both a physical card and a living digital identity. Pricing is revealed privately once you begin checkout for now, simply choose the piece that resonates.</p>
       </section>
 
       <section className={styles.collectionGrid}>

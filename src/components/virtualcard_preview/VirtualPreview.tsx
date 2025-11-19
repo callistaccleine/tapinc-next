@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Template1 from "./Template1";
 import Template2 from "./Template2";
 import Template3 from "./Template3";
@@ -10,11 +10,54 @@ import { CardData } from "@/types/CardData";
 type VirtualPreviewProps = {
   data: CardData;
   showSplash?: boolean;
+  profileId?: string | number;
+  trackAnalytics?: boolean;
 };
 
-export default function VirtualPreview({ data, showSplash = true }: VirtualPreviewProps) {
+type AnalyticsEvent = "profile_view" | "new_connection";
+
+export default function VirtualPreview({
+  data,
+  showSplash = true,
+  profileId,
+  trackAnalytics = false,
+}: VirtualPreviewProps) {
   const [showSplashScreen, setShowSplashScreen] = useState(showSplash);
   const SPLASH_DURATION = 3000;
+  const normalizedProfileId = profileId ? String(profileId) : undefined;
+  const canTrackAnalytics = Boolean(trackAnalytics && normalizedProfileId);
+  const hasLoggedView = useRef(false);
+
+  useEffect(() => {
+    hasLoggedView.current = false;
+  }, [normalizedProfileId]);
+
+  const trackEvent = useCallback(
+    async (event: AnalyticsEvent) => {
+      if (!canTrackAnalytics || !normalizedProfileId) return;
+
+      try {
+        await fetch("/api/analytics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profileId: normalizedProfileId,
+            event,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to record analytics event", error);
+      }
+    },
+    [canTrackAnalytics, normalizedProfileId]
+  );
+
+  useEffect(() => {
+    if (!canTrackAnalytics || hasLoggedView.current) return;
+
+    hasLoggedView.current = true;
+    trackEvent("profile_view");
+  }, [canTrackAnalytics, trackEvent]);
 
   useEffect(() => {
     if (!showSplash) {
@@ -37,14 +80,33 @@ export default function VirtualPreview({ data, showSplash = true }: VirtualPrevi
     };
   }, [showSplashScreen]);
 
+  const handleSaveContactAnalytics = useCallback(() => {
+    return trackEvent("new_connection");
+  }, [trackEvent]);
+
   const renderTemplate = () => {
     switch (data.template) {
       case "template1_blank.svg":
-        return <Template1 data={data} />;
+        return (
+          <Template1
+            data={data}
+            onSaveContact={canTrackAnalytics ? handleSaveContactAnalytics : undefined}
+          />
+        );
       case "template2_blank.svg":
-        return <Template2 data={data} />;
+        return (
+          <Template2
+            data={data}
+            onSaveContact={canTrackAnalytics ? handleSaveContactAnalytics : undefined}
+          />
+        );
       case "template3_blank.svg":
-        return <Template3 data={data} />;
+        return (
+          <Template3
+            data={data}
+            onSaveContact={canTrackAnalytics ? handleSaveContactAnalytics : undefined}
+          />
+        );
       default:
         return (
           <div className={styles.emptyState}>

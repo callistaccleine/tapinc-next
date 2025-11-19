@@ -1747,10 +1747,27 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 onClick={async () => {
-                  if (typeof window !== 'undefined') {
+                  if (typeof window !== "undefined") {
                     const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-                    await navigator.clipboard.writeText(profileUrl);
-                    showNotification('Profile link copied to clipboard!', 'success');
+                    try {
+                      if (navigator?.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(profileUrl);
+                      } else {
+                        const tempInput = document.createElement("textarea");
+                        tempInput.value = profileUrl;
+                        tempInput.style.position = "fixed";
+                        tempInput.style.opacity = "0";
+                        document.body.appendChild(tempInput);
+                        tempInput.focus();
+                        tempInput.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(tempInput);
+                      }
+                      showNotification("Profile link copied to clipboard!", "success");
+                    } catch (error) {
+                      console.error("Failed to copy profile link:", error);
+                      showNotification("Unable to copy link. Please copy it manually.", "error");
+                    }
                   }
                 }}
                 style={{

@@ -2,18 +2,20 @@
   min-height: 100vh;
   background: #ffffff;
   color: #0b0b0b;
-  padding: 6rem 1.5rem 5rem;
+  padding: 160px 24px 80px;
 }
 
 .hero {
   max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-  gap: 3rem;
-  align-items: flex-end;
+  margin: 10 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  text-align: center;
   padding-bottom: 4rem;
   border-bottom: 1px solid rgba(12, 12, 12, 0.12);
+  font-family: "Manrope", sans-serif;
 }
 
 .heroEyebrow {
@@ -25,18 +27,24 @@
 }
 
 .heroTitle {
-  font-size: clamp(2.75rem, 4vw, 4.5rem);
-  font-weight: 500;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  margin-bottom: 1.25rem;
+  font-size: clamp(2.5rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  background: #000;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .heroSubtitle {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   max-width: 32rem;
-  color: rgba(11, 11, 11, 0.72);
-  margin-bottom: 2.5rem;
+  color: #666666;
+  margin: 0 0 2.5rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .heroMeta {
@@ -45,6 +53,7 @@
   gap: 1rem;
   font-size: 0.95rem;
   color: rgba(11, 11, 11, 0.65);
+  justify-content: center;
 }
 
 .heroMeta span::before {

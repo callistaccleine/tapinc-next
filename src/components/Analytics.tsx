@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import styles from "@/styles/Analytics.module.css";
 import AnalyticsCard from "@/components/AnalyticsCard";
 import ActivityTable from "@/components/ActivityTable";
@@ -9,42 +9,161 @@ interface Metrics {
   newConnections: number;
 }
 
+type ProfileRow = { id: string };
+type DesignProfileRow = { id: string; profile_id: string };
+type AnalyticsRow = { profile_id: string; profile_views: number | null; new_connections: number | null };
+
+const normalizeCategory = (value?: string | null) => (value ?? "").trim().toLowerCase();
+const UNLOCK_THRESHOLD = 15;
+
 const Analytics: React.FC = () => {
   const [metrics, setMetrics] = useState<Metrics>({
     profileViews: 0,
     newConnections: 0,
   });
+  const [isLocked, setIsLocked] = useState(false);
+  const [connectionsRemaining, setConnectionsRemaining] = useState(UNLOCK_THRESHOLD);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        // Count profile views
-        const { count: profileViews, error: viewsError } = await supabase
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'view');
+        setLoading(true);
 
-        if (viewsError) throw viewsError;
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-        // Count new connections (saved contacts)
-        const { count: newConnections, error: savesError } = await supabase
-          .from('analytics')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_type', 'save');
+        if (userError) throw userError;
 
-        if (savesError) throw savesError;
+        if (!user) {
+          setMetrics({ profileViews: 0, newConnections: 0 });
+          setIsLocked(true);
+          setConnectionsRemaining(UNLOCK_THRESHOLD);
+          return;
+        }
 
-        setMetrics({
-          profileViews: profileViews ?? 0,
-          newConnections: newConnections ?? 0,
-        });
+        let planCategory: string | null = null;
+        const { data: subscription, error: subscriptionError } = await supabase
+          .from("subscriptions")
+          .select("plan_id, status, plans(name, category)")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (subscriptionError) throw subscriptionError;
+
+        if (subscription?.plans) {
+          const planData = Array.isArray(subscription.plans)
+            ? subscription.plans[0]
+            : subscription.plans;
+          planCategory = planData?.category ?? null;
+        }
+
+        if (!planCategory) {
+          const { data: freePlan } = await supabase
+            .from("plans")
+            .select("category")
+            .eq("category", "free")
+            .maybeSingle();
+          planCategory = freePlan?.category ?? "free";
+        }
+
+        const { data: profileRows, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id);
+
+        if (profilesError) throw profilesError;
+
+        const profileIds = (profileRows as ProfileRow[] | null)?.map((row) => row.id) ?? [];
+
+        let designProfileIds: string[] = [];
+        if (profileIds.length) {
+          const { data: designProfiles, error: designError } = await supabase
+            .from("design_profile")
+            .select("id, profile_id")
+            .in("profile_id", profileIds);
+
+          if (designError) throw designError;
+
+          designProfileIds =
+            (designProfiles as DesignProfileRow[] | null)?.map((row) => row.id) ?? [];
+        }
+
+        let aggregated = { profileViews: 0, newConnections: 0 };
+
+        if (designProfileIds.length) {
+          const { data: analyticsRows, error: analyticsError } = await supabase
+            .from("analytics")
+            .select("profile_id, profile_views, new_connections")
+            .in("profile_id", designProfileIds);
+
+          if (analyticsError) throw analyticsError;
+
+          aggregated =
+            (analyticsRows as AnalyticsRow[] | null)?.reduce(
+              (acc, row) => ({
+                profileViews: acc.profileViews + (row.profile_views ?? 0),
+                newConnections: acc.newConnections + (row.new_connections ?? 0),
+              }),
+              { profileViews: 0, newConnections: 0 }
+            ) ?? aggregated;
+        }
+
+        setMetrics(aggregated);
+
+        const normalizedCategory = normalizeCategory(planCategory);
+        const locked = normalizedCategory === "free" && aggregated.newConnections < UNLOCK_THRESHOLD;
+        setIsLocked(locked);
+        setConnectionsRemaining(
+          locked ? Math.max(0, UNLOCK_THRESHOLD - aggregated.newConnections) : 0
+        );
       } catch (err: any) {
-        console.error("Error fetching analytics:", err.message);
+        console.error("Error fetching analytics:", err.message || err);
+        setMetrics({ profileViews: 0, newConnections: 0 });
+        setIsLocked(true);
+        setConnectionsRemaining(UNLOCK_THRESHOLD);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchMetrics();
   }, []);
+
+  if (loading) {
+    return (
+      <div className={styles.analyticsContainer}>
+        <div className={styles.loading}>Loading analytics…</div>
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <div className={styles.analyticsContainer}>
+        <div className={styles.analyticsLock}>
+          <h3>Analytics locked</h3>
+          <p>
+            Analytics unlock on the free plan after 15 new connections.
+            <br />
+            Progress: {Math.min(UNLOCK_THRESHOLD, metrics.newConnections)} / {UNLOCK_THRESHOLD}
+          </p>
+          {connectionsRemaining > 0 && (
+            <p className={styles.analyticsLockSub}>
+              {connectionsRemaining} more new connection
+              {connectionsRemaining === 1 ? "" : "s"} to unlock insights.
+            </p>
+          )}
+          <a href="/pricing" className={styles.upgradeBtn}>
+            Upgrade plan
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.analyticsContainer}>
@@ -52,7 +171,7 @@ const Analytics: React.FC = () => {
         <AnalyticsCard
           label="Profile views"
           value={metrics.profileViews}
-          growth="%"   
+          growth="%"
           color="blue"
         />
         <AnalyticsCard

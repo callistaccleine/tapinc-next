@@ -38,7 +38,7 @@ export default function Footer() {
               <Link href="/">About TapInk</Link>
               {/* <Link href="/careers">Careers</Link>
               <Link href="/press">Press Kit</Link> */}
-              <Link href="/support">Contact</Link>
+              <Link href="/support">Contact Us</Link>
             </div>
 
             <div className={styles.footerColumn}>
