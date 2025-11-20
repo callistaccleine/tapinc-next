@@ -11,15 +11,32 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   try {
-    const priceId = body.price_id;
-    if (!priceId) {
-      return NextResponse.json(
-        { error: "Missing Stripe price_id." },
-        { status: 400 }
-      );
-    }
+    const providedLineItems: Array<{ price_id: string; quantity?: number }> =
+      Array.isArray(body.line_items) ? body.line_items : [];
 
-    const quantity = Number(body.quantity) || 1;
+    let lineItemsToUse = providedLineItems
+      .map((item) => ({
+        price: item.price_id,
+        quantity: Number(item.quantity) || 1,
+      }))
+      .filter((item) => !!item.price);
+
+    if (!lineItemsToUse.length) {
+      const priceId = body.price_id;
+      if (!priceId) {
+        return NextResponse.json(
+          { error: "Missing Stripe price_id." },
+          { status: 400 }
+        );
+      }
+
+      lineItemsToUse = [
+        {
+          price: priceId,
+          quantity: Number(body.quantity) || 1,
+        },
+      ];
+    }
 
     const metadata: Record<string, string> = {};
     if (body.plan_id) metadata.plan_id = String(body.plan_id);
@@ -27,21 +44,21 @@ export async function POST(req: Request) {
     if (body.plan_name) metadata.plan_name = String(body.plan_name);
     if (body.user_id) metadata.user_id = String(body.user_id);
 
-    // Fetch price details to decide mode
-    const price = await stripe.prices.retrieve(priceId);
-
+    const firstPriceId = lineItemsToUse[0]?.price;
+    const price = await stripe.prices.retrieve(firstPriceId);
     const isRecurring = !!price.recurring;
     const mode = isRecurring ? "subscription" : "payment";
 
     const session = await stripe.checkout.sessions.create({
       ui_mode: "embedded",
       mode,
-      line_items: [
-        {
-          price: priceId,
-          quantity,
-        },
-      ],
+      line_items: lineItemsToUse,
+      shipping_address_collection:
+        mode === "payment"
+          ? {
+              allowed_countries: ["AU", "US", "NZ", "CA", "GB"],
+            }
+          : undefined,
       metadata: Object.keys(metadata).length ? metadata : undefined,
       return_url: `${DOMAIN}/orders/confirmation?session_id={CHECKOUT_SESSION_ID}`,
     });

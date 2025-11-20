@@ -95,6 +95,9 @@ const AddProfiles = () => {
       return;
     }
 
+    const shouldSetDefault = existingProfilesCount === 0;
+    const profileStatus = shouldSetDefault ? "active" : "inactive";
+
     // Create new profile
     const { error } = await supabase.from("profiles").insert([{
       user_id: user.id,
@@ -103,6 +106,7 @@ const AddProfiles = () => {
       subtitle: "New Profile",
       physical_activated: false,
       virtual_activated: false,
+      status: profileStatus,
     }]);
 
     if (error) {

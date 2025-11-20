@@ -139,7 +139,14 @@ export default function DashboardNav({ children }: { children: React.ReactNode }
               <span>Home</span>
             </button>
 
-            <button className={styles.menuItem} type="button">
+            <button
+              className={styles.menuItem}
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                router.push("/settings");
+              }}
+            >
               <span>Settings</span>
             </button>
 

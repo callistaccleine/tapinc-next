@@ -1,9 +1,9 @@
-/* styles/globals.css */
 
-/* 1️⃣ Optional: import Manrope from Google Fonts for consistency */
+
+/* Optional: import Manrope from Google Fonts for consistency */
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
 
-/* 2️⃣ Reset and apply global font */
+/* Reset and apply global font */
 * {
   margin: 0;
   padding: 0;
@@ -11,11 +11,19 @@
   font-family: 'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 3️⃣ (Optional) body styling baseline */
+/* body styling baseline */
 body {
   background-color: #fff;
   color: #111;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide Stripe telemetry iframe + weird semicolon overlay */
+iframe[src*="m.stripe.com"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

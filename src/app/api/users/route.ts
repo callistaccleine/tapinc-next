@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 // Use the service role key — only accessible on the server
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // ⚠️ DO NOT expose to client
+  process.env.SUPABASE_SERVICE_ROLE_KEY! 
 );
 
 export async function GET() {

@@ -1,0 +1,219 @@
+.cartPage {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 120px 24px 80px;
+  background: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+}
+
+.cartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 32px;
+}
+
+.cartHeader h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.modalClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  border: none;
+  background: transparent;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #fff;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  color: #0f0f0f;
+}
+
+.clearBtn {
+  border: none;
+  background: transparent;
+  color: #ff5c00;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emptyState {
+  padding: 48px;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.emptyLinks {
+  margin-top: 16px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.emptyLinks a {
+  color: #ff5c00;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.cartBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.itemList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.itemRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid #f1f1f1;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.itemInfo {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.itemImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f2f2f2;
+  flex-shrink: 0;
+}
+
+.itemImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itemRow h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.itemRow p {
+  margin: 6px 0 0;
+  color: #666;
+}
+
+.badge {
+  margin-top: 8px;
+  display: inline-block;
+  padding: 4px 10px;
+  background: #fff5ec;
+  color: #c55500;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.itemControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.itemPrice {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.qtyControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.qtyControls button {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.qtyControls span {
+  min-width: 24px;
+  text-align: center;
+}
+
+.removeBtn {
+  border: none;
+  background: none;
+  color: #c0392b;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cartSummary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border: 1px solid #f1f1f1;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.cartSummary span {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.cartSummary strong {
+  font-size: 1.2rem;
+  color: #000;
+  margin-left: 12px;
+}
+
+.checkoutBtn {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff9502, #ff5c00);
+  color: #fff;
+  font-weight: 600;
+  padding: 14px 28px;
+  cursor: pointer;
+}
+
+.checkoutBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .itemRow {
+    flex-direction: column;
+  }
+
+  .itemControls {
+    align-items: flex-start;
+  }
+}

@@ -358,6 +358,62 @@
   color: #86868b;
 }
 
+.defaultBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+}
+
+.defaultButton {
+  border: 1px solid #d2d2d7;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.defaultButton:hover:not(:disabled) {
+  border-color: #000000;
+  background: #f5f5f7;
+}
+
+.defaultButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.defaultButtonGhost {
+  background: transparent;
+}
+
+.defaultControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.defaultNotice {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff6ec;
+  color: #7a3600;
+  font-size: 14px;
+  border: 1px solid rgba(255, 149, 2, 0.4);
+}
+
 /* Loading state */
 .loading {
   display: flex;

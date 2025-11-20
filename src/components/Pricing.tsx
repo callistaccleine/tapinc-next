@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "../styles/Pricing.module.css";
 import ContactForm from "./ContactForm";
+import { useCart } from "@/context/CartContext";
+import Notification from "./Notification";
 
 type Plan = {
   id: string | number;
@@ -26,6 +28,7 @@ type Plan = {
 
 export default function Pricing() {
   const router = useRouter();
+  const { addItem } = useCart();
   const [activeCategory, setActiveCategory] = useState<
     "free" | "individual" | "teams" | "enterprise" | "event"
   >("free");
@@ -33,6 +36,7 @@ export default function Pricing() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const handleOpenContact = () => setShowContact(true);
   const handleCloseContact = () => setShowContact(false);
@@ -82,8 +86,9 @@ export default function Pricing() {
 
   const renderedPlans = useMemo(() => {
     return visiblePlans.map((p) => {
+      const priceValue = p.price == null ? null : Number(p.price);
       const priceText =
-        p.price == null ? "Custom Quote" : `$${Number(p.price).toFixed(2)}`;
+        priceValue == null ? "Custom Quote" : `$${priceValue.toFixed(2)}`;
       const ctaText =
         p.cta_label || (p.action === "contact" ? "Contact Us" : "Get Started");
 
@@ -166,17 +171,45 @@ export default function Pricing() {
         name: p.name,
         desc: p.desc,
         priceText,
+        priceValue,
         period: p.period,
         features: p.features || [],
         popular: p.popular,
         ctaText,
         buttonAction,
+        priceId: p.price_id,
+        action: p.action,
       };
     });
   }, [visiblePlans, router]);
 
+  const handleAddPlanToCart = (plan: { id: string | number; name: string; desc: string; priceId?: string | null; priceValue?: number | null }) => {
+    if (!plan.priceId) {
+      setToast({ message: "This plan cannot be added right now.", type: "error" });
+      return;
+    }
+
+    addItem({
+      priceId: plan.priceId,
+      name: plan.name,
+      description: plan.desc,
+      unitPrice: plan.priceValue ?? null,
+      mode: "subscription",
+      quantity: 1,
+    });
+
+    setToast({ message: `${plan.name} added to cart`, type: "success" });
+  };
+
   return (
     <div className={styles.pricingContainer}>
+      {toast && (
+        <Notification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className={styles.pricingHeader}>
         <h1>Start free, upgrade as your grow</h1>
         <p>Experience the power of digital with no upfront cost, Start with our free plan and unlock advanced.</p>
@@ -249,6 +282,23 @@ export default function Pricing() {
             >
               {plan.ctaText}
             </button>
+            {plan.priceId && plan.action === "checkout" && (
+              <button
+                className={styles.addToCartButton}
+                type="button"
+                onClick={() =>
+                  handleAddPlanToCart({
+                    id: plan.id,
+                    name: plan.name,
+                    desc: plan.desc,
+                    priceId: plan.priceId,
+                    priceValue: plan.priceValue ?? null,
+                  })
+                }
+              >
+                Add to cart
+              </button>
+            )}
           </div>
         ))}
       </div>

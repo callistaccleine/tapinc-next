@@ -87,6 +87,15 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [isSmallScreen, setSmallScreen] = useState(false);
+  const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
+  const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
+  const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
+  const sharingDifferentProfile =
+    Boolean(
+      defaultDesignProfileId &&
+        designProfileId &&
+        defaultDesignProfileId !== designProfileId
+    );
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
@@ -229,6 +238,70 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       setProfileUrl(`${window.location.origin}/user/${profile.id}`);
     }
   }, [profile?.id]);
+
+  useEffect(() => {
+    const fetchDefaultProfile = async () => {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          setDefaultProfileId(null);
+          setDefaultDesignProfileId(null);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error fetching default profile:", error);
+          return;
+        }
+
+        if (data?.id) {
+          setDefaultProfileId(data.id);
+          const { data: designRow, error: designError } = await supabase
+            .from("design_profile")
+            .select("id")
+            .eq("profile_id", data.id)
+            .maybeSingle();
+
+          if (designError && designError.code !== "PGRST116") {
+            console.error("Error fetching default design profile:", designError);
+          } else {
+            setDefaultDesignProfileId(designRow?.id ?? null);
+          }
+        } else {
+          setDefaultProfileId(null);
+          setDefaultDesignProfileId(null);
+        }
+      } catch (err) {
+        console.error("Unexpected default profile lookup error:", err);
+        setDefaultProfileId(null);
+        setDefaultDesignProfileId(null);
+      }
+    };
+
+    fetchDefaultProfile();
+  }, []);
+
+  useEffect(() => {
+    if (
+      defaultProfileId &&
+      profile?.id === defaultProfileId &&
+      designProfileId &&
+      defaultDesignProfileId !== designProfileId
+    ) {
+      setDefaultDesignProfileId(designProfileId);
+    }
+  }, [defaultProfileId, profile?.id, designProfileId, defaultDesignProfileId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1595,10 +1668,10 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         alignItems: 'flex-end',
         zIndex: 1000
       }}>
-        {designProfileId ? (
+        {shareDesignProfileId ? (
           <>
             <a
-              href={`/user/${designProfileId}`}
+              href={`/user/${shareDesignProfileId}`}
               target="_blank"
               rel="noreferrer"
               style={{
@@ -1640,6 +1713,21 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             >
               📱 Share Profile
             </button>
+            {sharingDifferentProfile && (
+              <p
+                style={{
+                  marginTop: '12px',
+                  fontSize: '13px',
+                  color: '#a15a00',
+                  background: '#fff6ec',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,149,2,0.3)',
+                }}
+              >
+                You’re editing a different profile. Sharing uses your default profile set in the dashboard.
+              </p>
+            )}
           </>
         ) : (
           <p style={{ 
@@ -1651,13 +1739,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
             margin: 0
           }}>
-            Save your profile first
+            Save your profile first or set a default profile in your dashboard.
           </p>
         )}
       </div>
 
       {/* QR Code Modal */}
-      {showQRCode && designProfileId && (
+      {showQRCode && shareDesignProfileId && (
         <div
           style={{
             position: 'fixed',
@@ -1716,7 +1804,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   justifyContent: 'center',
                 }}
               >
-                <ProfileQRCode profileId={designProfileId} />
+                <ProfileQRCode profileId={shareDesignProfileId} />
               </div>
 
               <p
@@ -1741,14 +1829,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               background: '#f5f5f7',
               borderRadius: '8px'
             }}>
-              {typeof window !== 'undefined' ? `${window.location.origin}/user/${designProfileId}` : ''}
+              {typeof window !== 'undefined' ? `${window.location.origin}/user/${shareDesignProfileId}` : ''}
             </p>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 onClick={async () => {
                   if (typeof window !== "undefined") {
-                    const profileUrl = `${window.location.origin}/user/${designProfileId}`;
+                    const profileUrl = `${window.location.origin}/user/${shareDesignProfileId}`;
                     try {
                       if (navigator?.clipboard?.writeText) {
                         await navigator.clipboard.writeText(profileUrl);
