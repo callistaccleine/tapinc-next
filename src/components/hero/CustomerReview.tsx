@@ -17,15 +17,15 @@ const reviews: Review[] = [
   {
     name: "Sophie Nguyen",
     title: "Startup Founder",
-    avatar: "/avatars/sophie.png",
+    avatar: "/images/avatars/sophie.jpg",
     quote:
-      "TapInk made connecting with clients effortless. My digital card looks stunning and professional — just like something Apple would make.",
+      "TapInk made connecting with clients effortless. My digital card looks stunning and professional.",
     rating: 5,
   },
   {
     name: "Daniel Lee",
     title: "Product Designer",
-    avatar: "/avatars/daniel.png",
+    avatar: "/images/avatars/daniel.jpg",
     quote:
       "Every tap feels magical. The design dashboard is clean, fast, and intuitive. My profile feels alive.",
     rating: 5,
@@ -33,7 +33,7 @@ const reviews: Review[] = [
   {
     name: "Ava Thompson",
     title: "Freelance Photographer",
-    avatar: "/avatars/ava.png",
+    avatar: "/images/avatars/ava.jpg",
     quote:
       "I handed my TapInk card at an event, and people literally said 'wow'. It's the future of personal branding.",
     rating: 5,

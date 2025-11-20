@@ -5,9 +5,27 @@ import { useRouter } from "next/navigation";
 import styles from "@/styles/AddProfiles.module.css";
 import { supabase } from "@/lib/supabaseClient";
 
+type UserPlan = {
+  id: string | number;
+  name: string | null;
+  category: string | null;
+};
+
+const PLAN_LIMITS: Record<string, number> = {
+  free: 1,
+  individual: 1,
+  teams: 25,
+  enterprise: 100,
+  event: 100,
+  events: 100,
+};
+
+const normalizeCategory = (category?: string | null) =>
+  (category || "").trim().toLowerCase();
+
 const AddProfiles = () => {
   const [loading, setLoading] = useState(false);
-  const [userPlan, setUserPlan] = useState<any>(null);
+  const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [existingProfilesCount, setExistingProfilesCount] = useState(0);
   const router = useRouter();
 
@@ -26,7 +44,7 @@ const AddProfiles = () => {
         .single();
 
       if (subscription?.plans) {
-        setUserPlan(subscription.plans);
+        setUserPlan(subscription.plans ? subscription.plans[0] as UserPlan : null);
       } else {
         // Default to free plan if none active
         const { data: freePlan } = await supabase
@@ -34,7 +52,7 @@ const AddProfiles = () => {
           .select("*")
           .eq("category", "free")
           .single();
-        setUserPlan(freePlan);
+        setUserPlan(freePlan as UserPlan);
       }
 
       // Count existing profiles
@@ -49,6 +67,18 @@ const AddProfiles = () => {
     fetchUserData();
   }, []);
 
+  const planCategory = normalizeCategory(userPlan?.category);
+  const planLimit = planCategory ? PLAN_LIMITS[planCategory] : undefined;
+  const limitReached =
+    typeof planLimit === "number" && existingProfilesCount >= planLimit;
+
+  const limitMessage =
+    typeof planLimit === "number"
+      ? `${userPlan?.name ?? "This plan"} allows up to ${planLimit} profile${
+          planLimit === 1 ? "" : "s"
+        }. Upgrade your plan to add more.`
+      : "You've reached the profile limit for your plan. Upgrade to add more.";
+
   const handleAddProfile = async () => {
     setLoading(true);
 
@@ -59,18 +89,14 @@ const AddProfiles = () => {
       return;
     }
 
-    // Plan limits
-    if (userPlan?.category === "free" && existingProfilesCount >= 1) {
-      alert("Free plan allows only one profile. Upgrade your plan to add more profiles.");
+    if (limitReached) {
+      alert(limitMessage);
       setLoading(false);
       return;
     }
 
-    if (userPlan?.category === "teams" && existingProfilesCount >= 25) {
-      alert("Your Teams plan allows up to 25 profiles. Please upgrade to add more.");
-      setLoading(false);
-      return;
-    }
+    const shouldSetDefault = existingProfilesCount === 0;
+    const profileStatus = shouldSetDefault ? "active" : "inactive";
 
     // Create new profile
     const { error } = await supabase.from("profiles").insert([{
@@ -80,6 +106,7 @@ const AddProfiles = () => {
       subtitle: "New Profile",
       physical_activated: false,
       virtual_activated: false,
+      status: profileStatus,
     }]);
 
     if (error) {
@@ -112,7 +139,7 @@ const AddProfiles = () => {
               <br />
               <span className={styles.planBadge}>
                 Current plan: {userPlan.name} • Profiles: {existingProfilesCount}
-                {userPlan.category === "free" && " / 1"}
+                {typeof planLimit === "number" && ` / ${planLimit}`}
               </span>
             </>
           )}
@@ -120,19 +147,9 @@ const AddProfiles = () => {
       </div>
 
       {/* Profile creation section */}
-      {userPlan?.category === "free" && existingProfilesCount >= 1 ? (
+      {limitReached ? (
         <div className={styles.upgradePrompt}>
-          <p>You've reached the free plan limit of 1 profile.</p>
-          <button
-            onClick={() => router.push("/pricing")}
-            className={styles.upgradeButton}
-          >
-            Upgrade Plan
-          </button>
-        </div>
-      ) : userPlan?.category === "teams" && existingProfilesCount >= 25 ? (
-        <div className={styles.upgradePrompt}>
-          <p>You've reached the Teams plan limit of 25 profiles.</p>
+          <p>{limitMessage}</p>
           <button
             onClick={() => router.push("/pricing")}
             className={styles.upgradeButton}

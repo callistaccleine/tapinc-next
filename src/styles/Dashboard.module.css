@@ -7,13 +7,40 @@
   background: #f5f5f7;
   padding: 0;
   margin: 0;
+  width: 100%;
   gap: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
 }
 
+.mobileOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 200;
+}
+
+.showOverlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 1024px) {
+  .mobileOverlay {
+    display: block;
+  }
+}
+
 /* Main content area - matching emulator style */
 .mainContent {
-  padding: 40px;
+  padding: clamp(16px, 2vw, 32px);
   overflow-y: auto;
   background: #f5f5f7;
   margin: 0;
@@ -25,17 +52,52 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin: 0 0 32px 0;
   padding: 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.headerTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .dashboardHeader h2 {
-  font-size: 28px;
+  font-size: clamp(24px, 2vw, 32px);
   font-weight: 600;
   letter-spacing: -0.5px;
   color: #000000;
   margin: 0;
   padding: 0;
+  flex: 1 1 auto;
+  min-width: 220px;
+}
+
+.mobileNavToggle {
+  display: none;
+  border: 1px solid #d2d2d7;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.hamburger {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: #000;
+  border-radius: 999px;
 }
 
 /* Buttons - matching design dashboard buttons */
@@ -64,9 +126,12 @@
 /* Search and filters - card style like phone frame */
 .searchRow {
   display: flex;
-  gap: 12px;
+  flex-wrap: nowrap;
+  gap: clamp(8px, 1.5vw, 20px);
   margin: 0 0 24px 0;
   padding: 0;
+  align-items: stretch;
+  width: 100%;
 }
 
 .searchRow input,
@@ -80,11 +145,11 @@
   transition: all 0.2s ease;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.searchRow input {
-  flex: 1;
-}
+
 
 .searchRow input:focus,
 .searchRow select:focus {
@@ -123,10 +188,16 @@
   overflow: hidden;
   margin: 0;
   padding: 0;
+  background: transparent;
+  width: 100%;
+}
+
+.tableWrapperInner {
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #e5e5e5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 /* Table - clean Apple style */
@@ -287,6 +358,62 @@
   color: #86868b;
 }
 
+.defaultBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+}
+
+.defaultButton {
+  border: 1px solid #d2d2d7;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.defaultButton:hover:not(:disabled) {
+  border-color: #000000;
+  background: #f5f5f7;
+}
+
+.defaultButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.defaultButtonGhost {
+  background: transparent;
+}
+
+.defaultControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.defaultNotice {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff6ec;
+  color: #7a3600;
+  font-size: 14px;
+  border: 1px solid rgba(255, 149, 2, 0.4);
+}
+
 /* Loading state */
 .loading {
   display: flex;
@@ -365,15 +492,50 @@
   border-color: #d2d2d7;
 }
 
+/* Tablets - up to 1024px */
+@media (max-width: 1024px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .mainContent {
+    padding: clamp(20px, 4vw, 32px);
+  }
+
+  .mobileNavToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btnPrimary {
+    width: auto;
+  }
+
+  .searchRow {
+    flex-wrap: wrap;
+  }
+}
+
+/* Mobile - Phones up to 768px */
 @media (max-width: 768px) {
   .dashboard {
     grid-template-columns: 1fr;
     height: auto;
     min-height: 100vh;
+    padding: 0;
+    width: 100%;
+  }
+
+  .mobileNavToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .mainContent {
-    padding: 20px;
+    padding: 16px 0 32px;
+    min-height: 100vh;
   }
 
   .dashboardHeader {
@@ -429,25 +591,99 @@
   }
 }
 
-@media (max-width: 1024px) {
-  .dashboard {
-    grid-template-columns: 200px 1fr;
+/* Compact table cards - up to 640px */
+@media (max-width: 640px) {
+  .tableWrapper {
+    overflow-x: visible;
   }
 
-  .mainContent {
-    padding: 30px;
+  .profileTable thead {
+    display: none;
   }
 
-  .dashboardHeader h2 {
-    font-size: 24px;
+  .profileTable tr {
+    display: block;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 0;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
-  .btnPrimary {
-    font-size: 14px;
-    padding: 10px 20px;
+  .profileTable tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .profileTable td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: none;
+    padding: 10px 8px;
+  }
+
+  .profileTable td::before {
+    content: attr(data-label);
+    font-weight: 500;
+    color: #86868b;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+
+  .profileCell {
+    flex-direction: row;
+  }
+
+  .profileTable .iconBtn {
+    align-self: flex-start;
   }
 }
 
+/* Small phones - up to 560px */
+@media (max-width: 560px) {
+  .mainContent {
+    padding: 12px;
+  }
+
+  .dashboardHeader {
+    margin-bottom: 20px;
+  }
+
+  .searchRow {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .profileTable td {
+    padding: 8px 0;
+  }
+
+  .profileCell {
+    gap: 8px;
+  }
+}
+
+/* Medium phones - 375px to 560px */
+@media (min-width: 375px) and (max-width: 560px) {
+  .mainContent {
+    padding: 14px;
+  }
+}
+
+/* Large phones - 560px to 768px */
+@media (min-width: 561px) and (max-width: 768px) {
+  .mainContent {
+    padding: 20px;
+  }
+  
+  .dashboardHeader {
+    margin-bottom: 24px;
+  }
+}
+
+/* Large screens - 1440px and up */
 @media (min-width: 1440px) {
   .mainContent {
     padding: 60px;

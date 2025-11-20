@@ -90,12 +90,63 @@
   }
   
   /* PRICE */
-  .price {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 1rem;
-  }
+.price {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.4rem;
+}
+
+.priceBlock {
+  margin-bottom: 1.4rem;
+}
+
+.priceToggle {
+  display: inline-flex;
+  border: 1px solid #e5e5e5;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.priceToggleBtn {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #555;
+}
+
+.priceToggleActive {
+  background: #111;
+  color: #fff;
+}
+
+.subscriptionCallout {
+  margin-top: 0.4rem;
+  font-size: 0.95rem;
+  color: #555;
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.subscriptionCallout strong {
+  font-weight: 600;
+  color: #000;
+}
+
+.subscriptionCallout a {
+  color: #ff7e1b;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.subscriptionCallout a:hover {
+  text-decoration: underline;
+}
   
   /* DESCRIPTION */
   .description {
@@ -183,6 +234,78 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: #333;
+  }
+
+  /* =========================
+     ADD-ONS
+     ========================= */
+  .addonSection {
+    margin: 1.5rem 0 2rem;
+  }
+
+  .addonSection h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .addonIntro {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: #666;
+  }
+
+  .addonList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .addonItem {
+    border: 1px solid #eee;
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    background: #fffdf8;
+  }
+
+  .addonLabel {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    cursor: pointer;
+  }
+
+  .addonLabel input {
+    margin-top: 0.35rem;
+  }
+
+  .addonHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+    margin-bottom: 0.25rem;
+  }
+
+  .addonName {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #111;
+  }
+
+  .addonPrice {
+    font-size: 0.95rem;
+    color: #ff7e1b;
+    font-weight: 600;
+  }
+
+  .addonDescription {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
   }
   
   /* =========================

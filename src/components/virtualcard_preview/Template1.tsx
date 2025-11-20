@@ -1,21 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { CardData } from "@/types/CardData";
 
-interface CardData {
-  name: string;
-  title?: string;
-  company?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  bio?: string;
-  profilePic?: string;
-  socials?: { platform: string; url: string }[];
-  links?: { title: string; url: string }[];
-}
+type Template1Props = {
+  data: CardData;
+  onSaveContact?: () => void | Promise<void>;
+};
 
-export default function Template1({ data }: { data: CardData }) {
+const normalizeName = (name?: string) => {
+  const formattedName = name?.trim() || "TapInk Contact";
+  const [firstName = "", ...rest] = formattedName.split(/\s+/);
+  const lastName = rest.join(" ");
+  const structuredName = `${lastName};${firstName};;;`;
+  return { formattedName, structuredName };
+};
+
+export default function Template1({ data, onSaveContact }: Template1Props) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -25,10 +26,12 @@ export default function Template1({ data }: { data: CardData }) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleSaveContact = () => {
+  const handleSaveContact = async () => {
+    const { formattedName, structuredName } = normalizeName(data.name);
     const vCard = `BEGIN:VCARD
 VERSION:3.0
-FN:${data.name}
+FN:${formattedName}
+N:${structuredName}
 TITLE:${data.title || ""}
 ORG:${data.company || ""}
 TEL;TYPE=WORK,VOICE:${data.phone || ""}
@@ -44,6 +47,12 @@ END:VCARD`;
     a.download = `${data.name.replace(/\s+/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
+
+    try {
+      await onSaveContact?.();
+    } catch (err) {
+      console.error("Failed to track save contact event", err);
+    }
   };
 
   return (
@@ -65,15 +74,31 @@ END:VCARD`;
         color: "#111",
       }}
     >
-      {/* Header Gradient */}
+      {/* Header Banner */}
       <div
         style={{
           width: "100%",
           height: "180px",
-          background: "linear-gradient(135deg, #1b1a2f 0%, #2b2dbd 100%)",
+          backgroundImage: data.headerBanner
+            ? `url(${data.headerBanner})`
+            : "linear-gradient(135deg, #1b1a2f 0%, #2b2dbd 100%)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
           position: "relative",
+          overflow: "visible",
         }}
       >
+        {data.headerBanner && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.55) 100%)",
+            }}
+          />
+        )}
         {data.profilePic && (
           <img
             src={data.profilePic}
@@ -88,6 +113,7 @@ END:VCARD`;
               left: "40px",
               objectFit: "cover",
               boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+              zIndex: 1,
             }}
           />
         )}

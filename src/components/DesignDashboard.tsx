@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, type CSSProperties, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import Image from "next/image";
@@ -26,6 +26,8 @@ interface Socials {
   [platform: string]: string;
 }
 
+type DesignTab = "profile" | "links" | "socials" | "templates" | "card design";
+
 const SocialIcon = ({ platform }: { platform: string }) => (
   <Image 
     src={`/icons/${platform}.svg`} 
@@ -39,10 +41,18 @@ interface DesignDashboardProps {
   profile?: any;
 }
 
+const NAV_TABS: DesignTab[] = [
+  "profile",
+  "links",
+  "socials",
+  "templates",
+  "card design",
+];
+
 export default function DesignDashboard({profile}: DesignDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "profile" | "links" | "socials" | "templates" | "card design"
+    DesignTab
   >("profile");
   
   // Profile state
@@ -74,6 +84,18 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [previewTemplate, setPreviewTemplate] = useState<string>("template1_blank.svg");
   const [cardLogoUploading, setCardLogoUploading] = useState(false);
   const [profileUrl, setProfileUrl] = useState("");
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const [isSmallScreen, setSmallScreen] = useState(false);
+  const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
+  const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
+  const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
+  const sharingDifferentProfile =
+    Boolean(
+      defaultDesignProfileId &&
+        designProfileId &&
+        defaultDesignProfileId !== designProfileId
+    );
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
@@ -216,6 +238,88 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       setProfileUrl(`${window.location.origin}/user/${profile.id}`);
     }
   }, [profile?.id]);
+
+  useEffect(() => {
+    const fetchDefaultProfile = async () => {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          setDefaultProfileId(null);
+          setDefaultDesignProfileId(null);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error fetching default profile:", error);
+          return;
+        }
+
+        if (data?.id) {
+          setDefaultProfileId(data.id);
+          const { data: designRow, error: designError } = await supabase
+            .from("design_profile")
+            .select("id")
+            .eq("profile_id", data.id)
+            .maybeSingle();
+
+          if (designError && designError.code !== "PGRST116") {
+            console.error("Error fetching default design profile:", designError);
+          } else {
+            setDefaultDesignProfileId(designRow?.id ?? null);
+          }
+        } else {
+          setDefaultProfileId(null);
+          setDefaultDesignProfileId(null);
+        }
+      } catch (err) {
+        console.error("Unexpected default profile lookup error:", err);
+        setDefaultProfileId(null);
+        setDefaultDesignProfileId(null);
+      }
+    };
+
+    fetchDefaultProfile();
+  }, []);
+
+  useEffect(() => {
+    if (
+      defaultProfileId &&
+      profile?.id === defaultProfileId &&
+      designProfileId &&
+      defaultDesignProfileId !== designProfileId
+    ) {
+      setDefaultDesignProfileId(designProfileId);
+    }
+  }, [defaultProfileId, profile?.id, designProfileId, defaultDesignProfileId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setIsMobileLayout(width <= 1024);
+      setSmallScreen(width <= 640);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileLayout) {
+      setSidebarOpen(false);
+    }
+  }, [isMobileLayout]);
 
   // Check if basic info is complete
   const isBasicInfoComplete = () => {
@@ -375,6 +479,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     setLinks([...links, newLink]);
     setNewLink({ title: "", url: "" });
   };
+
+  const openSidebar = () => setSidebarOpen(true);
+  const closeSidebar = () => setSidebarOpen(false);
 
   const saveProfileTab = async () => {
     try {
@@ -584,20 +691,137 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     );
   }
 
+  const containerStyle: CSSProperties = {
+    display: isMobileLayout ? "block" : "grid",
+    gridTemplateColumns: isMobileLayout ? undefined : "260px 1fr",
+    minHeight: "100vh",
+    background: "#f5f5f7",
+    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+    position: "relative",
+  };
+
+  const sidebarStyle: CSSProperties = {
+    background: "#ffffff",
+    borderRight: isMobileLayout ? "none" : "1px solid #e5e5e5",
+    padding: "24px",
+    position: isMobileLayout ? "fixed" : "relative",
+    top: 0,
+    left: 0,
+    height: isMobileLayout ? "100vh" : "auto",
+    minHeight: isMobileLayout ? undefined : "100%",
+    alignSelf: "stretch",
+    width: isMobileLayout ? "80vw" : "auto",
+    minWidth: isMobileLayout ? "auto" : "260px",
+    maxWidth: isMobileLayout ? "320px" : "320px",
+    transform: isMobileLayout ? (isSidebarOpen ? "translateX(0)" : "translateX(-100%)") : "none",
+    transition: "transform 0.3s ease",
+    zIndex: 1200,
+    boxShadow: isMobileLayout ? "0 24px 64px rgba(0, 0, 0, 0.25)" : "none",
+    overflowY: "auto",
+  };
+
+  const sidebarOverlayStyle: CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0, 0, 0, 0.4)",
+    border: "none",
+    opacity: isSidebarOpen ? 1 : 0,
+    pointerEvents: isSidebarOpen ? "auto" : "none",
+    transition: "opacity 0.3s ease",
+    zIndex: 1100,
+  };
+
+  const mainStyle: CSSProperties = {
+    padding: isMobileLayout ? "28px 20px 80px" : "40px",
+    overflowY: "auto",
+    minHeight: "100vh",
+    position: "relative",
+  };
+
+  const mobileHeaderStyle: CSSProperties = {
+    display: isMobileLayout ? "flex" : "none",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    marginBottom: "24px",
+  };
+
+  const mobileMenuButtonStyle: CSSProperties = {
+    border: "1px solid #d2d2d7",
+    background: "#ffffff",
+    borderRadius: "12px",
+    padding: "10px 14px",
+    fontSize: "15px",
+    fontWeight: 500,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+  };
+  const linkInputRowStyle: CSSProperties = {
+    display: isSmallScreen ? "grid" : "flex",
+    gridTemplateColumns: isSmallScreen ? "1fr" : undefined,
+    gap: isSmallScreen ? "10px" : "12px",
+    marginBottom: "16px",
+  };
+
+  const linksListRowStyle = (isLast: boolean): CSSProperties => ({
+    display: isSmallScreen ? "grid" : "flex",
+    gridTemplateColumns: isSmallScreen ? "1fr" : undefined,
+    justifyContent: isSmallScreen ? "stretch" : "space-between",
+    alignItems: isSmallScreen ? "start" : "center",
+    gap: isSmallScreen ? "10px" : "16px",
+    padding: "12px 16px",
+    background: "#ffffff",
+    border: "1px solid #e5e5e5",
+    borderRadius: "8px",
+    marginBottom: isLast ? "0" : "8px",
+  });
+
+  const socialGridStyle: CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: isSmallScreen ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(80px, 1fr))",
+    gap: "12px",
+    marginBottom: "24px",
+  };
+
+  const templatePreviewGridStyle: CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: isSmallScreen ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "24px",
+    alignItems: "start",
+    marginBottom: "24px",
+  };
+
+  const templateListStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  };
+
+  const templateActionRowStyle: CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    flexDirection: isSmallScreen ? "column" : "row",
+    justifyContent: "space-between",
+    alignItems: isSmallScreen ? "stretch" : "center",
+    gap: "16px",
+  };
+
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '260px 1fr',
-      minHeight: '100vh',
-      background: '#f5f5f7',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
-    }}>
+    <div style={containerStyle}>
+      {isMobileLayout && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          aria-hidden={!isSidebarOpen}
+          tabIndex={isSidebarOpen ? 0 : -1}
+          onClick={closeSidebar}
+          style={sidebarOverlayStyle}
+        />
+      )}
       {/* Sidebar */}
-      <aside style={{
-        background: '#ffffff',
-        borderRight: '1px solid #e5e5e5',
-        padding: '24px',
-      }}>
+      <aside style={sidebarStyle} aria-hidden={isMobileLayout && !isSidebarOpen}>
         <button 
           onClick={() => router.push("/dashboard")}
           style={{
@@ -616,10 +840,15 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
         <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px', color: "black" }}>Editor</h3>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {["profile", "links", "socials", "templates", "card design"].map((tab) => (
+          {NAV_TABS.map((tab) => (
             <li
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => {
+                setActiveTab(tab);
+                if (isMobileLayout) {
+                  setSidebarOpen(false);
+                }
+              }}
               style={{
                 padding: '12px 16px',
                 borderRadius: '8px',
@@ -638,7 +867,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       </aside>
 
       {/* Main Editor */}
-      <main style={{ padding: '40px', overflowY: 'auto' }}>
+      <main style={mainStyle}>
+        <div style={mobileHeaderStyle}>
+          <button
+            type="button"
+            onClick={openSidebar}
+            style={mobileMenuButtonStyle}
+          >
+            ☰
+          </button>
+        </div>
         {/* Templates Tab - Virtual Card */}
         {activeTab === "templates" && (
           <div>
@@ -708,15 +946,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   };
 
                   return (
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: '24px',
-                        alignItems: 'start',
-                        marginBottom: '24px',
-                      }}
-                    >
+                    <div style={templatePreviewGridStyle}>
                       <div
                         style={{
                           background: '#ffffff',
@@ -736,27 +966,27 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         </div>
                         <div
                           style={{
-                            background: '#f5f6f8',
-                            borderRadius: '16px',
-                            padding: '20px',
+                            background: 'transparent',
+                            borderRadius: '0',
+                            padding: '0',
                             display: 'flex',
                             justifyContent: 'center',
                           }}
                         >
-                          <VirtualPreview data={previewData} showSplash={false} />
+                          <div
+                            style={{
+                              width: isSmallScreen ? '100%' : 'auto',
+                              maxWidth: isSmallScreen ? '100%' : 'inherit',
+                            }}
+                          >
+                            <VirtualPreview data={previewData} showSplash={false} />
+                          </div>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '16px',
-                        }}
-                      >
+                      <div style={templateListStyle}>
                         {templateOptions.map((option) => {
                           const isSelected = template === option.file;
-                          const isPreviewed = selectedPreviewTemplate === option.file;
                           return (
                             <button
                               key={option.file}
@@ -765,8 +995,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                                 setTemplate(option.file);
                                 setPreviewTemplate(option.file);
                               }}
-                              onMouseEnter={() => setPreviewTemplate(option.file)}
-                              onFocus={() => setPreviewTemplate(option.file)}
                               style={{
                                 textAlign: 'left',
                                 border: isSelected ? '2px solid #111827' : '1px solid #d0d5dd',
@@ -775,52 +1003,31 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                                 boxShadow: isSelected
                                   ? '0 18px 40px rgba(17,24,39,0.12)'
                                   : '0 10px 24px rgba(17,24,39,0.05)',
-                                padding: '16px',
+                                padding: '20px',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s ease',
-                                display: 'flex',
-                                gap: '16px',
-                                alignItems: 'center',
                               }}
                             >
-                              <img
-                                src={option.thumbnail}
-                                alt={option.name}
-                                style={{
-                                  width: '80px',
-                                  height: '120px',
-                                  objectFit: 'cover',
-                                  borderRadius: '12px',
-                                  border: '1px solid rgba(17,24,39,0.08)',
-                                }}
-                              />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                  <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>
-                                    {option.name}
-                                  </h5>
-                                  {isSelected && (
-                                    <span style={{
-                                      fontSize: '11px',
-                                      letterSpacing: '0.14em',
-                                      color: '#111827',
-                                    }}>
-                                      SELECTED
-                                    </span>
-                                  )}
-                                </div>
-                                <p style={{ margin: 0, fontSize: '12px', letterSpacing: '0.12em', color: '#667085' }}>
-                                  {option.persona.toUpperCase()}
-                                </p>
-                                <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#475467', lineHeight: 1.5 }}>
-                                  {option.description}
-                                </p>
-                                {isPreviewed && !isSelected && (
-                                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#111827', opacity: 0.65 }}>
-                                    Previewing
-                                  </p>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                  {option.name}
+                                </h5>
+                                {isSelected && (
+                                  <span style={{
+                                    fontSize: '11px',
+                                    letterSpacing: '0.14em',
+                                    color: '#111827',
+                                  }}>
+                                    SELECTED
+                                  </span>
                                 )}
                               </div>
+                              <p style={{ margin: 0, fontSize: '12px', letterSpacing: '0.12em', color: '#667085' }}>
+                                {option.persona.toUpperCase()}
+                              </p>
+                              <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#475467', lineHeight: 1.5 }}>
+                                {option.description}
+                              </p>
                             </button>
                           );
                         })}
@@ -829,15 +1036,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   );
                 })()}
 
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '16px',
-                  }}
-                >
+                <div style={templateActionRowStyle}>
                   <div style={{ fontSize: '13px', color: '#475467' }}>
                     {template
                       ? `Current selection: ${
@@ -1222,7 +1421,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           <div>
             <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black"}}>Add Links</h3>
             
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            <div style={linkInputRowStyle}>
               <input
                 type="text"
                 placeholder="Link title"
@@ -1290,16 +1489,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               {links.map((l, i) => (
                 <div 
                   key={i} 
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "12px 16px",
-                    background: "#ffffff",
-                    border: "1px solid #e5e5e5",
-                    borderRadius: "8px",
-                    marginBottom: "8px"
-                  }}
+                  style={linksListRowStyle(i === links.length - 1)}
                 >
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>
@@ -1354,13 +1544,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           <div>
             <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black" }}>Social Links</h3>
             
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-              gap: '12px',
-              color: "black",
-              marginBottom: '24px'
-            }}>
+            <div style={{ ...socialGridStyle, color: "black" }}>
               {[
                 "X",
                 "instagram",
@@ -1484,10 +1668,10 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         alignItems: 'flex-end',
         zIndex: 1000
       }}>
-        {designProfileId ? (
+        {shareDesignProfileId ? (
           <>
             <a
-              href={`/user/${designProfileId}`}
+              href={`/user/${shareDesignProfileId}`}
               target="_blank"
               rel="noreferrer"
               style={{
@@ -1529,6 +1713,21 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             >
               📱 Share Profile
             </button>
+            {sharingDifferentProfile && (
+              <p
+                style={{
+                  marginTop: '12px',
+                  fontSize: '13px',
+                  color: '#a15a00',
+                  background: '#fff6ec',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,149,2,0.3)',
+                }}
+              >
+                You’re editing a different profile. Sharing uses your default profile set in the dashboard.
+              </p>
+            )}
           </>
         ) : (
           <p style={{ 
@@ -1540,13 +1739,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
             margin: 0
           }}>
-            Save your profile first
+            Save your profile first or set a default profile in your dashboard.
           </p>
         )}
       </div>
 
       {/* QR Code Modal */}
-      {showQRCode && designProfileId && (
+      {showQRCode && shareDesignProfileId && (
         <div
           style={{
             position: 'fixed',
@@ -1605,7 +1804,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   justifyContent: 'center',
                 }}
               >
-                <ProfileQRCode profileId={designProfileId} />
+                <ProfileQRCode profileId={shareDesignProfileId} />
               </div>
 
               <p
@@ -1630,16 +1829,33 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               background: '#f5f5f7',
               borderRadius: '8px'
             }}>
-              {typeof window !== 'undefined' ? `${window.location.origin}/user/${designProfileId}` : ''}
+              {typeof window !== 'undefined' ? `${window.location.origin}/user/${shareDesignProfileId}` : ''}
             </p>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 onClick={async () => {
-                  if (typeof window !== 'undefined') {
-                    const profileUrl = `${window.location.origin}/user/${designProfileId}`;
-                    await navigator.clipboard.writeText(profileUrl);
-                    showNotification('Profile link copied to clipboard!', 'success');
+                  if (typeof window !== "undefined") {
+                    const profileUrl = `${window.location.origin}/user/${shareDesignProfileId}`;
+                    try {
+                      if (navigator?.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(profileUrl);
+                      } else {
+                        const tempInput = document.createElement("textarea");
+                        tempInput.value = profileUrl;
+                        tempInput.style.position = "fixed";
+                        tempInput.style.opacity = "0";
+                        document.body.appendChild(tempInput);
+                        tempInput.focus();
+                        tempInput.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(tempInput);
+                      }
+                      showNotification("Profile link copied to clipboard!", "success");
+                    } catch (error) {
+                      console.error("Failed to copy profile link:", error);
+                      showNotification("Unable to copy link. Please copy it manually.", "error");
+                    }
                   }
                 }}
                 style={{

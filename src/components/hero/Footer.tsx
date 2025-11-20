@@ -12,7 +12,7 @@ export default function Footer() {
             <div className={styles.footerColumn}>
               <h4>Product</h4>
               <Link href="/products">Product Overview</Link>
-              <Link href="/features">Features</Link>
+              <Link href="/">Features</Link>
               <Link href="/pricing">Pricing</Link>
               {/* <Link href="/enterprise">Enterprise</Link> */}
             </div>
@@ -35,10 +35,10 @@ export default function Footer() {
 
             <div className={styles.footerColumn}>
               <h4>Company</h4>
-              <Link href="/">About TapInk</Link>
+              <Link href="/about-us">About TapInk</Link>
               {/* <Link href="/careers">Careers</Link>
               <Link href="/press">Press Kit</Link> */}
-              <Link href="/support">Contact</Link>
+              <Link href="/support">Contact Us</Link>
             </div>
 
             <div className={styles.footerColumn}>
@@ -60,8 +60,6 @@ export default function Footer() {
             </div>
 
             <div className={styles.bottomLinks}>
-              <Link href="/sitemap">Sitemap</Link>
-              <span className={styles.divider}>|</span>
               <Link href="/accessibility">Accessibility</Link>
               <span className={styles.divider}>|</span>
               <a href="/support">Contact Us</a>

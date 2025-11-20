@@ -21,7 +21,7 @@ const companies: CompanyLogo[] = [
     height: 70,
   },
   { image: "/images/companies/moneyquest.png", name: "Money Quest Lonsdale" },
-  { image: "/images/companies/jett_logo.webp", name: "Jett" },
+  { image: "/images/companies/jett_logo.webp", name: "Jet" },
 ];
 
 export default function CompanyList() {
