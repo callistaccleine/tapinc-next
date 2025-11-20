@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type ProcessResponse = {
@@ -11,7 +11,7 @@ type ProcessResponse = {
   customerEmail: string | null;
 };
 
-export default function OrderConfirmationPage() {
+function OrderConfirmationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("session_id");
@@ -121,5 +121,13 @@ export default function OrderConfirmationPage() {
         </div>
       )}
     </section>
+  );
+}
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense fallback={<section style={{ padding: "3rem 1rem" }}>Loading…</section>}>
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }
