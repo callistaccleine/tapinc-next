@@ -1,12 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useCart } from "@/context/CartContext";
 import Notification from "@/components/Notification";
 import styles from "@/styles/ProductDetails.module.css";
+
+type SubscriptionPricing = {
+  monthly?: string | number | null;
+  monthly_price?: string | number | null;
+  monthly_price_id?: string | null;
+  yearly?: string | number | null;
+  yearly_price?: string | number | null;
+  yearly_price_id?: string | null;
+};
+
+type PriceOption = {
+  key: "standard" | "monthly" | "yearly";
+  label: string;
+  value: string | number | null;
+  priceId?: string | null;
+};
 
 type Product = {
   id: number;
@@ -18,6 +34,15 @@ type Product = {
   price_subs: string | null;     
   price_subscriptions: string | null; 
   print_styles: string[] | null;
+  price_subscriptions?: SubscriptionPricing | string | null;
+};
+
+type ProductAddon = {
+  id: number;
+  name: string;
+  description?: string | null;
+  price?: string | number | null;
+  price_id: string | null;
 };
 
 type ProductAddon = {
@@ -144,6 +169,17 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
       setToast({ message: "Pricing unavailable.", type: "error" });
       return;
     }
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed)) {
+      return parsed.toLocaleString("en-AU", {
+        style: "currency",
+        currency: "AUD",
+        minimumFractionDigits: parsed % 1 === 0 ? 0 : 2,
+      });
+    }
+    const stringValue = String(value).trim();
+    return stringValue.startsWith("$") ? stringValue : `$${stringValue}`;
+  };
 
     addItem({
       priceId: stripePriceId,
@@ -186,6 +222,10 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
     {
       question: "Do you offer design services?",
       answer: "Yes, our design team can create a custom layout tailored to your brand. Contact us for pricing.",
+    },
+    {
+      question: "Can you help me design my card?",
+      answer: "Yes, we offer professional card design services to help bring your brand to life. From clean minimal layouts to fully custom concepts, we tailor every design to your style. Contact us to discuss your vision, and we'll provide options and pricing based on the level of detail you're after.",
     },
   ];
 
