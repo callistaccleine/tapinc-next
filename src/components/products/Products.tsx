@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/Products.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type ProductRow = {
   id: number;
@@ -143,19 +144,14 @@ export default function Products() {
   }, [rows]);
 
   if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p className={styles.loadingText}>Loading products...</p>
-      </div>
-    );
+    return <LoadingSpinner label="Loading products..." />;
   }
 
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <h1 className={styles.heroTitle}>TapInk Products</h1>
+          <h1 className={styles.heroTitle}>Products</h1> 
           <p className={styles.heroSubtitle}>
             Explore the current lineup and pick the finish that suits the way you connect.
           </p>

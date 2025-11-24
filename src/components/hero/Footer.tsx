@@ -10,11 +10,11 @@ export default function Footer() {
           {/* Main Navigation Columns */}
           <div className={styles.footerGrid}>
             <div className={styles.footerColumn}>
-              <h4>Product</h4>
+              <h4>Quick Links</h4>
               <Link href="/products">Product Overview</Link>
               <Link href="/">Features</Link>
               <Link href="/pricing">Pricing</Link>
-              {/* <Link href="/enterprise">Enterprise</Link> */}
+              <Link href="/about-us">About Us</Link>
             </div>
 
             <div className={styles.footerColumn}>
