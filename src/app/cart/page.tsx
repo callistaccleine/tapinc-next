@@ -5,15 +5,13 @@ import styles from "@/styles/Cart.module.css";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { div } from "framer-motion/client";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, checkout, pending } = useCart();
-  const router = useRouter();
   const [priceMap, setPriceMap] = useState<
     Record<string, { unit_amount: number | null; currency: string | null }>
   >({});
-  const [navigating, setNavigating] = useState(false);
 
   useEffect(() => {
     const priceIds = Array.from(new Set(items.map((item) => item.priceId).filter(Boolean)));
@@ -76,25 +74,8 @@ export default function CartPage() {
     );
   }, [items, priceMap]);
 
-  if (navigating) {
-    return <LoadingSpinner label="Returning to products…" />;
-  }
-
   return (
     <div className={styles.cartPage}>
-      <div className={styles.cartTopActions}>
-        <button
-          type="button"
-          className={styles.closeBtn}
-          aria-label="Close cart"
-          onClick={() => {
-            setNavigating(true);
-            router.push("/products");
-          }}
-        >
-          ×
-        </button>
-      </div>
       <div className={styles.cartHeader}>
         <h1>Your cart</h1>
         {items.length > 0 && (
@@ -127,14 +108,10 @@ export default function CartPage() {
                     </div>
                   )}
                   <div>
-c                    <h3>{item.name}</h3>
+                    <h3>{item.name}</h3>
                     {item.description && <p>{item.description}</p>}
                     <span className={styles.badge}>
-                      {item.mode === "subscription"
-                        ? "Subscription"
-                        : item.mode === "addon"
-                        ? "Add-on"
-                        : "Product"}
+                      {item.mode === "subscription" ? "Subscription" : "Product"}
                     </span>
                   </div>
                 </div>
