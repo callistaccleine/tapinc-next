@@ -6,6 +6,24 @@
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 }
 
+.cartTopActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.closeBtn {
+  border: none;
+  background: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #7c7c85;
+}
+
+.closeBtn:hover {
+  color: #111;
+}
+
 .cartHeader {
   display: flex;
   align-items: center;
@@ -18,22 +36,6 @@
   margin: 0;
   font-size: 2rem;
   font-weight: 600;
-}
-
-.modalClose {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  border: none;
-  background: transparent;
-  font-size: 1.8rem;
-  line-height: 1;
-  color: #fff;
-  cursor: pointer;
-}
-
-.modalClose:hover {
-  color: #0f0f0f;
 }
 
 .clearBtn {

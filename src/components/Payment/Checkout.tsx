@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
-import {
-  EmbeddedCheckoutProvider,
-  EmbeddedCheckout,
-} from "@stripe/react-stripe-js";
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function Checkout() {
   const searchParams = useSearchParams();
@@ -26,11 +24,11 @@ export default function Checkout() {
   }, []);
 
   if (!clientSecret) {
-    return <div>No checkout client secret found. Please try again.</div>;
+    return <LoadingSpinner label="Preparing checkout..." />;
   }
 
   if (!stripePromise) {
-    return <div>Loading Stripe...</div>;
+    return <LoadingSpinner label="Loading Stripe..." />;
   }
 
   return (

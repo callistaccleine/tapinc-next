@@ -29,10 +29,20 @@ type Product = {
   title: string;
   description: string | null;
   image: string | null;
-  price: string;
-  price_id: string | null;
+  price: string;                 
+  price_id: string | null;       
+  price_subs: string | null;     
+  price_subscriptions: string | null; 
   print_styles: string[] | null;
   price_subscriptions?: SubscriptionPricing | string | null;
+};
+
+type ProductAddon = {
+  id: number;
+  name: string;
+  description?: string | null;
+  price?: string | number | null;
+  price_id: string | null;
 };
 
 type ProductAddon = {
@@ -49,97 +59,115 @@ type ProductDetailsProps = {
 
 export default function ProductDetails({ productId }: ProductDetailsProps) {
   const [product, setProduct] = useState<Product | null>(null);
+  const [addons, setAddons] = useState<ProductAddon[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<Set<number>>(new Set());
   const [selectedPrint, setSelectedPrint] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [addons, setAddons] = useState<ProductAddon[]>([]);
-  const [selectedAddons, setSelectedAddons] = useState<Set<number>>(new Set());
-  const { addItem } = useCart();
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [priceMode, setPriceMode] = useState<"standard" | "monthly" | "yearly">("standard");
+  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
 
-  // FAQ State (open/close)
+  const { addItem } = useCart();
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
 
-  // Fetch product data
+  // Load product
   useEffect(() => {
-    async function fetchProduct() {
+    const load = async () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("id", Number(productId))
         .single();
 
-      if (error) {
-        console.error("Error fetching product:", error.message || error);
-      } else {
-        let normalizedSubscriptions = data.price_subscriptions;
-        if (typeof normalizedSubscriptions === "string") {
-          try {
-            normalizedSubscriptions = JSON.parse(normalizedSubscriptions);
-          } catch {
-            normalizedSubscriptions = null;
-          }
-        }
-
-        setProduct({
-          ...data,
-          price_subscriptions: normalizedSubscriptions,
-        });
-        if (data.print_styles && data.print_styles.length > 0) {
+      if (error) console.error(error);
+      else {
+        setProduct(data);
+        if (data.print_styles?.length > 0) {
           setSelectedPrint(data.print_styles[0]);
         }
       }
       setLoading(false);
-    }
-
-    fetchProduct();
+    };
+    load();
   }, [productId]);
 
+  // Load addons
   useEffect(() => {
-    const fetchAddons = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("product_addons")
-          .select(
-            `
-            addon:addon_id (
-              id,
-              name,
-              description,
-              price,
-              price_id
-            )
+    const load = async () => {
+      const { data } = await supabase
+        .from("product_addons")
+        .select(
           `
+          addon:addon_id (
+            id,
+            name,
+            description,
+            price,
+            price_id
           )
-          .eq("product_id", Number(productId));
+        `
+        )
+        .eq("product_id", Number(productId));
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error fetching product add-ons:", error);
-          return;
-        }
+      const normalized =
+        data
+          ?.flatMap((row: { addon: ProductAddon[] | null }) => row.addon || [])
+          .filter((addon): addon is ProductAddon => Boolean(addon)) ?? [];
 
-        const normalized =
-          data
-            ?.flatMap((row: { addon: ProductAddon[] | null }) => row.addon || [])
-            .filter((addon): addon is ProductAddon => Boolean(addon)) ?? [];
-        setAddons(normalized);
-      } catch (err) {
-        console.error("Unexpected error loading add-ons:", err);
-      }
+      setAddons(normalized);
     };
 
-    fetchAddons();
+    load();
   }, [productId]);
 
-  const formatPrice = (value: string | number | null | undefined) => {
-    if (value === null || value === undefined || value === "") return null;
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return value.toLocaleString("en-AU", {
-        style: "currency",
-        currency: "AUD",
-        minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-      });
+  // Check subscription
+  useEffect(() => {
+    const check = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return setHasActiveSubscription(false);
+
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      setHasActiveSubscription(Boolean(data));
+    };
+
+    check();
+  }, []);
+
+  const formatPrice = (value: string | number | null) => {
+    if (!value) return null;
+    const num = typeof value === "string" ? Number(value) : value;
+    return num.toLocaleString("en-AU", {
+      style: "currency",
+      currency: "AUD",
+    });
+  };
+
+  const toggleAddon = (id: number) => {
+    setSelectedAddons((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+
+  // Add to cart logic
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const subActive = hasActiveSubscription === true;
+    const stripePriceId = subActive ? product.price_subscriptions : product.price_id;
+    const displayPrice = subActive ? product.price_subs : product.price;
+
+    if (!stripePriceId) {
+      setToast({ message: "Pricing unavailable.", type: "error" });
+      return;
     }
     const parsed = Number(value);
     if (!Number.isNaN(parsed)) {
@@ -153,92 +181,14 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
     return stringValue.startsWith("$") ? stringValue : `$${stringValue}`;
   };
 
-  const toggleAddon = (addonId: number) => {
-    setSelectedAddons((prev) => {
-      const next = new Set(prev);
-      if (next.has(addonId)) next.delete(addonId);
-      else next.add(addonId);
-      return next;
-    });
-  };
-
-  const priceOptions = useMemo<PriceOption[]>(() => {
-    if (!product) return [];
-    const options: PriceOption[] = [
-      {
-        key: "standard",
-        label: "One-time",
-        value: product.price,
-        priceId: product.price_id,
-      },
-    ];
-
-    const monthlyPrice =
-      (typeof product.price_subscriptions === "object" && product.price_subscriptions?.monthly) ??
-      (typeof product.price_subscriptions === "object" && product.price_subscriptions?.monthly_price) ??
-      null;
-    const monthlyPriceId = 
-      typeof product.price_subscriptions === "object" 
-        ? product.price_subscriptions?.monthly_price_id 
-        : null;
-    if (monthlyPrice) {
-      options.push({
-        key: "monthly",
-        label: "Monthly",
-        value: monthlyPrice,
-        priceId: monthlyPriceId,
-      });
-    }
-
-    const yearlyPrice =
-      (typeof product.price_subscriptions === "object" && product.price_subscriptions?.yearly) ??
-      (typeof product.price_subscriptions === "object" && product.price_subscriptions?.yearly_price) ??
-      null;
-    const yearlyPriceId = 
-      typeof product.price_subscriptions === "object" 
-        ? product.price_subscriptions?.yearly_price_id 
-        : null;
-    if (yearlyPrice) {
-      options.push({
-        key: "yearly",
-        label: "Yearly",
-        value: yearlyPrice,
-        priceId: yearlyPriceId,
-      });
-    }
-
-    return options;
-  }, [product]);
-
-  useEffect(() => {
-    if (!priceOptions.length) {
-      setPriceMode("standard");
-      return;
-    }
-
-    if (!priceOptions.find((opt) => opt.key === priceMode)) {
-      setPriceMode(priceOptions[0].key);
-    }
-  }, [priceOptions, priceMode]);
-
-  // Checkout Handler
-  const handleAddToCart = () => {
-    const selectedOption =
-      priceOptions.find((opt) => opt.key === priceMode) ?? priceOptions[0];
-
-    if (!selectedOption?.priceId) {
-      setToast({ message: "Unable to add this pricing option right now.", type: "error" });
-      return;
-    }
-
     addItem({
-      priceId: selectedOption.priceId,
-      name: product?.title ?? "Unknown Product",
+      priceId: stripePriceId,
+      name: product.title,
       description: selectedPrint ? `Printing style: ${selectedPrint}` : undefined,
-      image: product?.image ?? null,
-      unitPrice: selectedOption.value,
+      image: product.image,
+      unitPrice: displayPrice,
       quantity,
-      mode: priceMode === "standard" ? "payment" : "subscription",
+      mode: subActive ? "subscription" : "payment",
     });
 
     addons.forEach((addon) => {
@@ -247,28 +197,31 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
           priceId: addon.price_id,
           name: addon.name,
           description: addon.description ?? undefined,
-          unitPrice: addon.price ?? null,
+          unitPrice: addon.price,
           quantity: 1,
-          mode: "payment",
+          mode: "addon",
         });
       }
     });
 
-    setToast({ message: "Added to cart", type: "success" });
+    setToast({ message: "Added to cart!", type: "success" });
   };
 
   if (loading) return <div className={styles.loading}>Loading product...</div>;
-  if (!product) return <div className={styles.error}>Product not found.</div>;
+  if (!product) return <div className={styles.error}>Not found</div>;
 
-  //FAQs
   const faqs = [
     {
       question: "How long does shipping take?",
-      answer: "Orders are processed within 2-3 business days and typically arrive in 5-7 business days depending on your region.",
+      answer: "Orders are processed within 2-3 business days and typically arrive within 5-7 business days.",
     },
     {
-      question: "Can I customize my TapInk card design?",
-      answer: "Yes! Each TapInk card can be customized with your logo, name, and color scheme directly from your dashboard after purchase.",
+      question: "Can I customize my card design?",
+      answer: "Yes, your TapInk card can be personalised with your logo, name, and colour scheme after purchase.",
+    },
+    {
+      question: "Do you offer design services?",
+      answer: "Yes, our design team can create a custom layout tailored to your brand. Contact us for pricing.",
     },
     {
       question: "Can you help me design my card?",
@@ -285,135 +238,118 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
           onClose={() => setToast(null)}
         />
       )}
+
       <div className={styles.container}>
-        {/* LEFT SIDE — Image */}
+        {/* LEFT */}
         <div className={styles.leftColumn}>
-          <div className={styles.mainImageWrapper}>
-            <img
-              src={product.image ?? "/images/placeholder.png"}
-              alt={product.title}
-              className={styles.mainImage}
-            />
-          </div>
+          <img
+            src={product.image ?? "/images/placeholder.png"}
+            className={styles.mainImage}
+            alt={product.title}
+          />
         </div>
 
-        {/* RIGHT SIDE — Info */}
+        {/* RIGHT */}
         <div className={styles.rightColumn}>
+
           <Link href="/products" className={styles.backLink}>
-            <ArrowLeft size={20} strokeWidth={2.5} />
-            <span>Back to Products</span>
+            <ArrowLeft size={20} />
+            Back to Products
           </Link>
 
           <h1 className={styles.title}>{product.title}</h1>
-          <div className={styles.priceBlock}>
-            <div className={styles.priceToggle}>
-              {priceOptions.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  className={`${styles.priceToggleBtn} ${
-                    priceMode === option.key ? styles.priceToggleActive : ""
-                  }`}
-                  onClick={() => setPriceMode(option.key)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className={styles.price}>
-              {formatPrice(
-                priceOptions.find((opt) => opt.key === priceMode)?.value ??
-                  product.price
-              ) ?? "—"}
-            </p>
-            {priceMode !== "standard" &&
-              priceOptions.some((opt) => opt.key === priceMode) && (
-                <p className={styles.subscriptionCallout}>
-                  {priceMode === "monthly"
-                    ? "Monthly subscription pricing."
-                    : "Yearly subscription pricing."}{" "}
-                  <Link href="/pricing">See plans</Link>
+
+          {/* PREMIUM PRICING CARD */}
+          <div className={styles.premiumPriceCard}>
+            <div className={styles.priceRow}>
+
+              {/* Standard price */}
+              <p className={styles.standardPricePremium}>
+                {formatPrice(product.price)}
+              </p>
+
+              {/* Subscriber price */}
+              {product.price_subs && (
+                <p className={styles.subscriberPricePremium}>
+                  {formatPrice(product.price_subs)}
+                  <span className={styles.subLabelPremium}>with subscription</span>
+
+                  {/* Savings */}
+                  <span className={styles.saveRibbon}>
+                    Save {Math.round(
+                      (1 - Number(product.price_subs) / Number(product.price)) * 100
+                    )}%
+                  </span>
                 </p>
               )}
+            </div>
+
+            <div className={styles.premiumDivider}></div>
+
+            <p className={styles.premiumFootnote}>
+              Your subscriber discount will be applied automatically at checkout
+              when your subscription is active.
+            </p>
           </div>
 
+          {/* Description */}
           {product.description && (
             <p className={styles.description}>{product.description}</p>
           )}
 
           {/* Printing Styles */}
-          {product.print_styles && product.print_styles.length > 0 && (
+          {(product.print_styles ?? []).length > 0 && (
             <div className={styles.optionSection}>
               <p className={styles.optionLabel}>Printing Style:</p>
               <div className={styles.optionButtons}>
-                {product.print_styles.map((styleName) => (
+                {product.print_styles?.map((style) => (
                   <button
-                    key={styleName}
+                    key={style}
                     className={`${styles.optionBtn} ${
-                      selectedPrint === styleName ? styles.optionActive : ""
+                      selectedPrint === style ? styles.optionActive : ""
                     }`}
-                    onClick={() => setSelectedPrint(styleName)}
+                    onClick={() => setSelectedPrint(style)}
                   >
-                    {styleName}
+                    {style}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Quantity Selector */}
+          {/* Quantity */}
           <div className={styles.quantityRow}>
-            <button
-              className={styles.qtyBtn}
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            >
-              -
-            </button>
-            <span className={styles.qtyValue}>{quantity}</span>
-            <button
-              className={styles.qtyBtn}
-              onClick={() => setQuantity((q) => q + 1)}
-            >
-              +
-            </button>
+            <button onClick={() => setQuantity((q) => Math.max(1, q - 1))}>-</button>
+            <span>{quantity}</span>
+            <button onClick={() => setQuantity((q) => q + 1)}>+</button>
           </div>
 
+          {/* Addons */}
           {addons.length > 0 && (
             <div className={styles.addonSection}>
               <h3>Add-ons</h3>
-              <p className={styles.addonIntro}>
-                Enhance your setup with optional add-ons. Each item is billed separately at checkout.
-              </p>
               <ul className={styles.addonList}>
                 {addons.map((addon) => (
                   <li key={addon.id} className={styles.addonItem}>
-                    <label className={styles.addonLabel}>
+                    <label>
                       <input
                         type="checkbox"
                         checked={selectedAddons.has(addon.id)}
                         onChange={() => toggleAddon(addon.id)}
-                        disabled={!addon.price_id}
                       />
-                      <div>
-                        <div className={styles.addonHeader}>
-                          <span className={styles.addonName}>{addon.name}</span>
-                          {addon.price && addon.price_id && (
-                            <span className={styles.addonPrice}>
-                              {formatPrice(addon.price)}
-                            </span>
-                          )}
-                        </div>
-                        {addon.description && (
-                          <p className={styles.addonDescription}>
-                            {addon.description}
-                          </p>
-                        )}
-                        {!addon.price_id && (
-                          <p className={styles.addonDescription}>
-                            This add-on is unavailable right now.
-                          </p>
-                        )}
-                      </div>
+                      <span className={styles.addonName}>{addon.name}</span>
+
+                      {addon.price && (
+                        <span className={styles.addonPrice}>
+                          {formatPrice(addon.price)}
+                        </span>
+                      )}
+
+                      {addon.description && (
+                        <p className={styles.addonDescription}>
+                          {addon.description}
+                        </p>
+                      )}
                     </label>
                   </li>
                 ))}
@@ -421,42 +357,30 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
             </div>
           )}
 
-          {/* Add to Cart */}
-          <button
-            className={styles.addToCart}
-            onClick={handleAddToCart}
-          >
+          {/* Add to cart */}
+          <button className={styles.addToCart} onClick={handleAddToCart}>
             ADD TO CART
           </button>
 
-          {/* <p className={styles.shippingNote}>Ships within 3–5 business days.</p> */}
-
-          {/* SHIPPING & FAQ Section */}
+          {/* FAQ */}
           <div className={styles.faqSection}>
-            <h2 className={styles.faqTitle}>Details</h2>
-            <div className={styles.faqList}>
-              {faqs.map((faq, i) => (
-                <div key={i} className={styles.faqItem}>
-                  <button
-                    className={styles.faqQuestion}
-                    onClick={() =>
-                      setOpenFAQ(openFAQ === i ? null : i)
-                    }
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronDown
-                      className={`${styles.chevron} ${
-                        openFAQ === i ? styles.rotate : ""
-                      }`}
-                      size={18}
-                    />
-                  </button>
-                  {openFAQ === i && (
-                    <p className={styles.faqAnswer}>{faq.answer}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+            <h2>FAQ</h2>
+            {faqs.map((faq, i) => (
+              <div key={i} className={styles.faqItem}>
+                <button onClick={() => setOpenFAQ(openFAQ === i ? null : i)}>
+                  {faq.question}
+                  <ChevronDown
+                    className={`${styles.chevron} ${
+                      openFAQ === i ? styles.rotate : ""
+                    }`}
+                    size={18}
+                  />
+                </button>
+                {openFAQ === i && (
+                  <p className={styles.faqAnswer}>{faq.answer}</p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
