@@ -180,7 +180,7 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
       answer: "Orders are processed within 2-3 business days and typically arrive within 5-7 business days.",
     },
     {
-      question: "Can I customize my card design?",
+      question: "Can I customise my card design?",
       answer: "Yes, your TapInk card can be personalised with your logo, name, and colour scheme after purchase.",
     },
     {
