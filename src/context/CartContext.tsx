@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type CartMode = "payment" | "subscription" | "addon";
+type CartMode = "payment" | "subscription";
 
 export type CartItem = {
   uid: string;
