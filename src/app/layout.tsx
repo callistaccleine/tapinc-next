@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
   title: "TapInk — Smart Digital Business Cards",
@@ -36,6 +37,7 @@ export const metadata: Metadata = {
   },
 };
 
+
 export default function RootLayout({
   children,
 }: {
@@ -51,7 +53,9 @@ export default function RootLayout({
         <meta property="og:image:height" content="630" />
         <meta property="fb:app_id" content="1234567890" />
       </head>
-      <body>{children}</body>
+      <body>
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   );
 }

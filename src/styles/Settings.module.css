@@ -1,0 +1,151 @@
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding-top: 32px;
+}
+
+.backButton {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 0;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.backButton:hover {
+  color: #ff6b00;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e5e5;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.cardHeader {
+  margin-bottom: 20px;
+}
+
+.cardHeader h3 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111;
+}
+
+.cardHeader span {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.fieldGroup label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.fieldGroup label span {
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.fieldGroup input {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  color: #111;
+  font-size: 15px;
+}
+
+.fieldGroup input:read-only {
+  cursor: not-allowed;
+}
+
+.planRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.planName {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 400;
+  color: #111;
+}
+
+.planStatus {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.planStatus strong {
+  color: #111;
+}
+
+.manageButton {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ff9502, #ff6b00);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.manageButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(255, 107, 0, 0.3);
+}
+
+.manageButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.loading {
+  text-align: center;
+  color: #6b7280;
+  padding: 40px 0;
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 18px;
+  }
+
+  .planRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manageButton {
+    width: 100%;
+    text-align: center;
+  }
+}

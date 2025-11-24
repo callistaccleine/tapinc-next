@@ -1,9 +1,10 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/Products.module.css";
-import ProductDetails from "./ProductDetails";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type ProductRow = {
   id: number;
@@ -14,64 +15,98 @@ type ProductRow = {
   created_at?: string | null;
 };
 
-type SortOption = {
-  value: string;
-  label: string;
-};
-
 import Link from "next/link";
 
-function ProductsCard({ id, image, title, price, badge }: ProductRow) {
-  const [isHovered, setIsHovered] = useState(false);
+const productStories: Record<
+  number,
+  { tagline: string; description: string }
+> = {
+  1: {
+    tagline: "Everyday, elevated",
+    description:
+      "Matte textures, softened edges, and a finish that dissolves into any setting.",
+  },
+  2: {
+    tagline: "Purely digital",
+    description:
+      "An ethereal experience for teams that live online. Frictionless, luminous, effortless.",
+  },
+  3: {
+    tagline: "Precision in metal",
+    description:
+      "Cold-forged sheen with sculpted accents made to be admired up close.",
+  },
+};
 
-  const getProductRoute = (id: number) => {
-    switch (id) {
-      case 1:
-        return "/products/plastic";
-      case 2:
-        return "/products/digital";
-      case 3:
-        return "/products/metal";
-      default:
-        return `/products/${id}`;
-    }
-  };
+const getProductRoute = (id: number) => {
+  switch (id) {
+    case 1:
+      return "/products/plastic";
+    case 2:
+      return "/products/digital";
+    case 3:
+      return "/products/metal";
+    default:
+      return `/products/${id}`;
+  }
+};
 
+type CuratedProduct = ProductRow & {
+  story: { tagline: string; description: string };
+  displayImage?: string | null;
+};
+
+function ProductsCard({ product }: { product: CuratedProduct }) {
   return (
-    <Link href={getProductRoute(id)} className={styles.linkWrapper}>
-      <div
-        className={styles.card}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className={styles.imageContainer}>
-          <img src={image || ""} alt={title} className={styles.image} />
-          {badge && <div className={styles.badge}>{badge}</div>}
+    <Link href={getProductRoute(product.id)} className={styles.cardLink}>
+      <article className={styles.card}>
+        <div className={styles.cardImageFrame}>
+          <img
+            src={product.displayImage || product.image || "/images/placeholder.png"}
+            alt={product.title}
+            className={styles.cardImage}
+            loading="lazy"
+          />
+          {product.badge && (
+            <span className={styles.cardBadge}>{product.badge}</span>
+          )}
         </div>
-
-        <div className={styles.cardBody}>
-          <h3 className={styles.title}>{title}</h3>
-          <p className={styles.price}>
-            {typeof price === "number" ? `$${price}` : price}
-          </p>
+        <div className={styles.cardContent}>
+          <p className={styles.cardTagline}>{product.story.tagline}</p>
+          <h3 className={styles.cardTitle}>{product.title}</h3>
+          <p className={styles.cardDescription}>{product.story.description}</p>
+          <div className={styles.cardFooter}>
+            <span className={styles.cardAction}>
+              Discover collection
+              <svg
+                viewBox="0 0 24 24"
+                role="presentation"
+                aria-hidden="true"
+                className={styles.cardActionIcon}
+              >
+                <path
+                  d="M5 12h14M13 6l6 6-6 6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <span className={styles.cardWhisper}>
+              Pricing shared during concierge checkout
+            </span>
+          </div>
         </div>
-      </div>
+      </article>
     </Link>
   );
 }
 
 export default function Products() {
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("best");
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const sortOptions: SortOption[] = [
-    { value: "best", label: "Best Selling" },
-    { value: "newest", label: "Newest" },
-    { value: "price-asc", label: "Price: Low to High" },
-    { value: "price-desc", label: "Price: High to Low" },
-  ];
 
   useEffect(() => {
     async function fetchProducts() {
@@ -87,134 +122,54 @@ export default function Products() {
     fetchProducts();
   }, []);
 
-  const items = useMemo(() => {
-    const parsePrice = (s: number | string): number | null => {
-      if (typeof s === "number") return s;
-      const n = Number(String(s).replace(/[^0-9.]/g, ""));
-      return Number.isFinite(n) ? n : null;
-    };
+  const curatedProducts = useMemo(() => {
+    const plasticImage = rows.find((p) => p.id === 1)?.image;
 
-    const parseDate = (d?: string | null): number | null => {
-      if (!d) return null;
-      const t = Date.parse(d);
-      return Number.isFinite(t) ? t : null;
-    };
+    return rows.map((product, index) => {
+      const story =
+        productStories[product.id] || {
+          tagline: "Limited release",
+          description:
+            "Crafted in small batches to preserve the artistry in every detail.",
+        };
 
-    return rows.map((p, index) => ({
-      ...p,
-      index,
-      priceValue: parsePrice(p.price),
-      createdAtValue: parseDate(p.created_at),
-    }));
+      return {
+        ...product,
+        story,
+        displayImage:
+          product.id === 2 && plasticImage ? plasticImage : product.image,
+        order: index,
+      };
+    });
   }, [rows]);
 
-  const sorted = useMemo(() => {
-    const arr = [...items];
-    switch (sortBy) {
-      case "price-asc":
-        arr.sort((a, b) => (a.priceValue ?? Infinity) - (b.priceValue ?? Infinity));
-        break;
-      case "price-desc":
-        arr.sort((a, b) => (b.priceValue ?? -Infinity) - (a.priceValue ?? -Infinity));
-        break;
-      case "newest":
-        arr.sort((a, b) => (b.createdAtValue ?? 0) - (a.createdAtValue ?? 0));
-        break;
-      case "best": {
-        const rank = (p: any) =>
-          p.badge === "Best Seller" ? 2 : p.badge === "Popular" ? 1 : 0;
-        arr.sort((a, b) => rank(b) - rank(a) || a.index - b.index);
-        break;
-      }
-      default:
-        arr.sort((a, b) => a.index - b.index);
-    }
-    return arr;
-  }, [items, sortBy]);
-
   if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p className={styles.loadingText}>Loading products...</p>
-      </div>
-    );
+    return <LoadingSpinner label="Loading products..." />;
   }
 
   return (
-    <div className={styles.container}>
-      {/* Hero Header */}
-      <header className={styles.header}>
-        <h1 className={styles.headerTitle}>Products</h1>
-        <p className={styles.headerSubtitle}>
-          Discover our curated collection of premium products
-        </p>
-      </header>
-
-      {/* Toolbar */}
-      <div className={styles.toolbarContainer}>
-        <div className={styles.toolbar}>
-          <p className={styles.toolbarText}>{sorted.length} products</p>
-
-          <div className={styles.sortWrapper}>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={styles.sortButton}
-            >
-              <span>Sort by: {sortOptions.find((o) => o.value === sortBy)?.label}</span>
-              <svg
-                className={`${styles.arrowIcon} ${showFilters ? styles.arrowRotate : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-
-            {showFilters && (
-              <>
-                <div className={styles.overlay} onClick={() => setShowFilters(false)} />
-                <div className={styles.dropdown}>
-                  {sortOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setSortBy(opt.value);
-                        setShowFilters(false);
-                      }}
-                      className={`${styles.dropdownItem} ${
-                        sortBy === opt.value ? styles.activeDropdownItem : ""
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+    <div className={styles.page}>
+      <section className={styles.hero}>
+        <div>
+          <h1 className={styles.heroTitle}>Products</h1> 
+          <p className={styles.heroSubtitle}>
+            Explore the current lineup and pick the finish that suits the way you connect.
+          </p>
+          {/* <div className={styles.heroMeta}>
+            <span>Curated edit · {curatedProducts.length} signatures</span>
+          </div> */}
         </div>
-      </div>
+      </section>
 
-      {/* Products Grid */}
-      <div className={styles.gridContainer}>
-        {sorted.map((p) => (
-          <ProductsCard
-            key={p.id}
-            id={p.id}
-            image={p.image || ""}
-            title={p.title}
-            price={p.priceValue || 0}
-            badge={p.badge || ""}
-          />
+      <section className={styles.collectionIntro}>
+        <p>Each profile comes paired with both a physical card and a living digital identity. Pricing is revealed privately once you begin checkout for now, simply choose the piece that resonates.</p>
+      </section>
+
+      <section className={styles.collectionGrid}>
+        {curatedProducts.map((product) => (
+          <ProductsCard key={product.id} product={product} />
         ))}
-      </div>
+      </section>
     </div>
   );
 }

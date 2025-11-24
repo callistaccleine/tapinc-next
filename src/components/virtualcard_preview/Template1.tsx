@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import { CardData } from "@/types/CardData";
 
+type Template1Props = {
+  data: CardData;
+  onSaveContact?: () => void | Promise<void>;
+};
+
 const normalizeName = (name?: string) => {
   const formattedName = name?.trim() || "TapInk Contact";
   const [firstName = "", ...rest] = formattedName.split(/\s+/);
@@ -11,7 +16,7 @@ const normalizeName = (name?: string) => {
   return { formattedName, structuredName };
 };
 
-export default function Template1({ data }: { data: CardData }) {
+export default function Template1({ data, onSaveContact }: Template1Props) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -21,7 +26,7 @@ export default function Template1({ data }: { data: CardData }) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleSaveContact = () => {
+  const handleSaveContact = async () => {
     const { formattedName, structuredName } = normalizeName(data.name);
     const vCard = `BEGIN:VCARD
 VERSION:3.0
@@ -42,6 +47,12 @@ END:VCARD`;
     a.download = `${data.name.replace(/\s+/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
+
+    try {
+      await onSaveContact?.();
+    } catch (err) {
+      console.error("Failed to track save contact event", err);
+    }
   };
 
   return (

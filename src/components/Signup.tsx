@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/Signup.module.css";
+import Link from "next/link";
 
 export default function Signup() {
   const router = useRouter();
@@ -281,7 +282,7 @@ const handleSignup = async (e: React.FormEvent) => {
                 onChange={(e) => setAgree(e.target.checked)}
               />
               <span>
-                I agree to all <a>Terms</a>, <a>Privacy Policy</a> and Fees
+              <Link href="/policies/terms-of-service">I agree to all Terms, Privacy Policy and Fees</Link>
               </span>
             </label>
 

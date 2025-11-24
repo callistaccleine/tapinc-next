@@ -115,6 +115,8 @@ export default function UserVirtualPage() {
           profilePic: profile.profile_pic,
           template: profile.template || "",
         }}
+        profileId={profile.id}
+        trackAnalytics
       />
     </div>
   );

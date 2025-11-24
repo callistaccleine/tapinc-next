@@ -4,18 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { ShoppingCart } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useCart } from "@/context/CartContext";
 import styles from "../../styles/Navbar.module.css";
 
 export default function Navbar() {
-  const [user, setUser] = useState<any>(undefined); // undefined=loading, null=logged out, object=logged in
+  const [user, setUser] = useState<any>(undefined);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const chipRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { count } = useCart();
 
   const isDarkBackground = pathname === "/";
+  const logoSrc = isDarkBackground
+    ? "/images/TAPINK_ICON_WHITE.png"
+    : "/images/Tapink-logo.png";
 
   // ✅ Check session on load
   useEffect(() => {
@@ -68,7 +74,7 @@ export default function Navbar() {
         style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
       >
         <Image
-          src="/images/Tapink-logo.png"
+          src={logoSrc}
           alt="TapInk"
           className={styles.logoImg}
           width={70}
@@ -100,6 +106,16 @@ export default function Navbar() {
 
       {/* ✅ Right Section (CTA + User Dropdown + Menu Button) */}
       <div className={styles.navbarRight}>
+        <Link
+          href="/cart"
+          className={`${styles.cartIconButton} ${
+            isDarkBackground ? styles.cartIconLight : styles.cartIconDark
+          }`}
+          aria-label="Cart"
+        >
+          <ShoppingCart size={18} />
+          {count > 0 && <span className={styles.cartBadge}>{count}</span>}
+        </Link>
         {user ? (
           <div className={styles.userChip} ref={chipRef}>
             <button

@@ -14,14 +14,9 @@ export default function Support() {
         "You can log in to your dashboard and click on 'Edit Profile' to change your personal details, links, or design templates.",
     },
     {
-      question: "How can I reset my password?",
-      answer:
-        "Go to the login page and click on 'Forgot password?'. Follow the instructions sent to your registered email.",
-    },
-    {
       question: "Can I use TapInk without a subscription?",
       answer:
-        "Yes! You can start with our free plan. Upgrade anytime for more advanced analytics and customization features.",
+        "Yes! You can start with our free plan. Upgrade anytime for more advanced analytics and customisation features.",
     },
     {
       question: "Do you offer custom NFC cards for teams?",

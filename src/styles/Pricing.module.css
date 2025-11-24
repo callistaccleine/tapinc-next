@@ -125,11 +125,13 @@ html, body{
     font-weight: 700;
     color: #1a1a1a;
     margin-bottom: 16px;
+    text-align: center;
   }
   
   .price {
     display: block;
     margin-bottom: 20px;
+    text-align: center;
   }
 
   .desc{
@@ -141,12 +143,14 @@ html, body{
     font-size: 3rem;
     font-weight: 800;
     color: #1a1a1a;
+    text-align: center;
   }
   
   .period {
     font-size: 1rem;
     color: #666;
     font-weight: 500;
+
   }
   
   .featuresList {
@@ -175,7 +179,7 @@ html, body{
     font-size: 1.125rem;
   }
   
-  .pricingButton {
+.pricingButton {
     width: 100%;
     padding: 16px 24px;
     border: none;
@@ -187,10 +191,27 @@ html, body{
     background: linear-gradient(135deg, #e85c05 0%, #ff9502 100%);
     color: white;
   }
-  
+
   .pricingButton:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(34, 127, 136, 0.4);
+  }
+
+  .addToCartButton {
+    width: 100%;
+    margin-top: 10px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: 1px solid #ff9502;
+    background: transparent;
+    color: #ff9502;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .addToCartButton:hover {
+    background: rgba(255, 149, 2, 0.1);
   }
   
   .pricingFooter {

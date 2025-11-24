@@ -3,7 +3,7 @@
 import Image from "next/image";
 import styles from "@/styles/DashboardSideBar.module.css";
 
-type TabKey = "profiles" | "contacts" | "analytics" | "orders";
+type TabKey = "profiles" | "analytics" | "orders";
 
 interface DashboardNavProps {
   activeTab: TabKey;
@@ -13,8 +13,7 @@ interface DashboardNavProps {
 }
 
 const menuItems: { key: TabKey; label: string; icon: string }[] = [
-  { key: "profiles", label: "Profiles", icon: "home" },
-  { key: "contacts", label: "Contacts", icon: "contacts" },
+  { key: "profiles", label: "Profile", icon: "profile" },
   { key: "analytics", label: "Analytics", icon: "analytics" },
   { key: "orders", label: "Orders", icon: "orders" },
 ];
