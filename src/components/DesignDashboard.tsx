@@ -49,6 +49,22 @@ const NAV_TABS: DesignTab[] = [
   "card design",
 ];
 
+const extractInstagramUsername = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return trimmed
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/^@+/, "")
+    .split(/[\/?#]/)[0]
+    .trim();
+};
+
+const buildInstagramUrl = (value: string) => {
+  const username = extractInstagramUsername(value);
+  return username ? `https://www.instagram.com/${username}` : "";
+};
+
 export default function DesignDashboard({profile}: DesignDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
@@ -89,6 +105,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [isSmallScreen, setSmallScreen] = useState(false);
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
   const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
   const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
   const sharingDifferentProfile =
     Boolean(
@@ -99,10 +116,58 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
-  
+
     setTimeout(() => {
       setNotification(null);
     }, 5000);
+  };
+
+  const handleWalletPassDownload = async (profileIdOverride?: string) => {
+    const targetProfileId = profileIdOverride || defaultProfileId || profile?.id;
+    if (!targetProfileId) {
+      showNotification("Select a profile before creating a Wallet pass.", "error");
+      return;
+    }
+
+    try {
+      setWalletLoading(true);
+      const response = await fetch("/api/wallet/pass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId: targetProfileId }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Unable to create a Wallet pass right now.";
+        try {
+          const payload = await response.json();
+          if (payload?.error) errorMessage = payload.error;
+        } catch (err) {
+          console.error("Wallet pass error payload parse failed", err);
+        }
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const filename = `tapink-profile-${shareDesignProfileId ?? targetProfileId}.pkpass`;
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(downloadUrl);
+      showNotification("Apple Wallet pass ready. Open it on your iPhone to install.", "success");
+    } catch (error) {
+      console.error("Wallet pass generation failed", error);
+      showNotification(
+        error instanceof Error ? error.message : "Unable to create a Wallet pass right now.",
+        "error"
+      );
+    } finally {
+      setWalletLoading(false);
+    }
   };
   
   const libraries: ("places")[] = ["places"];
@@ -1548,14 +1613,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             <div style={{ ...socialGridStyle, color: "black" }}>
               {[
                 "X",
-                "instagram",
-                "linkedin",
-                "facebook",
-                "youtube",
-                "discord",
-                "twitch",
-                "whatsapp",
-                "github",
+                "Instagram",
+                "Linkedin",
+                "Facebook",
+                "Youtube",
+                "Discord",
+                "Twitch",
+                "Whatsapp",
+                "Github",
               ].map((platform) => (
                 <div
                   key={platform}
@@ -1587,40 +1652,54 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              {Object.entries(socials).map(([platform, url]) => (
-                <div key={platform} style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>
-                    {platform} URL
-                  </label>
-                  <input
-                    type="url"
-                    placeholder={`Enter your ${platform} URL`}
-                    value={url}
-                    onChange={(e) => {
-                      const inputUrl = e.target.value.trim();
-                      let normalizedUrl = inputUrl;
+              {Object.entries(socials).map(([platform, storedValue]) => {
+                const isInstagram = platform.toLowerCase() === "instagram";
+                const inputValue = isInstagram
+                  ? extractInstagramUsername(storedValue)
+                  : storedValue;
 
-                      if (
-                        inputUrl &&
-                        !inputUrl.startsWith("http://") &&
-                        !inputUrl.startsWith("https://")
-                      ) {
-                        normalizedUrl = `https://www.${inputUrl}`;
-                      }
+                return (
+                  <div key={platform} style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>
+                      {isInstagram ? "Instagram username" : `${platform} URL`}
+                    </label>
+                    <input
+                      type={isInstagram ? "text" : "url"}
+                      placeholder={isInstagram ? "@username" : `Enter your ${platform} URL`}
+                      value={inputValue}
+                      onChange={(e) => {
+                        const rawValue = e.target.value;
+                        if (isInstagram) {
+                          const usernameUrl = buildInstagramUrl(rawValue);
+                          setSocials({ ...socials, [platform]: usernameUrl });
+                          return;
+                        }
 
-                      setSocials({ ...socials, [platform]: normalizedUrl });
-                    }}
-                    style={{
-                      padding: '12px 16px',
-                      border: '1px solid #d2d2d7',
-                      borderRadius: '10px',
-                      width: '100%',
-                      color: "black",
-                      fontSize: '15px'
-                    }}
-                  />
-                </div>
-              ))}
+                        const inputUrl = rawValue.trim();
+                        let normalizedUrl = inputUrl;
+
+                        if (
+                          inputUrl &&
+                          !inputUrl.startsWith("http://") &&
+                          !inputUrl.startsWith("https://")
+                        ) {
+                          normalizedUrl = `https://www.${inputUrl}`;
+                        }
+
+                        setSocials({ ...socials, [platform]: normalizedUrl });
+                      }}
+                      style={{
+                        padding: '12px 16px',
+                        border: '1px solid #d2d2d7',
+                        borderRadius: '10px',
+                        width: '100%',
+                        color: "black",
+                        fontSize: '15px'
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
             <button 
@@ -1833,7 +1912,36 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               {typeof window !== 'undefined' ? `${window.location.origin}/user/${shareDesignProfileId}` : ''}
             </p>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '12px',
+                flexWrap: 'wrap',
+                justifyContent: 'center'
+              }}
+            >
+              <button
+                onClick={() => handleWalletPassDownload(defaultProfileId ?? profile?.id ?? undefined)}
+                disabled={walletLoading}
+                aria-busy={walletLoading}
+                style={{
+                  flex: '1 1 180px',
+                  minWidth: '180px',
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: walletLoading ? '#f5a26a' : 'linear-gradient(135deg, #ff8b37, #ff5700)',
+                  color: '#ffffff',
+                  cursor: walletLoading ? 'wait' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  boxShadow: '0 8px 20px rgba(255, 102, 0, 0.25)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                 {walletLoading ? 'Preparing Wallet Pass…' : 'Add to Apple Wallet'}
+              </button>
+
               <button
                 onClick={async () => {
                   if (typeof window !== "undefined") {
