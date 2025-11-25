@@ -3,7 +3,7 @@
 import { useState, useEffect, type CSSProperties, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
-import Image from "next/image";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import ProfileQRCode from "@/components/ProfileQRCode";
 import VirtualPreview from "@/components/virtualcard_preview/VirtualPreview";
@@ -29,7 +29,7 @@ interface Socials {
 type DesignTab = "profile" | "links" | "socials" | "templates" | "card design";
 
 const SocialIcon = ({ platform }: { platform: string }) => (
-  <Image 
+  <NextImage 
     src={`/icons/${platform}.svg`} 
     width={20} 
     height={20} 
@@ -40,6 +40,144 @@ const SocialIcon = ({ platform }: { platform: string }) => (
 interface DesignDashboardProps {
   profile?: any;
 }
+
+const MIN_LOGO_DPI = 250;
+const FALLBACK_LOGO_MIN_EDGE_PX = 900;
+const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+
+const clampLogoDpi = (value?: number | null) =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+
+const readChunkType = (view: DataView, offset: number) =>
+  String.fromCharCode(
+    view.getUint8(offset),
+    view.getUint8(offset + 1),
+    view.getUint8(offset + 2),
+    view.getUint8(offset + 3)
+  );
+
+const readPngDpi = (view: DataView): number | null => {
+  let offset = 8;
+  while (offset < view.byteLength) {
+    const length = view.getUint32(offset);
+    const type = readChunkType(view, offset + 4);
+    if (type === "pHYs" && length >= 9) {
+      const pxPerUnitX = view.getUint32(offset + 8);
+      const pxPerUnitY = view.getUint32(offset + 12);
+      const unit = view.getUint8(offset + 16);
+      if (unit === 1) {
+        const dpiX = pxPerUnitX * 0.0254;
+        const dpiY = pxPerUnitY * 0.0254;
+        return clampLogoDpi((dpiX + dpiY) / 2);
+      }
+      break;
+    }
+    offset += 12 + length;
+  }
+  return null;
+};
+
+const readJpegDpi = (view: DataView): number | null => {
+  let offset = 2;
+  while (offset + 1 < view.byteLength) {
+    if (view.getUint8(offset) !== 0xff) break;
+    const marker = view.getUint8(offset + 1);
+    offset += 2;
+    if (marker === 0xd9 || marker === 0xda) break;
+    if (offset + 1 >= view.byteLength) break;
+    const segmentLength = view.getUint16(offset);
+    if (segmentLength < 2) break;
+    if (marker === 0xe0 && offset + segmentLength <= view.byteLength) {
+      const identifier = String.fromCharCode(
+        view.getUint8(offset + 2),
+        view.getUint8(offset + 3),
+        view.getUint8(offset + 4),
+        view.getUint8(offset + 5),
+        view.getUint8(offset + 6)
+      );
+      if (identifier === "JFIF\u0000" && segmentLength >= 14) {
+        const units = view.getUint8(offset + 7);
+        const xDensity = view.getUint16(offset + 8);
+        const yDensity = view.getUint16(offset + 10);
+        const base = clampLogoDpi((xDensity + yDensity) / 2);
+        if (!base) return null;
+        if (units === 1) {
+          return base;
+        }
+        if (units === 2) {
+          return base * 2.54; // dots per cm -> dpi
+        }
+        return null;
+      }
+    }
+    offset += segmentLength;
+  }
+  return null;
+};
+
+const readImageDpi = async (file: File): Promise<number | null> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const view = new DataView(arrayBuffer);
+  const isPng = PNG_SIGNATURE.every((byte, index) => view.getUint8(index) === byte);
+  if (isPng) {
+    return readPngDpi(view);
+  }
+  const isJpeg = view.getUint8(0) === 0xff && view.getUint8(1) === 0xd8;
+  if (isJpeg) {
+    return readJpegDpi(view);
+  }
+  return null;
+};
+
+const getImageDimensions = (file: File): Promise<{ width: number; height: number }> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => reject(new Error("Invalid image"));
+      if (typeof reader.result === "string") {
+        img.src = reader.result;
+      } else {
+        reject(new Error("Unsupported image format"));
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+const ensureCardLogoQuality = async (file: File) => {
+  try {
+    const dpi = await readImageDpi(file);
+    if (dpi !== null && dpi < MIN_LOGO_DPI) {
+      return {
+        ok: false,
+        reason: `Logo must be at least ${MIN_LOGO_DPI} DPI. Detected approximately ${Math.round(dpi)} DPI.`,
+      };
+    }
+
+    if (dpi === null) {
+      const { width, height } = await getImageDimensions(file);
+      const longestEdge = Math.max(width, height);
+      if (longestEdge < FALLBACK_LOGO_MIN_EDGE_PX) {
+        return {
+          ok: false,
+          reason: `Logo image is too small (${width} × ${height}). Please upload a higher-resolution file (at least ${FALLBACK_LOGO_MIN_EDGE_PX}px on the longest side).`,
+        };
+      }
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Logo DPI validation failed", error);
+    return {
+      ok: false,
+      reason: "Unable to verify logo resolution. Please upload a PNG or JPEG exported at 300 DPI.",
+    };
+  }
+};
 
 const NAV_TABS: DesignTab[] = [
   "profile",
@@ -420,6 +558,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
 
+      if (fieldName === "card_logo") {
+        const qualityCheck = await ensureCardLogoQuality(file);
+        if (!qualityCheck.ok) {
+          showNotification(qualityCheck.reason || "Logo must be exported at 300 DPI.", "error");
+          return;
+        }
+      }
+
       showNotification("Uploading image...", "success");
 
       const bucketName =
@@ -459,7 +605,8 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         await saveToDatabase({ header_banner: publicUrl });
       } else {
         updateCardDesign({ logoUrl: publicUrl });
-        showNotification("Logo uploaded. Don't forget to save your card design.", "success");
+        await saveToDatabase({ physical_card_logo: publicUrl });
+        showNotification("Logo uploaded and linked to your card design.", "success");
         return;
       }
 
@@ -659,7 +806,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             );
             return;
           }
-          message += " Assets exported to Google Drive.";
+          message += " Assets exported to our team.";
         } catch (err) {
           console.error("Export error:", err);
           showNotification(
@@ -1133,6 +1280,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 profileUrl={profileUrl}
                 physicalActivated={physicalActivated}
                 onSave={saveCardDesignTab}
+                onSaveDesign={() => saveCardDesignTab()}
                 onUploadLogo={(e) => handleFileUpload(e, 'card_logo')}
                 uploadingLogo={cardLogoUploading}
               />

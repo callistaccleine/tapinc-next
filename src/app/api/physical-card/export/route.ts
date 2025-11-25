@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import JSZip from "jszip";
 import { PDFDocument } from "pdf-lib";
 import nodemailer from "nodemailer";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+const CARD_MM_WIDTH = 86;
+const CARD_MM_HEIGHT = 54;
 
 const jsonResponse = (data: any, status = 200) =>
   new NextResponse(JSON.stringify(data), {
@@ -50,6 +53,7 @@ export async function POST(request: NextRequest) {
 
     const pdfBytes = await pdfDoc.save();
 
+    const generatedAt = new Date();
     const zip = new JSZip();
     zip.file(`front-${dpi}dpi.png`, frontBuffer);
     zip.file(`back-${dpi}dpi.png`, backBuffer);
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
           widthPx,
           heightPx,
           designSettings,
-          generatedAt: new Date().toISOString(),
+          generatedAt: generatedAt.toISOString(),
         },
         null,
         2
@@ -70,11 +74,15 @@ export async function POST(request: NextRequest) {
 
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
-    let profileId = null;
+    let adminClient: SupabaseClient | null = null;
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    }
+
+    let profileId: string | null = null;
+    if (adminClient) {
       try {
-        const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-        const { data } = await admin
+        const { data } = await adminClient
           .from("design_profile")
           .select("profile_id")
           .eq("id", designProfileId)
@@ -83,6 +91,42 @@ export async function POST(request: NextRequest) {
         profileId = data?.profile_id ?? null;
       } catch (err) {
         console.error("Supabase profile lookup failed:", err);
+      }
+    }
+
+    let workOrderNumber: number | null = null;
+    if (adminClient) {
+      try {
+        const insertPayload = {
+          design_profile_id: designProfileId,
+          profile_id: profileId,
+          resolution_dpi: dpi,
+          width_px: widthPx,
+          height_px: heightPx,
+          status: "submitted",
+        };
+
+        const { error: workOrderError } = await adminClient
+          .from("work_orders")
+          .insert(insertPayload)
+          .select("id")
+          .single();
+
+        if (workOrderError) {
+          console.error("Work order insert failed:", workOrderError);
+        } else {
+          const { count, error: countError } = await adminClient
+            .from("work_orders")
+            .select("*", { head: true, count: "exact" });
+
+          if (!countError && typeof count === "number") {
+            workOrderNumber = count;
+          } else if (countError) {
+            console.error("Work order count failed:", countError);
+          }
+        }
+      } catch (err) {
+        console.error("Unexpected work order logging error:", err);
       }
     }
 
@@ -96,20 +140,69 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        const workOrderHeading = workOrderNumber
+          ? `New Physical Card Work Order #${workOrderNumber}`
+          : "New Physical Card Work Order";
+
+        const detailRows = [
+          ...(workOrderNumber ? [{ label: "Work order #", value: workOrderNumber }] : []),
+          { label: "Design Profile", value: designProfileId },
+          { label: "Profile ID", value: profileId ?? "Not linked" },
+          { label: "Resolution", value: `${dpi} DPI` },
+          {
+            label: "Canvas Size",
+            value: `${CARD_MM_WIDTH.toFixed(0)}mm × ${CARD_MM_HEIGHT.toFixed(0)}mm (${widthPx}px × ${heightPx}px)`,
+          },
+          { label: "Generated", value: generatedAt.toLocaleString("en-AU", { timeZone: "Australia/Sydney" }) },
+        ];
+
+        const detailRowsHtml = detailRows
+          .map(
+            (row) => `
+              <tr>
+                <td style="padding:6px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">${row.label}</td>
+                <td style="padding:6px 12px;border:1px solid #e5e7eb;">${row.value}</td>
+              </tr>`
+          )
+          .join("");
+
+        const supportEmail = "hello@tapink.com.au";
+        const instructionsHtml = `
+          <ol style="padding-left:20px;color:#374151;">
+            <li>Review the attached PDF proof for front/back alignment.</li>
+            <li>Download the ZIP for production-ready PNGs and metadata.</li>
+            <li>Reply-all if revisions are required; otherwise proceed with printing.</li>
+          </ol>
+        `;
+
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
-          to: "tapinc.io.au@gmail.com",
-          subject: `Physical card design — ${designProfileId}`,
+          to: "sales@tapink.com.au",
+          subject: workOrderNumber
+            ? `Physical card design work order #${workOrderNumber} — ${designProfileId}`
+            : `Physical card design work order — ${designProfileId}`,
           html: `
-            <p>A new physical card design export is ready.</p>
-            <p><strong>Design Profile ID:</strong> ${designProfileId}</p>
-            <p><strong>Profile ID:</strong> ${profileId}</p>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;">
+              <h2 style="margin-bottom:4px;">${workOrderHeading}</h2>
+              <p style="margin:0 0 16px;color:#4b5563;">A fresh design export is ready for production.</p>
+              <table style="border-collapse:collapse;border:1px solid #e5e7eb;margin-bottom:16px;min-width:320px;">
+                ${detailRowsHtml}
+              </table>
+              <h3 style="margin:0 0 8px;">Next steps</h3>
+              ${instructionsHtml}
+              <p style="margin:16px 0 0;color:#4b5563;">Need help? Email <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+            </div>
           `,
           attachments: [
             {
               filename: `${designProfileId}.pdf`,
               content: Buffer.from(pdfBytes),
               contentType: "application/pdf",
+            },
+            {
+              filename: `tapink-work-order-${designProfileId}.zip`,
+              content: zipBuffer,
+              contentType: "application/zip",
             },
           ],
         });
