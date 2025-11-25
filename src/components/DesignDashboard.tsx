@@ -695,7 +695,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     display: isMobileLayout ? "block" : "grid",
     gridTemplateColumns: isMobileLayout ? undefined : "260px 1fr",
     minHeight: "100vh",
-    background: "#f5f5f7",
+    background: "#ffffff",
     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
     position: "relative",
   };
@@ -736,6 +736,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     overflowY: "auto",
     minHeight: "100vh",
     position: "relative",
+    background: "#ffffff",
   };
 
   const mobileHeaderStyle: CSSProperties = {
