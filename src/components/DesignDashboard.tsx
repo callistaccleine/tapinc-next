@@ -1696,14 +1696,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             <div style={{ ...socialGridStyle, color: "black" }}>
               {[
                 "X",
-                "instagram",
-                "linkedin",
-                "facebook",
-                "youtube",
-                "discord",
-                "twitch",
-                "whatsapp",
-                "github",
+                "Instagram",
+                "Linkedin",
+                "Facebook",
+                "Youtube",
+                "Discord",
+                "Twitch",
+                "Whatsapp",
+                "Github",
               ].map((platform) => (
                 <div
                   key={platform}
@@ -1874,7 +1874,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   border: '1px solid rgba(255,149,2,0.3)',
                 }}
               >
-                You’re editing a different profile. Sharing uses your default profile set in the dashboard.
+                You're editing a different profile. Sharing uses your default profile set in the dashboard.
               </p>
             )}
           </>
