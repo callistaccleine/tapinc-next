@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import Navbar from "@/components/hero/Navbar";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, checkout, pending } = useCart();
@@ -81,6 +82,8 @@ export default function CartPage() {
   }
 
   return (
+    <>
+      <Navbar />
     <div className={styles.cartPage}>
       <div className={styles.cartTopActions}>
         <button
@@ -194,6 +197,7 @@ export default function CartPage() {
           </div>
         </div>
       )}
-      </div>
+    </div>
+    </>
   );
 }

@@ -211,12 +211,6 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
 
         {/* RIGHT */}
         <div className={styles.rightColumn}>
-
-          <Link href="/products" className={styles.backLink}>
-            <ArrowLeft size={20} />
-            Back to Products
-          </Link>
-
           <h1 className={styles.title}>{product.title}</h1>
 
           {/* PREMIUM PRICING CARD */}
