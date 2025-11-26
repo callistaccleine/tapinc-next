@@ -24,7 +24,7 @@ const PREVIEW_MAX_WIDTH = 360;
 
 const mmToPx = (mm: number, dpi: number) => (mm * dpi) / 25.4;
 
-export type CardResolution = "300" | "400" | "600";
+export type CardResolution = "300" | "600" | "1200";
 export type CardOrientation = "landscape" | "portrait";
 type CardSide = "front" | "back";
 type TextContentKey =
@@ -248,8 +248,8 @@ type PhysicalCardDesignerProps = {
 
 const resolutionOptions: { label: string; value: CardResolution }[] = [
   { label: "300 DPI", value: "300" },
-  { label: "400 DPI", value: "400" },
   { label: "600 DPI (Recommended)", value: "600" },
+  { label: "1200 DPI", value: "1200" },
 ];
 const orientationOptions: { label: string; value: CardOrientation }[] = [
   { label: "Landscape", value: "landscape" },
