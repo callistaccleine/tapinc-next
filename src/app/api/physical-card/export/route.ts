@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
 
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
-          to: "tapinc.io.au@gmail.com",
+          to: "sales@tapink.com.au",
           subject: workOrderNumber
             ? `Physical card design work order #${workOrderNumber} — ${designProfileId}`
             : `Physical card design work order — ${designProfileId}`,

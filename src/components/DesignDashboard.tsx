@@ -41,7 +41,7 @@ interface DesignDashboardProps {
   profile?: any;
 }
 
-const MIN_LOGO_DPI = 290;
+const MIN_LOGO_DPI = 299;
 const FALLBACK_LOGO_MIN_EDGE_PX = 900;
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
