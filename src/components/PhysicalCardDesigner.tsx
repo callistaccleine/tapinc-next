@@ -1848,6 +1848,9 @@ const renderElement = (element: CardElement) => {
           >
             {saving ? "Exporting…" : "Export assets"}
           </button>
+          <span style ={{ alignSelf: "center", color: "#6b7280", fontSize: "13px" }}>
+            Exporting might take a few minutes depending on your design resolution.
+          </span>
         </div>
       </div>
     </>
