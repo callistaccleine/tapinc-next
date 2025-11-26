@@ -216,7 +216,7 @@ export const DEFAULT_CARD_DESIGN: CardDesignSettings = {
   headline: "",
   tagline: "",
   logoUrl: null,
-  resolution: "300",
+  resolution: "600",
   elements: [],
   fontScale: DEFAULT_FONT_SCALE,
   orientation: "landscape",
