@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let workOrderNumber: number | null = null;
+    let workOrderNumber: string | number | null = null;
     if (adminClient) {
       try {
         const insertPayload = {
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
           status: "submitted",
         };
 
-        const { error: workOrderError } = await adminClient
+        const { data: workOrderRecord, error: workOrderError } = await adminClient
           .from("work_orders")
           .insert(insertPayload)
           .select("id")
@@ -114,16 +114,8 @@ export async function POST(request: NextRequest) {
 
         if (workOrderError) {
           console.error("Work order insert failed:", workOrderError);
-        } else {
-          const { count, error: countError } = await adminClient
-            .from("work_orders")
-            .select("*", { head: true, count: "exact" });
-
-          if (!countError && typeof count === "number") {
-            workOrderNumber = count;
-          } else if (countError) {
-            console.error("Work order count failed:", countError);
-          }
+        } else if (workOrderRecord?.id !== undefined && workOrderRecord.id !== null) {
+          workOrderNumber = workOrderRecord.id;
         }
       } catch (err) {
         console.error("Unexpected work order logging error:", err);
@@ -177,7 +169,7 @@ export async function POST(request: NextRequest) {
 
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
-          to: "sales@tapink.com.au",
+          to: "tapinc.io.au@gmail.com",
           subject: workOrderNumber
             ? `Physical card design work order #${workOrderNumber} — ${designProfileId}`
             : `Physical card design work order — ${designProfileId}`,

@@ -18,12 +18,14 @@ import { toPng } from "html-to-image";
 
 const CARD_MM_WIDTH = 86;
 const CARD_MM_HEIGHT = 54;
-const CARD_BORDER_RADIUS = 22;
+const CARD_BORDER_RADIUS_MM = 2.88;
+const CARD_BLEED_MM = 3;
 const PREVIEW_MAX_WIDTH = 360;
 
 const mmToPx = (mm: number, dpi: number) => (mm * dpi) / 25.4;
 
-export type CardResolution = "150" | "300" | "600";
+export type CardResolution = "300" | "400" | "600";
+export type CardOrientation = "landscape" | "portrait";
 type CardSide = "front" | "back";
 type TextContentKey =
   | "headline"
@@ -36,16 +38,28 @@ type TextContentKey =
   | "email"
   | "custom";
 
-type CardElementType = "text" | "image" | "qr";
+type CardElementType = "text" | "image" | "qr" | "shape" | "line";
 
 const MIN_FONT_SCALE = 0.5;
 const MAX_FONT_SCALE = 1;
-const DEFAULT_FONT_SCALE = 0.7;
+const DEFAULT_FONT_SCALE = 0.55;
+type FontOption = "default" | "serif" | "mono" | "cursive" | "rounded" | "geometric";
+
+const FONT_STACKS: Record<FontOption, string> = {
+  default: "'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif",
+  serif: "'Playfair Display', 'Times New Roman', serif",
+  mono: "'Space Mono', 'Courier New', monospace",
+  cursive: "'Pacifico', 'Brush Script MT', cursive",
+  rounded: "'Nunito', 'Quicksand', sans-serif",
+  geometric: "'Futura', 'Poppins', 'Avenir Next', sans-serif",
+};
 const clampFontScale = (value: number) =>
   Math.min(
     MAX_FONT_SCALE,
     Math.max(MIN_FONT_SCALE, Number.isFinite(value) ? value : DEFAULT_FONT_SCALE)
   );
+const MIN_RESIZABLE_RATIO = 0.08;
+const MAX_RESIZABLE_RATIO = 0.6;
 
 export type CardElement = {
   id: string;
@@ -61,6 +75,8 @@ export type CardElement = {
   text?: string;
   color?: string;
   imageUrl?: string | null;
+  backgroundColor?: string;
+  shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
 };
 
 const DEFAULT_CARD_ELEMENTS: CardElement[] = [
@@ -105,7 +121,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     y: 0.12,
     width: 0.46,
     height: 0.12,
-    fontSize: 0.07,
+    fontSize: 0.055,
     textAlign: "left",
     contentKey: "name",
   },
@@ -116,7 +132,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     x: 0.08,
     y: 0.25,
     width: 0.46,
-    height: 0.1,
+    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "role",
@@ -128,8 +144,8 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     x: 0.08,
     y: 0.38,
     width: 0.46,
-    height: 0.1,
-    fontSize: 0.05,
+    height: 0.12,
+    fontSize: 0.055,
     textAlign: "left",
     contentKey: "phone",
   },
@@ -140,8 +156,8 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     x: 0.08,
     y: 0.5,
     width: 0.46,
-    height: 0.1,
-    fontSize: 0.05,
+    height: 0.12,
+    fontSize: 0.055,
     textAlign: "left",
     contentKey: "email",
   },
@@ -181,6 +197,8 @@ export type CardDesignSettings = {
   resolution: CardResolution;
   elements?: CardElement[];
   fontScale?: number;
+  orientation?: CardOrientation;
+  fontFamily?: FontOption;
 };
 
 export type CardExportPayload = {
@@ -201,6 +219,8 @@ export const DEFAULT_CARD_DESIGN: CardDesignSettings = {
   resolution: "300",
   elements: [],
   fontScale: DEFAULT_FONT_SCALE,
+  orientation: "landscape",
+  fontFamily: "default",
 };
 
 export const parseCardDesign = (raw: any): CardDesignSettings => {
@@ -227,10 +247,52 @@ type PhysicalCardDesignerProps = {
 };
 
 const resolutionOptions: { label: string; value: CardResolution }[] = [
-  { label: "150 DPI", value: "150" },
-  { label: "300 DPI (Recommended)", value: "300" },
+  { label: "300 DPI", value: "300" },
+  { label: "400 DPI", value: "400" },
   { label: "600 DPI", value: "600" },
 ];
+const orientationOptions: { label: string; value: CardOrientation }[] = [
+  { label: "Landscape", value: "landscape" },
+  { label: "Portrait", value: "portrait" },
+];
+type BackgroundFillMode = "solid" | "gradient2" | "gradient3";
+const DEFAULT_GRADIENT_TWO = ["#ff8b37", "#ff5700"];
+const DEFAULT_GRADIENT_THREE = ["#ff8b37", "#ff5700", "#ffd166"];
+
+const buildGradient = (stops: string[]) => `linear-gradient(135deg, ${stops.join(", ")})`;
+
+const parseGradientStops = (background: string): string[] => {
+  if (!background.startsWith("linear-gradient")) return [];
+  const start = background.indexOf("(");
+  const end = background.lastIndexOf(")");
+  if (start === -1 || end === -1 || end <= start) return [];
+  const body = background.slice(start + 1, end);
+  const parts = body.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length <= 1) return [];
+  // ignore the first entry (the angle)
+  return parts.slice(1).map((part) => part.replace(/\s?(0|100)%/g, "").trim());
+};
+
+const gradientCatalog: Record<string, string[]> = {
+  Sunset: ["#ff8b37", "#ff5700"],
+  Ocean: ["#2BC0E4", "#EAECC6"],
+  Midnight: ["#232526", "#414345"],
+  Forest: ["#5A3F37", "#2C7744"],
+};
+
+const getGradientStopsForMode = (
+  mode: BackgroundFillMode,
+  currentStops: string[]
+): string[] => {
+  if (mode === "solid") return [];
+  const desiredLength = mode === "gradient3" ? 3 : 2;
+  const fallback = mode === "gradient3" ? DEFAULT_GRADIENT_THREE : DEFAULT_GRADIENT_TWO;
+  const normalizedStops = currentStops.filter(Boolean);
+  if (normalizedStops.length >= desiredLength) {
+    return normalizedStops.slice(0, desiredLength);
+  }
+  return [...normalizedStops, ...fallback].slice(0, desiredLength);
+};
 
 export function PhysicalCardDesigner({
   cardDesign,
@@ -243,17 +305,29 @@ export function PhysicalCardDesigner({
   onUploadLogo,
   uploadingLogo,
 }: PhysicalCardDesignerProps) {
+  const orientation = cardDesign.orientation ?? "landscape";
+  const isPortrait = orientation === "portrait";
+  const existingStops = parseGradientStops(cardDesign.backgroundColor || "");
+  const backgroundMode: BackgroundFillMode =
+    existingStops.length >= 3 ? "gradient3" : existingStops.length >= 2 ? "gradient2" : "solid";
+  const activeGradientStops = getGradientStopsForMode(backgroundMode, existingStops);
   const fontScale = clampFontScale(cardDesign.fontScale ?? DEFAULT_FONT_SCALE);
   const updateFontScale = (value: number) => {
     updateCardDesign({ fontScale: clampFontScale(value) });
   };
   const resetFontScale = () => updateCardDesign({ fontScale: DEFAULT_FONT_SCALE });
   const dpi = Number(cardDesign.resolution || "300");
-  const cardWidthPx = mmToPx(CARD_MM_WIDTH, dpi);
-  const cardHeightPx = mmToPx(CARD_MM_HEIGHT, dpi);
-  const previewScale = Math.min(0.74, PREVIEW_MAX_WIDTH / cardWidthPx);
+  const widthMm = isPortrait ? CARD_MM_HEIGHT : CARD_MM_WIDTH;
+  const heightMm = isPortrait ? CARD_MM_WIDTH : CARD_MM_HEIGHT;
+  const bleedXRatio = CARD_BLEED_MM / widthMm;
+  const bleedYRatio = CARD_BLEED_MM / heightMm;
+  const cardWidthPx = mmToPx(widthMm, dpi);
+  const cardHeightPx = mmToPx(heightMm, dpi);
+  const baseDimensionPx = isPortrait ? cardHeightPx : cardWidthPx;
+  const previewScale = Math.min(0.74, PREVIEW_MAX_WIDTH / baseDimensionPx);
   const displayedWidth = cardWidthPx * previewScale;
   const displayedHeight = cardHeightPx * previewScale;
+  const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; side: CardSide; offsetX: number; offsetY: number } | null>(null);
@@ -275,8 +349,35 @@ export function PhysicalCardDesigner({
     }
   }, [cardElements.length, updateCardDesign]);
 
+  useEffect(() => {
+    if (!cardDesign.elements?.length) return;
+    const clamped = cardDesign.elements.map(clampElementPosition);
+    const changed = cardDesign.elements.some((element, index) => {
+      const target = clamped[index];
+      return element.x !== target.x || element.y !== target.y;
+    });
+    if (changed) {
+      updateCardDesign({ elements: clamped });
+    }
+  }, [cardDesign.orientation, bleedXRatio, bleedYRatio]);
+
+  const clampElementPosition = (element: CardElement): CardElement => {
+    const widthRatio = getElementWidth(element);
+    const heightRatio = getElementHeight(element);
+    const minX = bleedXRatio;
+    const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
+    const minY = bleedYRatio;
+    const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+
+    return {
+      ...element,
+      x: clamp(element.x ?? minX, minX, maxX),
+      y: clamp(element.y ?? minY, minY, maxY),
+    };
+  };
+
   const setElements = (updater: (prev: CardElement[]) => CardElement[]) => {
-    const next = updater(cardDesign.elements ?? []);
+    const next = updater(cardDesign.elements ?? []).map(clampElementPosition);
     updateCardDesign({ elements: next });
   };
 
@@ -284,6 +385,8 @@ export function PhysicalCardDesigner({
     if (typeof element.width === "number") return element.width;
     if (element.type === "qr") return 0.28;
     if (element.type === "image") return 0.22;
+    if (element.type === "shape") return 0.25;
+    if (element.type === "line") return 0.6;
     return 0.82;
   };
 
@@ -291,6 +394,8 @@ export function PhysicalCardDesigner({
     if (typeof element.height === "number") return element.height;
     if (element.type === "qr") return getElementWidth(element);
     if (element.type === "image") return 0.22;
+    if (element.type === "shape") return 0.12;
+    if (element.type === "line") return 0.01;
     const fontSize = element.fontSize ?? 0.07;
     return fontSize * 1.6;
   };
@@ -298,9 +403,9 @@ export function PhysicalCardDesigner({
   const getTextValue = (element: CardElement) => {
     switch (element.contentKey) {
       case "headline":
-        return cardDesign.headline?.trim() || "TapInk";
+        return cardDesign.headline?.trim() || "Headline";
       case "tagline":
-        return cardDesign.tagline?.trim() || "Digital Business Cards";
+        return cardDesign.tagline?.trim() || "Tagline";
       case "name":
         return previewData.name || "Your Name";
       case "title":
@@ -349,8 +454,12 @@ export function PhysicalCardDesigner({
       const posY = moveEvent.clientY - activeRect.top - dragState.current.offsetY;
       const widthRatio = getElementWidth(element);
       const heightRatio = getElementHeight(element);
-      const nextX = clamp(posX / activeRect.width, 0, Math.max(0, 1 - widthRatio));
-      const nextY = clamp(posY / activeRect.height, 0, Math.max(0, 1 - heightRatio));
+      const minX = bleedXRatio;
+      const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
+      const minY = bleedYRatio;
+      const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+      const nextX = clamp(posX / activeRect.width, minX, maxX);
+      const nextY = clamp(posY / activeRect.height, minY, maxY);
 
       setElements((prev) =>
         prev.map((item) =>
@@ -376,11 +485,11 @@ export function PhysicalCardDesigner({
     event.preventDefault();
   };
 
-  const renderElement = (element: CardElement) => {
-    const widthRatio = getElementWidth(element);
-    const heightRatio = getElementHeight(element);
-    const widthPx = widthRatio * displayedWidth;
-    const heightPx = heightRatio * displayedHeight;
+const renderElement = (element: CardElement) => {
+  const widthRatio = getElementWidth(element);
+  const heightRatio = getElementHeight(element);
+  const widthPx = widthRatio * displayedWidth;
+  const heightPx = heightRatio * displayedHeight;
     const left = (element.x ?? 0) * displayedWidth;
     const top = (element.y ?? 0) * displayedHeight;
     const showGuides = !exporting;
@@ -395,7 +504,7 @@ export function PhysicalCardDesigner({
       alignItems: element.type === "image" ? "center" : undefined,
       justifyContent: element.type === "image" ? "center" : undefined,
       cursor: showGuides ? "grab" : "default",
-      border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
+      border: "none",
       borderRadius: element.type === "text" ? 8 : 10,
       padding: element.type === "text" ? "4px 6px" : 0,
       boxSizing: "border-box",
@@ -406,6 +515,7 @@ export function PhysicalCardDesigner({
     if (element.type === "text") {
       const fontSize = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
       const textAlign = element.textAlign ?? "left";
+      const fontFamily = FONT_STACKS[cardDesign.fontFamily ?? "default"];
       return (
         <div
           key={element.id}
@@ -421,6 +531,7 @@ export function PhysicalCardDesigner({
               width: "100%",
               lineHeight: 1.2,
               whiteSpace: "pre-wrap",
+              fontFamily,
             }}
           >
             {getTextValue(element)}
@@ -449,6 +560,67 @@ export function PhysicalCardDesigner({
             </span>
           )}
         </div>
+      );
+    }
+
+    if (element.type === "shape") {
+      const variant = element.shapeVariant ?? "rectangle";
+      if (variant === "triangle") {
+        return (
+          <div
+            key={element.id}
+            style={{
+              position: "absolute",
+              left,
+              top,
+              width: widthPx,
+              height: heightPx,
+              cursor: showGuides ? "grab" : "default",
+            }}
+            onPointerDown={(event) => startDrag(event, element)}
+          >
+            <div
+              style={{
+                width: 0,
+                height: 0,
+                borderLeft: `${widthPx / 2}px solid transparent`,
+                borderRight: `${widthPx / 2}px solid transparent`,
+                borderBottom: `${heightPx}px solid ${element.backgroundColor || cardDesign.textColor}`,
+                filter: showGuides ? "drop-shadow(0 0 0 rgba(0,0,0,0.1))" : undefined,
+              }}
+            />
+          </div>
+        );
+      }
+
+      const radius =
+        variant === "circle" ? "50%" : variant === "square" ? "4px" : "12px";
+      return (
+        <div
+          key={element.id}
+          style={{
+            ...baseStyle,
+            background: element.backgroundColor || cardDesign.textColor,
+            borderRadius: radius,
+            border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
+          }}
+          onPointerDown={(event) => startDrag(event, element)}
+        />
+      );
+    }
+
+    if (element.type === "line") {
+      return (
+        <div
+          key={element.id}
+          style={{
+            ...baseStyle,
+            background: element.backgroundColor || cardDesign.textColor,
+            borderRadius: "999px",
+            border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
+          }}
+          onPointerDown={(event) => startDrag(event, element)}
+        />
       );
     }
 
@@ -590,6 +762,43 @@ export function PhysicalCardDesigner({
     ]);
   };
 
+  const addShapeElement = () => {
+    const defaultVariant: CardElement["shapeVariant"] = "rectangle";
+    const defaultWidth = 0.25;
+    const defaultHeight = 0.12;
+
+    setElements((prev) => [
+      ...prev,
+      {
+        id: `shape-${Date.now()}`,
+        type: "shape",
+        side: selectedElementSide,
+        x: 0.1,
+        y: 0.6,
+        width: defaultWidth,
+        height: defaultHeight,
+        backgroundColor: "#ffffff",
+        shapeVariant: defaultVariant,
+      },
+    ]);
+  };
+
+  const addLineElement = () => {
+      setElements((prev) => [
+        ...prev,
+        {
+          id: `line-${Date.now()}`,
+          type: "line",
+          side: selectedElementSide,
+          x: 0.08,
+          y: 0.55,
+          width: 0.6,
+          height: 0.012,
+          backgroundColor: cardDesign.textColor,
+        },
+      ]);
+  };
+
   const removeElement = (id: string) => {
     setElements((prev) => prev.filter((element) => element.id !== id));
   };
@@ -610,11 +819,32 @@ export function PhysicalCardDesigner({
   const getElementLabel = (element: CardElement) => {
     if (element.type === "qr") return "QR code";
     if (element.type === "image") return "Logo / image";
+    if (element.type === "shape") return "Shape";
+    if (element.type === "line") return "Line";
     if (element.contentKey && element.contentKey !== "custom") {
       const preset = TEXT_PRESET_OPTIONS.find((option) => option.value === element.contentKey);
       return preset?.label || "Text";
     }
     return "Custom text";
+  };
+  const handleResizeElement = (id: string, ratio: number) => {
+    const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
+    setElements((prev) =>
+      prev.map((element) =>
+        element.id === id
+          ? {
+              ...element,
+              width: clamped,
+              height:
+                element.type === "image" || element.type === "qr"
+                  ? clamped
+                  : element.type === "line"
+                  ? element.height
+                  : element.height,
+            }
+          : element
+      )
+    );
   };
 
   const renderCard = (
@@ -627,7 +857,7 @@ export function PhysicalCardDesigner({
         width: displayedWidth,
         maxWidth: "100%",
         height: displayedHeight,
-        borderRadius: `${CARD_BORDER_RADIUS}px`,
+        borderRadius: `${cornerRadiusPx}px`,
         background: cardDesign.backgroundColor,
         color: cardDesign.textColor,
         boxShadow: "0 22px 50px rgba(15,23,42,0.22)",
@@ -745,31 +975,161 @@ export function PhysicalCardDesigner({
                 </option>
               ))}
             </select>
+            <span style={{ fontSize: "12px", color: "#6b7280" }}>
+              Lower DPI may lead to diminished print detail
+            </span>
           </label>
+          <div style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
+            Orientation
+            <div
+              style={{
+                display: "inline-flex",
+                border: "1px solid #d0d5dd",
+                borderRadius: "12px",
+                overflow: "hidden",
+              }}
+            >
+              {orientationOptions.map((option) => {
+                const selected = orientation === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => updateCardDesign({ orientation: option.value })}
+                    style={{
+                      flex: 1,
+                      padding: "10px 14px",
+                      border: "none",
+                      background: selected ? "#000000" : "transparent",
+                      color: selected ? "#ffffff" : "#0f172a",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             gap: "12px",
           }}
         >
-          <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
-            Background colour
-            <input
-              type="color"
-              value={cardDesign.backgroundColor}
-              onChange={(e) => updateCardDesign({ backgroundColor: e.target.value })}
-              style={{
-                width: "100%",
-                height: "36px",
-                border: "1px solid #d0d5dd",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            />
-          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <span style={{ fontSize: "13px", color: "#475467", fontWeight: 500 }}>Background fill</span>
+            <div style={{ display: "inline-flex", border: "1px solid #d0d5dd", borderRadius: "12px", overflow: "hidden" }}>
+              {(["solid", "gradient2", "gradient3"] as BackgroundFillMode[]).map((mode) => {
+                const isActive = backgroundMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      if (mode === "solid") {
+                        updateCardDesign({ backgroundColor: "#0f172a" });
+                      } else if (mode === "gradient2") {
+                        updateCardDesign({ backgroundColor: buildGradient(DEFAULT_GRADIENT_TWO) });
+                      } else {
+                        updateCardDesign({ backgroundColor: buildGradient(DEFAULT_GRADIENT_THREE) });
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      background: isActive ? "#000" : "transparent",
+                      color: isActive ? "#fff" : "#0f172a",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {mode === "solid"
+                      ? "Solid"
+                      : mode === "gradient2"
+                      ? "Gradient 2"
+                      : "Gradient 3"}
+                  </button>
+                );
+              })}
+            </div>
+            {backgroundMode === "solid" && (
+              <input
+                type="color"
+                value={cardDesign.backgroundColor}
+                onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                style={{
+                  width: "100%",
+                  height: "36px",
+                  borderRadius: "8px",
+                  border: "1px solid #d0d5dd",
+                  cursor: "pointer",
+                }}
+              />
+            )}
+            {backgroundMode !== "solid" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span style={{ fontSize: "12px", color: "#6b7280" }}>Quick presets</span>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {Object.entries(gradientCatalog).map(([label, stops]) => {
+                      const gradientCss = buildGradient(stops);
+                      const isActive = cardDesign.backgroundColor === gradientCss;
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => updateCardDesign({ backgroundColor: gradientCss })}
+                          style={{
+                            width: "90px",
+                            height: "32px",
+                            borderRadius: "8px",
+                            border: isActive ? "2px solid #0f172a" : "1px solid #d0d5dd",
+                            background: gradientCss,
+                            color: "#fff",
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.2)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {activeGradientStops.map((stop, index) => (
+                  <input
+                    key={index}
+                    type="color"
+                    value={stop}
+                    onChange={(event) => {
+                      const updatedStops = [...activeGradientStops];
+                      updatedStops[index] = event.target.value;
+                      const targetStops =
+                        backgroundMode === "gradient3"
+                          ? updatedStops.slice(0, 3)
+                          : updatedStops.slice(0, 2);
+                      updateCardDesign({ backgroundColor: buildGradient(targetStops) });
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "36px",
+                      borderRadius: "8px",
+                      border: "1px solid #d0d5dd",
+                      cursor: "pointer",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           {/* <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Accent colour
             <input
@@ -799,6 +1159,25 @@ export function PhysicalCardDesigner({
                 cursor: "pointer",
               }}
             />
+            <span style={{ fontSize: "12px", color: "#6b7280", marginTop: "8px" }}>Font</span>
+            <select
+              value={cardDesign.fontFamily ?? "default"}
+              onChange={(event) => updateCardDesign({ fontFamily: event.target.value as FontOption })}
+              style={{
+                border: "1px solid #d0d5dd",
+                borderRadius: "8px",
+                padding: "8px 10px",
+                fontSize: "13px",
+                marginTop: "4px",
+              }}
+            >
+              <option value="default">Default (Manrope)</option>
+              <option value="serif">Elegant Serif</option>
+              <option value="mono">Monospace</option>
+              <option value="cursive">Cursive Script</option>
+              <option value="rounded">Rounded Sans</option>
+              <option value="geometric">Geometric Sans</option>
+            </select>
           </label>
         </div>
 
@@ -809,7 +1188,7 @@ export function PhysicalCardDesigner({
               type="text"
               value={cardDesign.headline}
               onChange={(e) => updateCardDesign({ headline: e.target.value })}
-              placeholder="TapInk"
+              placeholder="Your Headline Here"
               style={{
                 padding: "10px 12px",
                 borderRadius: "10px",
@@ -820,12 +1199,12 @@ export function PhysicalCardDesigner({
           </label>
 
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
-            Tagline (optional)
+            Tagline
             <input
               type="text"
               value={cardDesign.tagline || ""}
               onChange={(e) => updateCardDesign({ tagline: e.target.value })}
-              placeholder="Digital Business Card"
+              placeholder="Your Tagline Here"
               style={{
                 padding: "10px 12px",
                 borderRadius: "10px",
@@ -969,10 +1348,10 @@ export function PhysicalCardDesigner({
           >
             <div>
               <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#0f172a" }}>
-                Drag & drop layout
+                Select your layout side
               </p>
               <p style={{ margin: "4px 0 0", color: "#475467", fontSize: "13px" }}>
-                Drag elements directly on the {selectedElementSide} preview to reposition them.
+                Add elements directly on the {selectedElementSide} preview to reposition them.
               </p>
             </div>
             <div
@@ -1099,6 +1478,34 @@ export function PhysicalCardDesigner({
             >
               + Add QR code
             </button>
+            <button
+              type="button"
+              onClick={addShapeElement}
+              style={{
+                border: "1px solid #d0d5dd",
+                borderRadius: "12px",
+                padding: "10px 18px",
+                background: "#ffffff",
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              + Add shape
+            </button>
+            <button
+              type="button"
+              onClick={addLineElement}
+              style={{
+                border: "1px solid #d0d5dd",
+                borderRadius: "12px",
+                padding: "10px 18px",
+                background: "#ffffff",
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              + Add line
+            </button>
           </div>
 
           <div
@@ -1114,7 +1521,7 @@ export function PhysicalCardDesigner({
           >
             {selectedElements.length === 0 ? (
               <p style={{ margin: 0, color: "#475467", fontSize: "14px" }}>
-                No elements on the {selectedElementSide} yet. Add a text block, logo, or QR code to begin.
+                No elements on the {selectedElementSide} yet. Add a text block, logo, QR code, shape, or line to begin.
               </p>
             ) : (
               selectedElements.map((element) => (
@@ -1148,6 +1555,234 @@ export function PhysicalCardDesigner({
                           padding: "6px 8px",
                         }}
                       />
+                    )}
+                    {(element.type === "image" || element.type === "qr") && (
+                      <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
+                          <span>Size</span>
+                          <span>{Math.round(getElementWidth(element) * cardWidthPx)} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={MIN_RESIZABLE_RATIO}
+                          max={MAX_RESIZABLE_RATIO}
+                          step={0.01}
+                          value={getElementWidth(element)}
+                          onChange={(event) => handleResizeElement(element.id, parseFloat(event.target.value))}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                    )}
+                    {element.type === "shape" && (
+                      <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Color
+                          <input
+                            type="color"
+                            value={element.backgroundColor || "#ffffff"}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id ? { ...el, backgroundColor: event.target.value } : el
+                                )
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              height: "32px",
+                              borderRadius: "8px",
+                              border: "1px solid #d0d5dd",
+                              marginTop: "4px",
+                            }}
+                          />
+                        </label>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Variant
+                          <select
+                            value={element.shapeVariant ?? "rectangle"}
+                            onChange={(event) => {
+                              const variant = event.target.value as CardElement["shapeVariant"];
+                              setElements((prev) =>
+                                prev.map((el) => {
+                                  if (el.id !== element.id) return el;
+                                  const next = { ...el, shapeVariant: variant };
+                                  if (variant === "square" || variant === "circle") {
+                                    const size = clamp(getElementWidth(el), MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
+                                    next.width = size;
+                                    next.height = size;
+                                  } else if (variant === "rectangle") {
+                                    next.width = el.width ?? 0.25;
+                                    next.height = el.height ?? 0.12;
+                                  }
+                                  return next;
+                                })
+                              );
+                            }}
+                            style={{
+                              width: "100%",
+                              border: "1px solid #d0d5dd",
+                              borderRadius: "8px",
+                              padding: "6px 8px",
+                              marginTop: "4px",
+                            }}
+                          >
+                            <option value="rectangle">Rectangle</option>
+                            <option value="square">Square</option>
+                            <option value="circle">Circle</option>
+                            <option value="triangle">Triangle</option>
+                          </select>
+                        </label>
+                      </div>
+                    )}
+                    {element.type === "shape" && (
+                      (() => {
+                        const variant = element.shapeVariant ?? "rectangle";
+                        const showUniformSlider = variant === "square" || variant === "circle";
+                        const showSeparateControls = variant === "rectangle" || variant === "triangle";
+                        return (
+                          <>
+                            {showSeparateControls && (
+                              <>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Width</span>
+                            <span>{Math.round(getElementWidth(element) * cardWidthPx)} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={MIN_RESIZABLE_RATIO}
+                            max={MAX_RESIZABLE_RATIO}
+                            step={0.01}
+                                    value={getElementWidth(element)}
+                                    onChange={(event) => handleResizeElement(element.id, parseFloat(event.target.value))}
+                                    style={{ width: "100%" }}
+                                  />
+                                </label>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Height</span>
+                            <span>{Math.round(getElementHeight(element) * cardHeightPx)} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={MIN_RESIZABLE_RATIO}
+                            max={MAX_RESIZABLE_RATIO}
+                            step={0.01}
+                                    value={getElementHeight(element)}
+                                    onChange={(event) =>
+                                      setElements((prev) =>
+                                        prev.map((el) =>
+                                          el.id === element.id
+                                            ? {
+                                                ...el,
+                                                height: clamp(
+                                                  parseFloat(event.target.value),
+                                                  MIN_RESIZABLE_RATIO,
+                                                  MAX_RESIZABLE_RATIO
+                                                ),
+                                              }
+                                            : el
+                                        )
+                                      )
+                                    }
+                                    style={{ width: "100%" }}
+                                  />
+                                </label>
+                              </>
+                            )}
+                            {showUniformSlider && (
+                              <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                  <span>{variant === "circle" ? "Diameter" : "Size"}</span>
+                                  <span>{Math.round(getElementWidth(element) * cardWidthPx)} px</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={MIN_RESIZABLE_RATIO}
+                                  max={MAX_RESIZABLE_RATIO}
+                                  step={0.01}
+                                  value={getElementWidth(element)}
+                                  onChange={(event) => {
+                                    const size = clamp(parseFloat(event.target.value), MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
+                                    setElements((prev) =>
+                                      prev.map((el) =>
+                                        el.id === element.id ? { ...el, width: size, height: size } : el
+                                      )
+                                    );
+                                  }}
+                                  style={{ width: "100%" }}
+                                />
+                              </label>
+                            )}
+                          </>
+                        );
+                      })()
+                    )}
+                    {element.type === "line" && (
+                      <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Color
+                          <input
+                            type="color"
+                            value={element.backgroundColor || cardDesign.textColor}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id ? { ...el, backgroundColor: event.target.value } : el
+                                )
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              height: "32px",
+                              borderRadius: "8px",
+                              border: "1px solid #d0d5dd",
+                              marginTop: "4px",
+                            }}
+                          />
+                        </label>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Length</span>
+                            <span>{Math.round(getElementWidth(element) * cardWidthPx)} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.2}
+                            max={0.95}
+                            step={0.01}
+                            value={getElementWidth(element)}
+                            onChange={(event) => handleResizeElement(element.id, parseFloat(event.target.value))}
+                            style={{ width: "100%" }}
+                          />
+                        </label>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Thickness</span>
+                            <span>{Math.round(getElementHeight(element) * cardHeightPx)} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.005}
+                            max={0.05}
+                            step={0.002}
+                            value={getElementHeight(element)}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        height: clamp(parseFloat(event.target.value), 0.005, 0.05),
+                                      }
+                                    : el
+                                )
+                              )
+                            }
+                            style={{ width: "100%" }}
+                          />
+                        </label>
+                      </div>
                     )}
                   </div>
                   <button
