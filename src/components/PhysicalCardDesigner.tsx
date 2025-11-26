@@ -249,7 +249,7 @@ type PhysicalCardDesignerProps = {
 const resolutionOptions: { label: string; value: CardResolution }[] = [
   { label: "300 DPI", value: "300" },
   { label: "400 DPI", value: "400" },
-  { label: "600 DPI", value: "600" },
+  { label: "600 DPI (Recommended)", value: "600" },
 ];
 const orientationOptions: { label: string; value: CardOrientation }[] = [
   { label: "Landscape", value: "landscape" },
