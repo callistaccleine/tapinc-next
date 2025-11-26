@@ -74,13 +74,13 @@
 
 .productPage {
   min-height: 100vh;
-  background: #f7f8fb;
+  background: #ffffff;
   padding: 80px 24px;
 }
 
 .container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 80 auto;
   display: grid;
   grid-template-columns: minmax(340px, 480px) minmax(0, 1fr);
   gap: 48px;
