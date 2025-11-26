@@ -42,7 +42,7 @@
 .mainContent {
   padding: clamp(16px, 2vw, 32px);
   overflow-y: auto;
-  background: #f5f5f7;
+  background: #ffffff;
   margin: 0;
   border: none;
 }
@@ -148,8 +148,6 @@
   flex: 1 1 0;
   min-width: 0;
 }
-
-
 
 .searchRow input:focus,
 .searchRow select:focus {

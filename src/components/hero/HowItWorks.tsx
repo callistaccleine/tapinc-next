@@ -21,14 +21,16 @@ export default function HowItWorks() {
       icon: "🎨",
       title: "Design beautifully",
       description: "Customise your card to match your brand with our intuitive design tools. Choose colors, layouts, and add your unique touch.",
-      image: "/images/design-preview.jpg",
+      video:
+        "https://cizagqdvmcdhqbkxpopx.supabase.co/storage/v1/object/public/videos/tapink-share.mp4",
     },
     {
       name: "Analyse",
       icon: "📊",
       title: "Analyse deeply",
       description: "Track engagement, understand your audience, and grow your network with powerful analytics. See who viewed your profile and when.",
-      image: "/images/analytics-preview.jpg",
+      video:
+        "https://cizagqdvmcdhqbkxpopx.supabase.co/storage/v1/object/public/videos/tapink-share.mp4",
     },
   ];
 

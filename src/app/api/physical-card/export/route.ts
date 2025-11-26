@@ -1,156 +1,59 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
 import JSZip from "jszip";
 import { PDFDocument } from "pdf-lib";
-import { Readable } from "node:stream";
+import nodemailer from "nodemailer";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type ExportRequestPayload = {
-  designProfileId?: string | null;
-  frontImage?: string;
-  backImage?: string;
-  resolution?: string | number;
-  widthPx?: number;
-  heightPx?: number;
-  designSettings?: Record<string, unknown>;
-};
+const CARD_MM_WIDTH = 86;
+const CARD_MM_HEIGHT = 54;
 
-const REQUIRED_SCOPES = ["https://www.googleapis.com/auth/drive.file"];
+const jsonResponse = (data: any, status = 200) =>
+  new NextResponse(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 
-/* ✅ Helper to safely read env vars */
-const getEnvOrThrow = (key: string) => {
-  const value = process.env[key];
-  if (!value) {
-    console.error(`❌ Missing required env var: ${key}`);
-    throw new Error(`Missing required environment variable: ${key}`);
-  }
-  return value;
-};
-
-/* ✅ Converts base64 image to Buffer */
 const dataUrlToBuffer = (dataUrl: string, label: string) => {
   const match = dataUrl.match(/^data:(.+?);base64,(.+)$/);
   if (!match) throw new Error(`Invalid data URL supplied for ${label}`);
   return Buffer.from(match[2], "base64");
 };
 
-/* ✅ Initializes Google Drive client with proper newline decoding */
-const getDriveClient = async () => {
-  const clientEmail = getEnvOrThrow("GOOGLE_SERVICE_ACCOUNT_EMAIL");
-  const privateKey = getEnvOrThrow("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY").replace(/\\n/g, "\n");
-
-  try {
-    const auth = new google.auth.JWT({
-      email: clientEmail,
-      key: privateKey,
-      scopes: REQUIRED_SCOPES,
-    });
-
-    await auth.authorize();
-    console.log("✅ Google Drive Auth successful as:", clientEmail);
-
-    return google.drive({ version: "v3", auth });
-  } catch (err) {
-    console.error("❌ Google Drive Auth failed:", err);
-    throw new Error("Failed to authenticate with Google Drive");
-  }
-};
-
-/* ✅ Uploads or updates file */
-const uploadOrUpdateFile = async ({
-  drive,
-  folderId,
-  name,
-  mimeType,
-  buffer,
-  description,
-}: {
-  drive: ReturnType<typeof google.drive>;
-  folderId: string;
-  name: string;
-  mimeType: string;
-  buffer: Buffer;
-  description?: string;
-}) => {
-  try {
-    const existing = await drive.files.list({
-      q: `'${folderId}' in parents and name = '${name}' and trashed = false`,
-      pageSize: 1,
-      fields: "files(id, name)",
-      includeItemsFromAllDrives: true,
-      supportsAllDrives: true,
-    });
-
-    const media = { mimeType, body: Readable.from(buffer) };
-
-    if (existing.data.files?.length) {
-      const fileId = existing.data.files[0].id!;
-      await drive.files.update({
-        fileId,
-        media,
-        requestBody: { name, description },
-        supportsAllDrives: true,
-      });
-      console.log(`🔁 Updated file: ${name} (${fileId})`);
-      return fileId;
-    }
-
-    // ✅ Shared Drive-safe file creation
-    const createResponse = await drive.files.create({
-      media,
-      requestBody: {
-        name,
-        parents: [folderId],
-        description,
-      },
-      fields: "id",
-      supportsAllDrives: true,
-    });
-
-    console.log(`📤 Uploaded new file: ${name} (${createResponse.data.id})`);
-    return createResponse.data.id;
-  } catch (err) {
-    console.error(`❌ Upload failed for ${name}:`, err);
-    throw new Error(`Failed to upload ${name}`);
-  }
-};
-
-/* ✅ Main handler */
 export async function POST(request: NextRequest) {
   try {
-    const payload = (await request.json()) as ExportRequestPayload;
+    const payload = await request.json();
     const { designProfileId, frontImage, backImage, resolution, widthPx, heightPx, designSettings } = payload;
 
-    if (!designProfileId || !frontImage || !backImage || typeof widthPx !== "number" || typeof heightPx !== "number") {
-      console.error("❌ Missing required fields:", payload);
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!designProfileId || !frontImage || !backImage || !widthPx || !heightPx) {
+      return jsonResponse({ error: "Missing required fields" }, 400);
     }
 
-    const dpi = typeof resolution === "string" ? Number(resolution) : resolution;
-    if (!dpi || Number.isNaN(dpi)) return NextResponse.json({ error: "Invalid resolution" }, { status: 400 });
+    const dpi = Number(resolution);
+    if (!dpi || Number.isNaN(dpi)) {
+      return jsonResponse({ error: "Invalid resolution" }, 400);
+    }
 
-    /* 🧠 Convert PNGs to buffers */
     const frontBuffer = dataUrlToBuffer(frontImage, "frontImage");
     const backBuffer = dataUrlToBuffer(backImage, "backImage");
 
-    /* 🧩 Create PDF */
     const pdfDoc = await PDFDocument.create();
-    const widthInPoints = (widthPx / dpi) * 72;
-    const heightInPoints = (heightPx / dpi) * 72;
+    const widthPoints = (widthPx / dpi) * 72;
+    const heightPoints = (heightPx / dpi) * 72;
 
     const frontEmbedded = await pdfDoc.embedPng(frontBuffer);
     const backEmbedded = await pdfDoc.embedPng(backBuffer);
 
-    const frontPage = pdfDoc.addPage([widthInPoints, heightInPoints]);
-    frontPage.drawImage(frontEmbedded, { x: 0, y: 0, width: widthInPoints, height: heightInPoints });
+    const frontPage = pdfDoc.addPage([widthPoints, heightPoints]);
+    frontPage.drawImage(frontEmbedded, { x: 0, y: 0, width: widthPoints, height: heightPoints });
 
-    const backPage = pdfDoc.addPage([widthInPoints, heightInPoints]);
-    backPage.drawImage(backEmbedded, { x: 0, y: 0, width: widthInPoints, height: heightInPoints });
+    const backPage = pdfDoc.addPage([widthPoints, heightPoints]);
+    backPage.drawImage(backEmbedded, { x: 0, y: 0, width: widthPoints, height: heightPoints });
 
     const pdfBytes = await pdfDoc.save();
 
-    /* 🗜️ Bundle as ZIP */
+    const generatedAt = new Date();
     const zip = new JSZip();
     zip.file(`front-${dpi}dpi.png`, frontBuffer);
     zip.file(`back-${dpi}dpi.png`, backBuffer);
@@ -161,49 +64,148 @@ export async function POST(request: NextRequest) {
           resolution: dpi,
           widthPx,
           heightPx,
-          generatedAt: new Date().toISOString(),
-          designSettings: designSettings ?? null,
+          designSettings,
+          generatedAt: generatedAt.toISOString(),
         },
         null,
         2
       )
     );
+
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
-    /* ☁️ Upload to Google Drive */
-    const drive = await getDriveClient();
-    const parentFolder = getEnvOrThrow("GOOGLE_DRIVE_CARD_DESIGNS_FOLDER_ID");
+    let adminClient: SupabaseClient | null = null;
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    }
 
-    await uploadOrUpdateFile({
-      drive,
-      folderId: parentFolder,
-      name: `${designProfileId}.pdf`,
-      mimeType: "application/pdf",
-      buffer: Buffer.from(pdfBytes),
-      description: `TapInk card design PDF (${dpi} DPI)`,
-    });
+    let profileId: string | null = null;
+    if (adminClient) {
+      try {
+        const { data } = await adminClient
+          .from("design_profile")
+          .select("profile_id")
+          .eq("id", designProfileId)
+          .maybeSingle();
 
-    await uploadOrUpdateFile({
-      drive,
-      folderId: parentFolder,
-      name: `${designProfileId}.zip`,
-      mimeType: "application/zip",
-      buffer: zipBuffer,
-      description: `TapInk card assets (front/back PNG, ${dpi} DPI)`,
-    });
+        profileId = data?.profile_id ?? null;
+      } catch (err) {
+        console.error("Supabase profile lookup failed:", err);
+      }
+    }
 
-    console.log("✅ Export successful for design:", designProfileId);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("❌ Failed to export physical card design:", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error during Google Drive export",
-      },
-      { status: 500 }
-    );
+    let workOrderNumber: string | number | null = null;
+    if (adminClient) {
+      try {
+        const insertPayload = {
+          design_profile_id: designProfileId,
+          profile_id: profileId,
+          resolution_dpi: dpi,
+          width_px: widthPx,
+          height_px: heightPx,
+          status: "submitted",
+        };
+
+        const { data: workOrderRecord, error: workOrderError } = await adminClient
+          .from("work_orders")
+          .insert(insertPayload)
+          .select("id")
+          .single();
+
+        if (workOrderError) {
+          console.error("Work order insert failed:", workOrderError);
+        } else if (workOrderRecord?.id !== undefined && workOrderRecord.id !== null) {
+          workOrderNumber = workOrderRecord.id;
+        }
+      } catch (err) {
+        console.error("Unexpected work order logging error:", err);
+      }
+    }
+
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: "Gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
+
+        const workOrderHeading = workOrderNumber
+          ? `New Physical Card Work Order #${workOrderNumber}`
+          : "New Physical Card Work Order";
+
+        const detailRows = [
+          ...(workOrderNumber ? [{ label: "Work order #", value: workOrderNumber }] : []),
+          { label: "Design Profile", value: designProfileId },
+          { label: "Profile ID", value: profileId ?? "Not linked" },
+          { label: "Resolution", value: `${dpi} DPI` },
+          {
+            label: "Canvas Size",
+            value: `${CARD_MM_WIDTH.toFixed(0)}mm × ${CARD_MM_HEIGHT.toFixed(0)}mm (${widthPx}px × ${heightPx}px)`,
+          },
+          { label: "Generated", value: generatedAt.toLocaleString("en-AU", { timeZone: "Australia/Sydney" }) },
+        ];
+
+        const detailRowsHtml = detailRows
+          .map(
+            (row) => `
+              <tr>
+                <td style="padding:6px 12px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">${row.label}</td>
+                <td style="padding:6px 12px;border:1px solid #e5e7eb;">${row.value}</td>
+              </tr>`
+          )
+          .join("");
+
+        const supportEmail = "hello@tapink.com.au";
+        const instructionsHtml = `
+          <ol style="padding-left:20px;color:#374151;">
+            <li>Review the attached PDF proof for front/back alignment.</li>
+            <li>Download the ZIP for production-ready PNGs and metadata.</li>
+            <li>Reply-all if revisions are required; otherwise proceed with printing.</li>
+          </ol>
+        `;
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: "tapinc.io.au@gmail.com",
+          subject: workOrderNumber
+            ? `Physical card design work order #${workOrderNumber} — ${designProfileId}`
+            : `Physical card design work order — ${designProfileId}`,
+          html: `
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;">
+              <h2 style="margin-bottom:4px;">${workOrderHeading}</h2>
+              <p style="margin:0 0 16px;color:#4b5563;">A fresh design export is ready for production.</p>
+              <table style="border-collapse:collapse;border:1px solid #e5e7eb;margin-bottom:16px;min-width:320px;">
+                ${detailRowsHtml}
+              </table>
+              <h3 style="margin:0 0 8px;">Next steps</h3>
+              ${instructionsHtml}
+              <p style="margin:16px 0 0;color:#4b5563;">Need help? Email <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+            </div>
+          `,
+          attachments: [
+            {
+              filename: `${designProfileId}.pdf`,
+              content: Buffer.from(pdfBytes),
+              contentType: "application/pdf",
+            },
+            {
+              filename: `tapink-work-order-${designProfileId}.zip`,
+              content: zipBuffer,
+              contentType: "application/zip",
+            },
+          ],
+        });
+      } catch (emailError) {
+        console.error("Email delivery failed:", emailError);
+      }
+    }
+
+    return jsonResponse({ success: true });
+  } catch (error: any) {
+    console.error("Export failed:", error);
+    return jsonResponse({ error: error.message ?? "Unknown error" }, 500);
   }
 }
