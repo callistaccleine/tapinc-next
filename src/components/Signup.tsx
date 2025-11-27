@@ -64,8 +64,7 @@ export default function Signup() {
   passwordRules.uppercase &&
   passwordRules.lowercase &&
   passwordRules.number &&
-  passwordRules.special &&
-  passwordRules. 
+  passwordRules.special;
 
   const phoneNumberRules = {
     validPrefix: /^(\+61|0)/.test(phoneNumber),
