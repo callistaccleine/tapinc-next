@@ -358,9 +358,9 @@ const handleSignup = async (e: React.FormEvent) => {
                   }}
                   className={styles.accountTypeCard}
                 >
-                  <span className={styles.accountTypeEyebrow}>Solo</span>
+                  <span className={styles.accountTypeEyebrow}>Personal</span>
                   <strong>Individual</strong>
-                  <p>Perfect for personal cards, creators, and consultants.</p>
+                  <p>Perfect personal cards for professionals.</p>
                 </button>
                 <button
                   type="button"
@@ -370,9 +370,9 @@ const handleSignup = async (e: React.FormEvent) => {
                   }}
                   className={styles.accountTypeCard}
                 >
-                  <span className={styles.accountTypeEyebrow}>Teams</span>
+                  <span className={styles.accountTypeEyebrow}>Corporation</span>
                   <strong>Company</strong>
-                  <p>Invite team members, manage cards, and centralize billing.</p>
+                  <p>Invite team members and manage cards.</p>
                 </button>
               </div>
             </div>
