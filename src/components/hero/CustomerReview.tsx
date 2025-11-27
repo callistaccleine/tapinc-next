@@ -17,7 +17,7 @@ const reviews: Review[] = [
   {
     name: "Sophie Nguyen",
     title: "Startup Founder",
-    avatar: "/images/avatars/sophie.jpg",
+    avatar: "/images/avatars/sophie.JPG",
     quote:
       "TapInk made connecting with clients effortless. My digital card looks stunning and professional.",
     rating: 5,
