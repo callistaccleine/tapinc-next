@@ -3,7 +3,7 @@
     min-height: 100vh;
     display: grid;
     grid-template-columns: 1.1fr 1fr; /* form : art (matches auth) */
-    background: #f6f8fb;
+    background: #fff;
   }
   
   .signupLeft {
@@ -277,6 +277,44 @@
 .invalid {
   color: #ef4444; /* red */
 }
+
+.accountTypeCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px 20px;
+  text-align: left;
+  background: #fff;
+  color: #0f172a;
+  min-height: 160px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font: inherit;
+}
+.accountTypeCard strong {
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+.accountTypeCard p {
+  margin: 0;
+  color: #475467;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.accountTypeCard:hover,
+.accountTypeCard:focus-visible {
+  border-color: #ff7a00;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+.accountTypeEyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #98a2b3;
+}
   
   /* Footer */
   .signupFoot {
@@ -372,4 +410,3 @@
       padding: 22px;
     }
   }
-  
