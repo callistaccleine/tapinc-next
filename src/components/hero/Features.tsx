@@ -40,6 +40,32 @@ export default function Features() {
   ];
 
   const [activeId, setActiveId] = useState<number>(1);
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.2,
+      },
+    },
+  };
+  const cardVariants = {
+    hidden: {
+      opacity: 0,
+      y: 40,
+      scale: 0.95,
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
+      },
+    },
+  };
 
   return (
     <section className={styles.featuresSection}>
@@ -54,17 +80,28 @@ export default function Features() {
         <h2 className={styles.featuresTitle}>Everything you need.</h2>
       </motion.div>
 
-      <div className={styles.featuresContainer}>
+      <motion.div
+        className={styles.featuresContainer}
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.25 }}
+      >
         {features.map((f, index) => {
           const isActive = activeId === f.id;
 
           return (
-            <div
+            <motion.div
               key={f.id}
               className={`${styles.featureCard} ${
                 isActive ? styles.active : ""
               }`}
               onClick={() => setActiveId(f.id)}
+              variants={cardVariants}
+              whileHover={{
+                y: -8,
+                transition: { duration: 0.3, ease: "easeOut" },
+              }}
             >
               <Image
                 src={f.image}
@@ -89,10 +126,10 @@ export default function Features() {
                   <p>{f.text}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }

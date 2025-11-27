@@ -11,7 +11,7 @@ export default function ProfileQRCode({ profileId }: { profileId: string }) {
     <div style={{ marginTop: "15px", textAlign: "center" }}>
       <QRCodeCanvas
         value={profileUrl}
-        size={150} // size in pixels
+        size={512} // size in pixels
         bgColor="#ffffff"
       fgColor="#000000"
         level="H" // high error correction
