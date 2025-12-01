@@ -27,9 +27,9 @@ const Notification = ({ message, type, onClose }: ToastProps) => {
     >
       <div
         style={{
-          background: "#000000",
+          background: "linear-gradient(135deg, #ff9952 0%, #ff7a1c 100%)",
           borderRadius: "14px",
-          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+          boxShadow: "0 20px 40px rgba(255, 122, 28, 0.35)",
           padding: "18px 20px",
           display: "flex",
           alignItems: "flex-start",
@@ -38,8 +38,8 @@ const Notification = ({ message, type, onClose }: ToastProps) => {
       >
         <div
           style={{
-            background: "#ffffff",
-            color: "#000000",
+            background: "rgba(255, 255, 255, 0.15)",
+            color: "#ffffff",
             borderRadius: "50%",
             width: "24px",
             height: "24px",
@@ -73,7 +73,7 @@ const Notification = ({ message, type, onClose }: ToastProps) => {
           style={{
             background: "none",
             border: "none",
-            color: "#86868b",
+            color: "rgba(255,255,255,0.65)",
             fontSize: "20px",
             cursor: "pointer",
             padding: 0,
@@ -88,10 +88,10 @@ const Notification = ({ message, type, onClose }: ToastProps) => {
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = "#ffffff";
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#86868b";
+            e.currentTarget.style.color = "rgba(255,255,255,0.65)";
             e.currentTarget.style.background = "none";
           }}
         >

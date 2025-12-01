@@ -17,3 +17,45 @@ export async function GET() {
 
   return NextResponse.json({ users: data.users });
 }
+
+export async function POST(request: Request) {
+  try {
+    const payload = await request.json();
+    const { id, email, full_name, role } = payload;
+
+    if (!id || !email || !full_name || !role) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const upsertPayload = {
+      id,
+      email,
+      full_name,
+      role,
+      company_website: payload.company_website ?? null,
+      company_type: payload.company_type ?? null,
+      company_size: payload.company_size ?? null,
+      company_country: payload.company_country ?? null,
+    };
+
+    const { error } = await supabaseAdmin
+      .from("users")
+      .upsert(upsertPayload, { onConflict: "id" });
+
+    if (error) {
+      console.error("Error upserting users row:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Unexpected error creating user profile:", err);
+    return NextResponse.json(
+      { error: "Unexpected error" },
+      { status: 500 }
+    );
+  }
+}

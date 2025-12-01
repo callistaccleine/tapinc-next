@@ -125,7 +125,11 @@ export default function Auth() {
       {/* Right visual */}
       <aside className={styles.authRight}>
         <div className={styles.authArt}>
-          <div className={styles.authArtImg} role="img" aria-label="Decorative" />
+          <img
+            className={styles.authArtImg}
+            src="/images/Tapink-logo.png"
+            alt="TapInk"
+          />
           <div className={styles.authArtCaption}>
             <h3>Seamlessly access your TapInk dashboard</h3>
             <p>Login to manage your digital cards, monitor engagement, and grow your connections.</p>

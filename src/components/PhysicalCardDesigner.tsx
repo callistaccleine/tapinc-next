@@ -38,7 +38,7 @@ type TextContentKey =
   | "email"
   | "custom";
 
-type CardElementType = "text" | "image" | "qr" | "shape" | "line";
+type CardElementType = "text" | "image" | "qr" | "shape" | "line" | "border";
 
 const MIN_FONT_SCALE = 0.5;
 const MAX_FONT_SCALE = 1;
@@ -77,6 +77,8 @@ export type CardElement = {
   imageUrl?: string | null;
   backgroundColor?: string;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
+  borderThickness?: number;
+  borderColor?: string;
 };
 
 const DEFAULT_CARD_ELEMENTS: CardElement[] = [
@@ -239,10 +241,13 @@ type PhysicalCardDesignerProps = {
   updateCardDesign: (changes: Partial<CardDesignSettings>) => void;
   previewData: CardData;
   profileUrl?: string;
+  logoItems?: { url: string; type: "logo" | "image" }[];
+  profileId?: string | null;
+  onRemoveAsset?: (url: string) => Promise<void> | void;
   physicalActivated: boolean;
   onSave: (payload: CardExportPayload) => Promise<void> | void;
   onSaveDesign: () => Promise<void> | void;
-  onUploadLogo: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onUploadLogo: (e: ChangeEvent<HTMLInputElement>, assetType?: "logo" | "image") => Promise<void>;
   uploadingLogo: boolean;
 };
 
@@ -299,12 +304,41 @@ export function PhysicalCardDesigner({
   updateCardDesign,
   previewData,
   profileUrl,
+  logoItems = [],
+  profileId,
+  onRemoveAsset,
   physicalActivated,
   onSave,
   onSaveDesign,
   onUploadLogo,
   uploadingLogo,
 }: PhysicalCardDesignerProps) {
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
+  const logoAssets = logoItems.filter((entry) => entry.type === "logo");
+  const imageAssets = logoItems.filter((entry) => entry.type === "image");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handle = () => setIsCompactLayout(window.innerWidth <= 640);
+    handle();
+    window.addEventListener("resize", handle);
+    return () => window.removeEventListener("resize", handle);
+  }, []);
+  const assetCardStyle = (isActive: boolean): CSSProperties => ({
+    display: isCompactLayout ? "block" : "flex",
+    alignItems: isCompactLayout ? "flex-start" : "center",
+    gap: isCompactLayout ? "8px" : "12px",
+    border: "1px solid #eef0f3",
+    borderRadius: "12px",
+    padding: "10px 12px",
+    background: isActive ? "rgba(255, 153, 82, 0.08)" : "#fff",
+    width: "100%",
+  });
+  const actionRowStyle: CSSProperties = {
+    display: "flex",
+    gap: "8px",
+    flexWrap: isCompactLayout ? "wrap" : "nowrap",
+    width: "100%",
+  };
   const orientation = cardDesign.orientation ?? "landscape";
   const isPortrait = orientation === "portrait";
   const existingStops = parseGradientStops(cardDesign.backgroundColor || "");
@@ -328,6 +362,8 @@ export function PhysicalCardDesigner({
   const displayedWidth = cardWidthPx * previewScale;
   const displayedHeight = cardHeightPx * previewScale;
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
+  const minElementSizePx = MIN_RESIZABLE_RATIO * cardWidthPx;
+  const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; side: CardSide; offsetX: number; offsetY: number } | null>(null);
@@ -386,6 +422,7 @@ export function PhysicalCardDesigner({
     if (element.type === "qr") return 0.28;
     if (element.type === "image") return 0.22;
     if (element.type === "shape") return 0.25;
+    if (element.type === "border") return 1;
     if (element.type === "line") return 0.6;
     return 0.82;
   };
@@ -396,6 +433,7 @@ export function PhysicalCardDesigner({
     if (element.type === "image") return 0.22;
     if (element.type === "shape") return 0.12;
     if (element.type === "line") return 0.01;
+    if (element.type === "border") return element.height ?? 1;
     const fontSize = element.fontSize ?? 0.07;
     return fontSize * 1.6;
   };
@@ -624,6 +662,41 @@ const renderElement = (element: CardElement) => {
       );
     }
 
+    if (element.type === "border") {
+      const thicknessPx = element.borderThickness ?? 2;
+      const borderColor = element.borderColor ?? "#0f172a";
+      const insetXPx = bleedXRatio * displayedWidth;
+      const insetYPx = bleedYRatio * displayedHeight;
+      const innerWidth = Math.max(displayedWidth - insetXPx * 2, 0);
+      const innerHeight = Math.max(displayedHeight - insetYPx * 2, 0);
+      return (
+        <div
+          key={element.id}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: displayedWidth,
+            height: displayedHeight,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: insetXPx,
+              top: insetYPx,
+              width: innerWidth,
+              height: innerHeight,
+              border: `${thicknessPx}px solid ${borderColor}`,
+              borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div
         key={element.id}
@@ -730,6 +803,7 @@ const renderElement = (element: CardElement) => {
   };
 
   const addLogoElement = () => {
+    const sourceUrl = cardDesign.logoUrl || logoItems[0]?.url || null;
     setElements((prev) => [
       ...prev,
       {
@@ -740,7 +814,24 @@ const renderElement = (element: CardElement) => {
         y: 0.08,
         width: 0.22,
         height: 0.22,
-        imageUrl: cardDesign.logoUrl || null,
+        imageUrl: sourceUrl,
+      },
+    ]);
+  };
+
+  const addImageElementFromLibrary = (imageUrl: string) => {
+    if (!imageUrl) return;
+    setElements((prev) => [
+      ...prev,
+      {
+        id: `image-${Date.now()}`,
+        type: "image",
+        side: selectedElementSide,
+        x: 0.68,
+        y: 0.08,
+        width: 0.22,
+        height: 0.22,
+        imageUrl,
       },
     ]);
   };
@@ -799,6 +890,23 @@ const renderElement = (element: CardElement) => {
       ]);
   };
 
+  const addBorderElement = () => {
+    setElements((prev) => [
+      ...prev,
+      {
+        id: `border-${Date.now()}`,
+        type: "border",
+        side: selectedElementSide,
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        borderThickness: 2,
+        borderColor: "#000000",
+      },
+    ]);
+  };
+
   const removeElement = (id: string) => {
     setElements((prev) => prev.filter((element) => element.id !== id));
   };
@@ -821,6 +929,7 @@ const renderElement = (element: CardElement) => {
     if (element.type === "image") return "Logo / image";
     if (element.type === "shape") return "Shape";
     if (element.type === "line") return "Line";
+    if (element.type === "border") return "Border";
     if (element.contentKey && element.contentKey !== "custom") {
       const preset = TEXT_PRESET_OPTIONS.find((option) => option.value === element.contentKey);
       return preset?.label || "Text";
@@ -1215,30 +1324,164 @@ const renderElement = (element: CardElement) => {
           </label>
         </div>
 
-        <div style={{ borderTop: "1px solid #e5e5ea", paddingTop: "16px" }}>
-          <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#475467" }}>Logo</p>
-          {cardDesign.logoUrl ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <img
-                src={cardDesign.logoUrl}
-                alt="Logo preview"
-                style={{ width: "64px", height: "64px", objectFit: "contain", borderRadius: "8px", border: "1px solid #d0d5dd" }}
-              />
-              <button
-                type="button"
-                onClick={() => updateCardDesign({ logoUrl: null })}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "#ff6b6b",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                }}
-              >
-                Remove logo
-              </button>
+        <div style={{ borderTop: "1px solid #e5e5ea", paddingTop: "16px", display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#475467" }}>Logos</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {logoAssets.length ? (
+                logoAssets.map((entry, index) => {
+                  const isActive = cardDesign.logoUrl === entry.url;
+                  return (
+                  <div key={`logo-${index}`} style={assetCardStyle(isActive)}>
+                      <img
+                        src={entry.url}
+                        alt={`Logo ${index + 1}`}
+                        style={{ width: 56, height: 56, objectFit: "contain", borderRadius: 8, border: "1px solid #d0d5dd" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>Logo&nbsp;{index + 1}</p>
+                        <p style={{ margin: 0, fontSize: 12, color: "#667085" }}>
+                          {isActive ? "Active in designer" : "Not active"}
+                        </p>
+                      </div>
+                    <div style={actionRowStyle}>
+                      <button
+                        type="button"
+                        onClick={() => addImageElementFromLibrary(entry.url)}
+                        style={{
+                          border: "none",
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Add to card
+                      </button>
+                      {isActive && (
+                        <button
+                          type="button"
+                          onClick={() => updateCardDesign({ logoUrl: null })}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#ff6b6b",
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Clear active
+                        </button>
+                      )}
+                    </div>
+                    {onRemoveAsset && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveAsset(entry.url)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#ff6b6b",
+                          padding: "4px 0",
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Remove from library
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#98a2b3" }}>No logos uploaded yet.</p>
+              )}
             </div>
-          ) : (
+          </div>
+
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: "13px", color: "#475467" }}>Additional images</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {imageAssets.length ? (
+                imageAssets.map((entry, index) => {
+                  const isActive = cardDesign.logoUrl === entry.url;
+                  return (
+                    <div key={`image-${index}`} style={assetCardStyle(isActive)}>
+                      <img
+                        src={entry.url}
+                        alt={`Image ${index + 1}`}
+                        style={{ width: 56, height: 56, objectFit: "contain", borderRadius: 8, border: "1px solid #d0d5dd" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>Image {index + 1}</p>
+                        <p style={{ margin: 0, fontSize: 12, color: "#667085" }}>
+                          {isActive ? "Active in designer" : "Not active"}
+                        </p>
+                      </div>
+                    <div style={actionRowStyle}>
+                      <button
+                        type="button"
+                        onClick={() => addImageElementFromLibrary(entry.url)}
+                        style={{
+                          border: "none",
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Add to card
+                      </button>
+                      {isActive && (
+                        <button
+                          type="button"
+                          onClick={() => updateCardDesign({ logoUrl: null })}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#ff6b6b",
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Clear active
+                        </button>
+                      )}
+                    </div>
+                    {onRemoveAsset && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveAsset(entry.url)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#ff6b6b",
+                          padding: "4px 0",
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Remove from library
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#98a2b3" }}>No additional images uploaded yet.</p>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
             <label
               style={{
                 display: "inline-flex",
@@ -1252,7 +1495,7 @@ const renderElement = (element: CardElement) => {
               <input
                 type="file"
                 accept="image/*"
-                onChange={onUploadLogo}
+                onChange={(e) => onUploadLogo(e, "logo")}
                 disabled={uploadingLogo}
                 style={{ display: "none" }}
               />
@@ -1268,7 +1511,36 @@ const renderElement = (element: CardElement) => {
                 {uploadingLogo ? "Uploading…" : "Upload logo"}
               </span>
             </label>
-          )}
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => onUploadLogo(e, "image")}
+                disabled={uploadingLogo}
+                style={{ display: "none" }}
+              />
+              <span
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "999px",
+                  border: "1px solid #d0d5dd",
+                  background: uploadingLogo ? "#f5f5f7" : "#ffffff",
+                  color: uploadingLogo ? "#98a2b3" : "#0f172a",
+                }}
+              >
+                {uploadingLogo ? "Uploading…" : "Upload image"}
+              </span>
+            </label>
+          </div>
         </div>
 
         <div
@@ -1291,7 +1563,15 @@ const renderElement = (element: CardElement) => {
           >
             <div>
               <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#0f172a" }}>
-                Typography scale
+                Typography scale{" "}
+                <a
+                  href="/help/physical-card-font-guide"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#ff7a00", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  (Font guide)
+                </a>
               </p>
               <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#475467" }}>
                 Adjust all text sizes on the physical card preview.
@@ -1334,9 +1614,9 @@ const renderElement = (element: CardElement) => {
               }}
             />
             <span style={{ minWidth: 64, textAlign: "right", fontWeight: 600 }}>
-              {Math.round(fontScale * 100)}%
+              {Math.round(fontScale * 24)} pt
             </span>
-          </div>
+         </div>
 
           <div
             style={{
@@ -1494,6 +1774,20 @@ const renderElement = (element: CardElement) => {
             </button>
             <button
               type="button"
+              onClick={addBorderElement}
+              style={{
+                border: "1px solid #d0d5dd",
+                borderRadius: "12px",
+                padding: "10px 18px",
+                background: "#ffffff",
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              + Add border
+            </button>
+            <button
+              type="button"
               onClick={addLineElement}
               style={{
                 border: "1px solid #d0d5dd",
@@ -1564,11 +1858,13 @@ const renderElement = (element: CardElement) => {
                         </div>
                         <input
                           type="range"
-                          min={MIN_RESIZABLE_RATIO}
-                          max={MAX_RESIZABLE_RATIO}
-                          step={0.01}
-                          value={getElementWidth(element)}
-                          onChange={(event) => handleResizeElement(element.id, parseFloat(event.target.value))}
+                          min={Math.round(minElementSizePx)}
+                          max={Math.round(maxElementSizePx)}
+                          step={1}
+                          value={Math.round(getElementWidth(element) * cardWidthPx)}
+                          onChange={(event) =>
+                            handleResizeElement(element.id, parseFloat(event.target.value) / cardWidthPx)
+                          }
                           style={{ width: "100%" }}
                         />
                       </div>
@@ -1648,15 +1944,17 @@ const renderElement = (element: CardElement) => {
                             <span>Width</span>
                             <span>{Math.round(getElementWidth(element) * cardWidthPx)} px</span>
                           </div>
-                          <input
-                            type="range"
-                            min={MIN_RESIZABLE_RATIO}
-                            max={MAX_RESIZABLE_RATIO}
-                            step={0.01}
-                                    value={getElementWidth(element)}
-                                    onChange={(event) => handleResizeElement(element.id, parseFloat(event.target.value))}
-                                    style={{ width: "100%" }}
-                                  />
+                        <input
+                          type="range"
+                          min={Math.round(minElementSizePx)}
+                          max={Math.round(maxElementSizePx)}
+                          step={1}
+                          value={Math.round(getElementWidth(element) * cardWidthPx)}
+                          onChange={(event) =>
+                            handleResizeElement(element.id, parseFloat(event.target.value) / cardWidthPx)
+                          }
+                          style={{ width: "100%" }}
+                        />
                                 </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>

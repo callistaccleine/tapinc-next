@@ -164,7 +164,7 @@ const ensureCardLogoQuality = async (file: File) => {
       if (longestEdge < FALLBACK_LOGO_MIN_EDGE_PX) {
         return {
           ok: false,
-          reason: `Logo image is too small (${width} × ${height}). Please upload a higher-resolution file (at least ${FALLBACK_LOGO_MIN_EDGE_PX}px on the longest side).`,
+          reason: `Logo image is too small (${width} x ${height}). Please upload a higher-resolution file (at least ${FALLBACK_LOGO_MIN_EDGE_PX}px on the longest side).`,
         };
       }
     }
@@ -213,6 +213,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [loading, setLoading] = useState(true);
   const [designProfileId, setDesignProfileId] = useState<string | null>(null);
+  const [cardLogoItems, setCardLogoItems] = useState<{ url: string; type: "logo" | "image" }[]>([]);
   const [showQRCode, setShowQRCode] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   
@@ -334,6 +335,42 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setTemplate(loadedTemplate);
           setPreviewTemplate(loadedTemplate || templateOptions[0].file);
           setCardDesign(parseCardDesign(designData.cardDesign));
+          const storedLogos = designData.physical_card_logo;
+          if (Array.isArray(storedLogos)) {
+            setCardLogoItems(
+              storedLogos
+                .filter((item: string) => Boolean(item))
+                .map((entry: string) => {
+                  const [typeRaw, ...urlParts] = entry.split("|");
+                  if (urlParts.length) {
+                    return {
+                      type: typeRaw === "image" ? "image" : "logo",
+                      url: urlParts.join("|"),
+                    };
+                  }
+                  return { type: "logo", url: typeRaw };
+                })
+            );
+          } else if (typeof storedLogos === "string") {
+            setCardLogoItems(
+              storedLogos
+                .split(",")
+                .map((item: string) => item.trim())
+                .filter(Boolean)
+                .map((entry: string) => {
+                  const [typeRaw, ...urlParts] = entry.split("|");
+                  if (urlParts.length) {
+                    return {
+                      type: typeRaw === "image" ? "image" : "logo",
+                      url: urlParts.join("|"),
+                    };
+                  }
+                  return { type: "logo", url: typeRaw };
+                })
+            );
+          } else {
+            setCardLogoItems([]);
+          }
           let loadedLinks: any = designData.links || [];
           if (typeof designData.links === "string") {
             try {
@@ -349,6 +386,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         } else {
           setPreviewTemplate(templateOptions[0].file);
           setCardDesign({ ...DEFAULT_CARD_DESIGN });
+          setCardLogoUrls([]);
         }
 
         // Load activation status from profiles table
@@ -531,7 +569,8 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
-    fieldName: "profile_pic" | "header_banner" | "card_logo"
+    fieldName: "profile_pic" | "header_banner" | "card_logo",
+    assetType: "logo" | "image" = "logo"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -604,9 +643,18 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         setHeaderBanner(publicUrl);
         await saveToDatabase({ header_banner: publicUrl });
       } else {
+        const updatedLogos = [...cardLogoItems, { url: publicUrl, type: assetType }];
+        setCardLogoItems(updatedLogos);
         updateCardDesign({ logoUrl: publicUrl });
-        await saveToDatabase({ physical_card_logo: publicUrl });
-        showNotification("Logo uploaded and linked to your card design.", "success");
+        await saveToDatabase({
+          physical_card_logo: updatedLogos.map((entry) => `${entry.type}|${entry.url}`).join(","),
+        });
+        showNotification(
+          assetType === "logo"
+            ? "Logo uploaded and linked to your card design."
+            : "Image uploaded and added to your library.",
+          "success"
+        );
         return;
       }
 
@@ -619,6 +667,18 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         setCardLogoUploading(false);
       }
     }
+  };
+
+  const handleRemoveAsset = async (url: string) => {
+    const filtered = cardLogoItems.filter((entry) => entry.url !== url);
+    setCardLogoItems(filtered);
+    if (cardDesign.logoUrl === url) {
+      updateCardDesign({ logoUrl: null });
+    }
+    await saveToDatabase({
+      physical_card_logo: filtered.map((entry) => `${entry.type}|${entry.url}`).join(","),
+    });
+    showNotification("Image removed from your library.", "success");
   };
 
   const addLink = () => {
@@ -1179,35 +1239,33 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                             </button>
                           );
                         })}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                          <div style={{ fontSize: '13px', color: '#475467', textAlign: 'center' }}>
+                            {template
+                              ? `Current selection: ${
+                                  templateOptions.find((opt) => opt.file === template)?.name || 'Template'
+                                }`
+                              : 'Choose a template to activate your virtual card.'}
+                          </div>
+                          <button
+                            onClick={saveTemplateTab}
+                            style={{
+                              background: '#000000',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '12px 24px',
+                              borderRadius: '10px',
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {virtualActivated ? 'Update Template' : 'Save & Activate Virtual Card'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
                 })()}
-
-                <div style={templateActionRowStyle}>
-                  <div style={{ fontSize: '13px', color: '#475467' }}>
-                    {template
-                      ? `Current selection: ${
-                          templateOptions.find((opt) => opt.file === template)?.name || 'Template'
-                        }`
-                      : 'Choose a template to activate your virtual card.'}
-                  </div>
-
-                  <button
-                    onClick={saveTemplateTab}
-                    style={{
-                      background: '#000000',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '10px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {virtualActivated ? 'Update Template' : 'Save & Activate Virtual Card'}
-                  </button>
-                </div>
               </>
             )}
           </div>
@@ -1278,10 +1336,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   template: previewTemplate,
                 }}
                 profileUrl={profileUrl}
+                logoItems={cardLogoItems}
+                onRemoveAsset={handleRemoveAsset}
+                profileId={profile?.id ?? null}
                 physicalActivated={physicalActivated}
                 onSave={saveCardDesignTab}
                 onSaveDesign={() => saveCardDesignTab()}
-                onUploadLogo={(e) => handleFileUpload(e, 'card_logo')}
+                onUploadLogo={(e, type) => handleFileUpload(e, 'card_logo', type ?? 'logo')}
                 uploadingLogo={cardLogoUploading}
               />
             )}
@@ -1796,12 +1857,17 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           position: 'fixed',
           top: '20px',
           right: '20px',
-          background: notification.type === 'success' ? '#000000' : '#ef4444',
+          background: notification.type === 'success'
+            ? 'linear-gradient(135deg, #ff9952 0%, #ff7a1c 100%)'
+            : '#ef4444',
           color: '#ffffff',
           padding: '12px 20px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          zIndex: 9999
+          borderRadius: '12px',
+          boxShadow: notification.type === 'success'
+            ? '0 20px 40px rgba(255, 122, 28, 0.35)'
+            : '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 9999,
+          transition: 'all 0.2s ease'
         }}>
           {notification.message}
         </div>
@@ -1910,18 +1976,18 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           }}
           onClick={() => setShowQRCode(false)}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#ffffff',
-              padding: '40px',
-              borderRadius: '16px',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-              textAlign: 'center',
-              maxWidth: '400px',
-              width: '90%',
-            }}
-          >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: '#ffffff',
+            padding: '32px 32px 36px',
+            borderRadius: '16px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            textAlign: 'center',
+            maxWidth: '420px',
+            width: '90%',
+          }}
+        >
 
             <h3 style={{ 
               fontSize: '20px', 
@@ -1943,17 +2009,20 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             >
               <div
                 style={{
-                  width: '200px',
-                  height: '200px',
+                  width: 'min(70vw, 260px)',
+                  maxWidth: '260px',
+                  aspectRatio: '1 / 1',
                   margin: '0 auto',
                   background: '#ffffff',
                   borderRadius: '8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  padding: '8px',
+                  overflow: 'hidden',
                 }}
               >
-                <ProfileQRCode profileId={shareDesignProfileId} />
+                <ProfileQRCode profileId={shareDesignProfileId} displaySize={232} />
               </div>
 
               <p
@@ -2044,4 +2113,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       )}
     </div>
   );
+}
+function setCardLogoUrls(arg0: never[]) {
+  throw new Error("Function not implemented.");
 }

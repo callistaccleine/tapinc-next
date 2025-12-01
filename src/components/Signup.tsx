@@ -278,22 +278,28 @@ const handleSignup = async (e: React.FormEvent) => {
   const normalizedWebsite =
     accountType === "company" ? normalizeUrl(companyWebsite.trim()) : null;
 
-  const { error } = await supabase.auth.signUp({
+  const profileName =
+    (accountType === "company" ? companyName : fullName)?.trim() ||
+    (accountType === "company" ? companyName : fullName) ||
+    signupEmail;
+
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email: signupEmail,
     password,
     options: {
       emailRedirectTo: `${window.location.origin}/auth`,
       data: {
-        display_name: fullName,
-        fullName,
+        display_name: profileName,
+        full_name: profileName,
         phone: accountType === "individual" ? normalizePhoneNumber(phoneNumber) : undefined,
         account_type: accountType,
-        company_name: companyName || null,
+        company_name: accountType === "company" ? companyName || null : null,
         company_website: normalizedWebsite || null,
         company_type: companyType || null,
         company_size: companySize || null,
         company_country: companyCountry || null,
         company_email: accountType === "company" ? normalizedCompanyEmail : null,
+        role: accountType,
       },
     },
   });
@@ -309,6 +315,32 @@ const handleSignup = async (e: React.FormEvent) => {
     return;
   }
 
+  const newUserId = signUpData?.user?.id;
+  if (newUserId) {
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: newUserId,
+          email: signupEmail.toLowerCase(),
+          full_name: profileName,
+          role: accountType === "company" ? "company" : "individual",
+          company_website: accountType === "company" ? normalizedWebsite : null,
+          company_type: accountType === "company" ? companyType : null,
+          company_size: accountType === "company" ? companySize : null,
+          company_country: accountType === "company" ? companyCountry : null,
+        }),
+      });
+      if (!response.ok) {
+        const details = await response.json().catch(() => ({}));
+        console.error("Failed saving user profile:", details.error || response.statusText);
+      }
+    } catch (profileError) {
+      console.error("Unexpected error storing user profile:", profileError);
+    }
+  }
+
   // Show confirmation modal on success
   setShowConfirmation(true);
   setIsLoading(false);
@@ -319,9 +351,10 @@ const handleSignup = async (e: React.FormEvent) => {
     isLoading ||
     !agree ||
     !password ||
-    !fullName ||
     !accountType;
-  const individualInvalid = accountType === "individual" && (!email || !phoneNumber);
+  const individualInvalid =
+    accountType === "individual" &&
+    (!fullName || !email || !phoneNumber);
   const companyInvalid =
     accountType === "company" &&
     (!companyName.trim() ||
@@ -340,7 +373,7 @@ const handleSignup = async (e: React.FormEvent) => {
           {!accountType ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <h1 className={styles.signupTitle}>How will you use TapInk?</h1>
-              <p style={{ color: "#475467", marginBottom: 12 }}>
+              <p style={{ color: "#475467", marginBottom: 12, textAlign: "center" }}>
                 Choose an account type to tailor your onboarding experience.
               </p>
               <div
@@ -378,36 +411,30 @@ const handleSignup = async (e: React.FormEvent) => {
             </div>
           ) : (
             <>
-              <div
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountType(null);
+                  setMessage("");
+                }}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
+                  border: "none",
+                  background: "transparent",
+                  color: "#ff7a00",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  marginBottom: 12,
+                  alignSelf: "flex-start",
                 }}
               >
-                <h1 className={styles.signupTitle}>
-                  {accountType === "individual"
-                    ? "Create your account"
-                    : "Create your company account"}
-                </h1>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAccountType(null);
-                    setMessage("");
-                  }}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    color: "#ff7a00",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Change type
-                </button>
-              </div>
+                ← Back
+              </button>
+
+              <h1 className={styles.signupTitle}>
+                {accountType === "individual"
+                  ? "Create your account"
+                  : "Create your company account"}
+              </h1>
 
               <form onSubmit={handleSignup} className={styles.signupForm}>
                 {accountType === "company" && (
@@ -468,6 +495,12 @@ const handleSignup = async (e: React.FormEvent) => {
                       type="url"
                       placeholder="https://tapink.com.au"
                       value={companyWebsite}
+                      onBlur={(e) => {
+                        const url = e.target.value.trim();
+                        if (url && !/^https?:\/\//i.test(url)) {
+                          setCompanyWebsite(`https://${url}`);
+                        }
+                      }}
                       onChange={(e) => setCompanyWebsite(e.target.value)}
                       required
                     />
@@ -486,6 +519,16 @@ const handleSignup = async (e: React.FormEvent) => {
 
                 {accountType === "individual" ? (
                   <>
+                    <label className={styles.signupLabel}>Name*</label>
+                    <input
+                      className={`${styles.signupInput} ${styles.pill}`}
+                      type="text"
+                      placeholder="Enter your name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+
                     <label className={styles.signupLabel}>Email*</label>
                     <input
                       className={`${styles.signupInput} ${styles.pill}`}
@@ -588,7 +631,11 @@ const handleSignup = async (e: React.FormEvent) => {
       {/* Right: visual panel */}
       <aside className={styles.signupRight}>
         <div className={styles.signupArt}>
-          <div className={styles.signupArtImg} role="img" aria-label="Decorative" />
+          <img
+            className={styles.signupArtImg}
+            src="/images/Tapink-logo.png"
+            alt="TapInk"
+          />
           <div className={styles.signupArtCaption}>
             <h3>Discovering the way to share your details</h3>
             <p>Create your digital profile and start connecting with others using just a tap.</p>

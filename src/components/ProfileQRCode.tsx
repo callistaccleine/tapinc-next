@@ -2,20 +2,32 @@
 
 import { QRCodeCanvas } from "qrcode.react";
 
-export default function ProfileQRCode({ profileId }: { profileId: string }) {
+type ProfileQRCodeProps = {
+  profileId: string;
+  displaySize?: number;
+};
+
+export default function ProfileQRCode({ profileId, displaySize = 220 }: ProfileQRCodeProps) {
   if (!profileId) return null;
 
   const profileUrl = `${window.location.origin}/user/${profileId}`;
 
   return (
-    <div style={{ marginTop: "15px", textAlign: "center" }}>
+    <div
+      style={{
+        width: displaySize,
+        maxWidth: "100%",
+        textAlign: "center",
+      }}
+    >
       <QRCodeCanvas
         value={profileUrl}
-        size={512} // size in pixels
+        size={512}
         bgColor="#ffffff"
-      fgColor="#000000"
-        level="H" // high error correction
+        fgColor="#000000"
+        level="H"
         includeMargin={true}
+        style={{ width: "100%", height: "auto" }}
       />
     </div>
   );

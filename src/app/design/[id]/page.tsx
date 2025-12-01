@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import DesignDashboard from "@/components/DesignDashboard";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function DesignPage() {
-  const { id } = useParams(); // 👈 get profile ID from URL
+  const { id } = useParams(); 
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -24,7 +25,12 @@ export default function DesignPage() {
     if (id) fetchProfile();
   }, [id]);
 
-  if (!profile) return <p>Loading...</p>;
+  if (!profile)
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <LoadingSpinner />
+      </div>
+    );
 
   return <DesignDashboard profile={profile} />;
 }
