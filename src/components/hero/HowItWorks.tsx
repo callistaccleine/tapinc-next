@@ -41,19 +41,24 @@ export default function HowItWorks() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.15,
         delayChildren: 0.2,
       },
     },
   };
 
   const tabVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { 
+      opacity: 0, 
+      y: 40,
+      scale: 0.95,
+    },
     visible: {
       opacity: 1,
       y: 0,
+      scale: 1,
       transition: {
-        duration: 0.5,
+        duration: 0.6,
         ease: [0.25, 0.46, 0.45, 0.94] as const,
       },
     },
@@ -125,7 +130,7 @@ export default function HowItWorks() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
+          viewport={{ once: true, amount: 0.3 }}
           className={styles.tabs}
         >
           {tabs.map((tab, index) => (

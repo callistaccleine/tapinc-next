@@ -1,0 +1,14 @@
+.checkout-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+  }
+  
+  .checkout-box {
+    width: 100%;
+    max-width: 600px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+  }
+  
