@@ -408,6 +408,15 @@ const handleSignup = async (e: React.FormEvent) => {
                   <p>Invite team members and manage cards.</p>
                 </button>
               </div>
+              <p style={{ color: "#98a2b3", fontSize: 13, marginTop: 12 }}>
+                Already have an account?{" "}
+                <Link
+                  href="/auth"
+                  style={{ color: "#ff7a00", fontWeight: 600, textDecoration: "none" }}
+                >
+                  Log in
+                </Link>
+              </p>
             </div>
           ) : (
             <>
@@ -597,9 +606,10 @@ const handleSignup = async (e: React.FormEvent) => {
                     checked={agree}
                     onChange={(e) => setAgree(e.target.checked)}
                   />
-                  <span>
-                    <Link href="/policies/terms-of-service">
-                      I agree to all Terms, Privacy Policy and Fees
+                  <span style={{ color: "#475467" }}>
+                    I agree to all{" "}
+                    <Link href="/policies/terms-of-service" style={{ color: "#ff7a00", fontWeight: 600, textDecoration: "none" }}>
+                      Terms, Privacy Policy and Fees
                     </Link>
                   </span>
                 </label>
