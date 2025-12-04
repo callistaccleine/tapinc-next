@@ -9,8 +9,109 @@ import UsersTable from "./UsersTable";
 import ProfilesTable from "./ProfilesTable";
 import DesignProfilesTable from "./DesignProfilesTable";
 import OrdersTable from "./OrdersTable";
+import AdminDataTable from "./AdminDataTable";
 
-type TabKey = "users" | "profiles" | "design_profiles" | "orders";
+type TabKey =
+  | "users"
+  | "profiles"
+  | "design_profiles"
+  | "orders"
+  | "addons"
+  | "analytics"
+  | "contact_submissions"
+  | "contacts"
+  | "order_items"
+  | "plans"
+  | "product_addons"
+  | "products"
+  | "subscriptions"
+  | "work_orders";
+
+type DataTabKey = Exclude<
+  TabKey,
+  "users" | "profiles" | "design_profiles" | "orders"
+>;
+
+const sidebarTabs: { key: TabKey; label: string }[] = [
+  { key: "users", label: "Users" },
+  { key: "profiles", label: "Profiles" },
+  { key: "design_profiles", label: "Design Profiles" },
+  { key: "orders", label: "Orders" },
+  { key: "addons", label: "Addons" },
+  { key: "analytics", label: "Analytics" },
+  { key: "contact_submissions", label: "Contact Submissions" },
+  { key: "contacts", label: "Contacts" },
+  { key: "order_items", label: "Order Items" },
+  { key: "plans", label: "Plans" },
+  { key: "product_addons", label: "Product Addons" },
+  { key: "products", label: "Products" },
+  { key: "subscriptions", label: "Subscriptions" },
+  { key: "work_orders", label: "Work Orders" },
+];
+
+const dataTabConfig: Record<
+  DataTabKey,
+  {
+    table: string;
+    title: string;
+    description?: string;
+    orderBy?: string;
+    orderDescending?: boolean;
+  }
+> = {
+  addons: {
+    table: "addons",
+    title: "Addons",
+  },
+  analytics: {
+    table: "analytics",
+    title: "Analytics",
+    description: "Events and engagement records",
+    orderBy: "created_at",
+  },
+  contact_submissions: {
+    table: "contact_submissions",
+    title: "Contact Submissions",
+    description: "Messages sent via the contact form",
+    orderBy: "created_at",
+  },
+  contacts: {
+    table: "contacts",
+    title: "Contacts",
+    description: "Saved contact imports",
+    orderBy: "created_at",
+  },
+  order_items: {
+    table: "order_items",
+    title: "Order Items",
+    description: "Line items attached to orders",
+    orderBy: "created_at",
+  },
+  plans: {
+    table: "plans",
+    title: "Plans",
+    description: "Pricing plans and attributes",
+  },
+  product_addons: {
+    table: "product_addons",
+    title: "Product Addons",
+  },
+  products: {
+    table: "products",
+    title: "Products",
+    orderBy: "created_at",
+  },
+  subscriptions: {
+    table: "subscriptions",
+    title: "Subscriptions",
+    orderBy: "created_at",
+  },
+  work_orders: {
+    table: "work_orders",
+    title: "Work Orders",
+    orderBy: "created_at",
+  },
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -31,7 +132,7 @@ export default function AdminDashboard() {
       const userEmail = (data.user.email || "").trim().toLowerCase();
       setEmail(userEmail);
 
-      if (userEmail === "tapinc.io.au@gmail.com" || "hello@tapink.com.au") {
+      if (userEmail === "tapinc.io.au@gmail.com" || userEmail === "hello@tapink.com.au") {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
@@ -51,9 +152,39 @@ export default function AdminDashboard() {
   if (isAdmin === null) return <p>Loading admin dashboard...</p>;
   if (!isAdmin) return <p>Redirecting...</p>;
 
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case "users":
+        return <UsersTable />;
+      case "profiles":
+        return <ProfilesTable />;
+      case "design_profiles":
+        return <DesignProfilesTable />;
+      case "orders":
+        return <OrdersTable />;
+      default: {
+        const dataTabKey = activeTab as DataTabKey;
+        const config = dataTabConfig[dataTabKey];
+        return (
+          <AdminDataTable
+            table={config.table}
+            title={config.title}
+            description={config.description}
+            orderBy={config.orderBy}
+            orderDescending={config.orderDescending}
+          />
+        );
+      }
+    }
+  };
+
   return (
     <div className={styles.adminDashboard}>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AdminSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabs={sidebarTabs}
+      />
 
       <main className={styles.mainContent}>
         <div className={styles.dashboardHeader}>
@@ -65,10 +196,7 @@ export default function AdminDashboard() {
 
         <p>Logged in as: {email}</p>
 
-        {activeTab === "users" && <UsersTable />}
-        {activeTab === "profiles" && <ProfilesTable />}
-        {activeTab === "design_profiles" && <DesignProfilesTable />}
-        {activeTab === "orders" && <OrdersTable />}
+        {renderActiveTab()}
       </main>
     </div>
   );

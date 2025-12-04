@@ -4,32 +4,24 @@ import styles from "@/styles/admin/AdminSidebar.module.css";
 
 interface Props {
   activeTab: string;
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: string) => void;
+  tabs: { key: string; label: string }[];
 }
 
-export default function AdminSidebar({ activeTab, setActiveTab }: Props) {
-  const tabs = ["users", "profiles", "design_profiles", "orders"];
-
+export default function AdminSidebar({ activeTab, setActiveTab, tabs }: Props) {
   return (
     <aside className={styles.sidebar}>
       <h3>Admin Panel</h3>
-      <ul>
-        {tabs.map((tab) => {
-          const label =
-            tab
-              .replace("_", " ")
-              .charAt(0)
-              .toUpperCase() + tab.replace("_", " ").slice(1);
-          return (
-            <li
-              key={tab}
-              className={activeTab === tab ? styles.active : ""}
-              onClick={() => setActiveTab(tab)}
-            >
-              {label}
-            </li>
-          );
-        })}
+      <ul className={styles.navList}>
+        {tabs.map(({ key, label }) => (
+          <li
+            key={key}
+            className={`${styles.navItem} ${activeTab === key ? styles.active : ""}`}
+            onClick={() => setActiveTab(key)}
+          >
+            <span className={styles.navLabel}>{label}</span>
+          </li>
+        ))}
       </ul>
     </aside>
   );
