@@ -48,12 +48,45 @@ export async function POST(req: Request) {
       text: `Hi ${name || "there"},\n\n${replyWithSignature}\n\n-----\nOriginal message (${category || "General"}):\n${originalMessage || ""}\n\nSubmission ID: ${id}`,
     });
 
+    // Fetch existing replies to append history
+    const { data: existingRow, error: fetchExistingError } = await supabaseAdmin
+      .from("contact_submissions")
+      .select("admin_reply")
+      .eq("id", id)
+      .single();
+    if (fetchExistingError) throw fetchExistingError;
+
+    type ReplyEntry = { sender: "admin"; body: string; sent_at: string };
+    let existingReplies: ReplyEntry[] = [];
+    if (existingRow?.admin_reply) {
+      try {
+        const parsed = JSON.parse(existingRow.admin_reply);
+        if (Array.isArray(parsed)) {
+          existingReplies = parsed as ReplyEntry[];
+        } else if (typeof parsed === "string") {
+          existingReplies = [{ sender: "admin", body: parsed, sent_at: new Date().toISOString() }];
+        }
+      } catch {
+        existingReplies = [
+          { sender: "admin", body: existingRow.admin_reply as string, sent_at: new Date().toISOString() },
+        ];
+      }
+    }
+
+    const replyEntry: ReplyEntry = {
+      sender: "admin",
+      body: replyWithSignature,
+      sent_at: new Date().toISOString(),
+    };
+
+    const replyHistory = [...existingReplies, replyEntry];
+
     const { data: updatedRow, error: updateError } = await supabaseAdmin
       .from("contact_submissions")
       .update({
         status: "Replied",
-        admin_reply: replyWithSignature,
-        replied_at: new Date().toISOString(),
+        admin_reply: JSON.stringify(replyHistory),
+        replied_at: replyEntry.sent_at,
       })
       .eq("id", id)
       .select("*")

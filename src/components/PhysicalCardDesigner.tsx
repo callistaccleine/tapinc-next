@@ -1281,7 +1281,7 @@ const renderElement = (element: CardElement) => {
               }}
             >
               <option value="default">Default (Manrope)</option>
-              <option value="serif">Elegant Serif</option>
+              <option value="serif">Serif</option>
               <option value="mono">Monospace</option>
               <option value="cursive">Cursive Script</option>
               <option value="rounded">Rounded Sans</option>

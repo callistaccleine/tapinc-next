@@ -314,6 +314,44 @@
   cursor: pointer;
 }
 
+.threadList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.threadItem {
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 10px;
+  background: #f7f9fd;
+}
+
+.threadMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.threadSender {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.threadTime {
+  color: #475569;
+  font-size: 12px;
+}
+
+.threadBody {
+  color: #0f172a;
+  white-space: pre-wrap;
+  font-size: 14px;
+}
+
 @media (max-width: 640px) {
   .modal {
     padding: 16px;

@@ -29,9 +29,14 @@ export default function ContactSubmissionsTable() {
   const [replyText, setReplyText] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [viewSubmissionId, setViewSubmissionId] = useState<string | null>(null);
   const activeSubmission = useMemo(
     () => submissions.find((s) => s.id === activeReplyId) || null,
     [submissions, activeReplyId]
+  );
+  const activeViewSubmission = useMemo(
+    () => submissions.find((s) => s.id === viewSubmissionId) || null,
+    [submissions, viewSubmissionId]
   );
   const previewText = useMemo(() => {
     const greeting = `Hi ${activeSubmission?.name || "there"},`;
@@ -153,6 +158,38 @@ export default function ContactSubmissionsTable() {
     }
   };
 
+  const parseReplies = (submission: Submission | null) => {
+    if (!submission?.admin_reply) return [];
+    try {
+      const parsed = JSON.parse(submission.admin_reply);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === "string") return [{ sender: "admin", body: parsed, sent_at: submission.replied_at }];
+    } catch {
+      return [{ sender: "admin", body: submission.admin_reply, sent_at: submission.replied_at }];
+    }
+    return [];
+  };
+
+  const conversationThread = useMemo(() => {
+    if (!activeViewSubmission) return [];
+    const replies = parseReplies(activeViewSubmission);
+    const thread = [
+      {
+        sender: "user",
+        title: activeViewSubmission.name || activeViewSubmission.email || "User",
+        body: activeViewSubmission.message,
+        sent_at: activeViewSubmission.created_at,
+      },
+      ...replies.map((r: any) => ({
+        sender: r.sender || "admin",
+        title: "TapInk Support",
+        body: r.body,
+        sent_at: r.sent_at,
+      })),
+    ];
+    return thread.sort((a, b) => new Date(a.sent_at || 0).getTime() - new Date(b.sent_at || 0).getTime());
+  }, [activeViewSubmission]);
+
   if (loading) return <LoadingSpinner label="Loading contact submissions…" fullscreen={false} />;
 
   return (
@@ -224,7 +261,7 @@ export default function ContactSubmissionsTable() {
                   </button>
                   <button
                     className={styles.ghostBtn}
-                    onClick={() => alert(s.message || "No message")}
+                    onClick={() => setViewSubmissionId(s.id)}
                   >
                     View
                   </button>
@@ -306,6 +343,39 @@ export default function ContactSubmissionsTable() {
               <button className={styles.cancelBtn} onClick={() => setActiveReplyId(null)}>
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewSubmissionId && activeViewSubmission && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <div>
+                <div className={styles.replyTitle}>Conversation for #{activeViewSubmission.id}</div>
+                <div className={styles.replySub}>
+                  {activeViewSubmission.email} {activeViewSubmission.name ? `(${activeViewSubmission.name})` : ""}
+                </div>
+              </div>
+              <button className={styles.closeBtn} onClick={() => setViewSubmissionId(null)}>
+                ✕
+              </button>
+            </div>
+            <div className={styles.threadList}>
+              {conversationThread.map((item, idx) => (
+                <div key={idx} className={styles.threadItem}>
+                  <div className={styles.threadMeta}>
+                    <span className={styles.threadSender}>
+                      {item.sender === "user" ? item.title || "User" : "TapInk Support"}
+                    </span>
+                    <span className={styles.threadTime}>
+                      {item.sent_at ? new Date(item.sent_at).toLocaleString() : ""}
+                    </span>
+                  </div>
+                  <div className={styles.threadBody}>{item.body}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
