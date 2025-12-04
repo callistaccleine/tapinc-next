@@ -11,6 +11,7 @@ import DesignProfilesTable from "./DesignProfilesTable";
 import OrdersTable from "./OrdersTable";
 import ContactSubmissionsTable from "./ContactSubmissionsTable";
 import AdminDataTable from "./AdminDataTable";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type TabKey =
   | "auth"
@@ -173,7 +174,7 @@ export default function AdminDashboard() {
     router.push("/");
   };
 
-  if (isAdmin === null) return <p>Loading admin dashboard...</p>;
+  if (isAdmin === null) return <LoadingSpinner label="Loading admin dashboard..." fullscreen={false} />;
   if (!isAdmin) return <p>Redirecting...</p>;
 
   const renderActiveTab = () => {

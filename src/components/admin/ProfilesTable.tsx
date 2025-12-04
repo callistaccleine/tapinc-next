@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/admin/ProfilesTable.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ProfilesTable() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -55,7 +56,7 @@ export default function ProfilesTable() {
   const end = start + pageSize;
   const pageRows = filtered.slice(start, end);
 
-  if (loading) return <p>Loading profiles...</p>;
+  if (loading) return <LoadingSpinner label="Loading profiles..." fullscreen={false} />;
 
   return (
     <div className={styles.tableContainer}>

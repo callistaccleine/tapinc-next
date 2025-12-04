@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +26,11 @@ export async function POST(req: Request) {
       },
     });
 
+    const cleanReply = (replyMessage || "").trim();
+    const signature = "Best regards,\nThe TapInk Team";
+    const replyWithSignature = `${cleanReply}\n\n${signature}`;
+    const replyWithSignatureHtml = replyWithSignature.replace(/\n/g, "<br>");
+
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to,
@@ -34,26 +39,31 @@ export async function POST(req: Request) {
       subject: `Re: Your TapInk enquiry (#${id})`,
       html: `
         <p>Hi ${name || "there"},</p>
-        <p>${replyMessage.replace(/\n/g, "<br>")}</p>
+        <p>${replyWithSignatureHtml}</p>
         <hr>
         <p style="color:#6b7280;font-size:14px;">Original message (${category || "General"}):</p>
         <blockquote style="color:#374151;">${(originalMessage || "").replace(/\n/g, "<br>")}</blockquote>
         <p style="color:#6b7280;font-size:12px;">Submission ID: ${id}</p>
       `,
-      text: `Hi ${name || "there"},\n\n${replyMessage}\n\n-----\nOriginal message (${category || "General"}):\n${originalMessage || ""}\n\nSubmission ID: ${id}`,
+      text: `Hi ${name || "there"},\n\n${replyWithSignature}\n\n-----\nOriginal message (${category || "General"}):\n${originalMessage || ""}\n\nSubmission ID: ${id}`,
     });
 
-    // update status in Supabase (best effort)
-    await supabase
+    const { data: updatedRow, error: updateError } = await supabaseAdmin
       .from("contact_submissions")
       .update({
         status: "Replied",
-        admin_reply: replyMessage,
+        admin_reply: replyWithSignature,
         replied_at: new Date().toISOString(),
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("*")
+      .single();
 
-    return NextResponse.json({ success: true });
+    if (updateError || !updatedRow) {
+      throw updateError || new Error("Failed to update submission status");
+    }
+
+    return NextResponse.json({ success: true, submission: updatedRow });
   } catch (err: any) {
     console.error("Reply send error:", err);
     return NextResponse.json({ error: err?.message || "Failed to send reply" }, { status: 500 });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/admin/OrdersTable.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function OrdersTable() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -55,7 +56,7 @@ export default function OrdersTable() {
   const end = start + pageSize;
   const pageRows = filtered.slice(start, end);
 
-  if (loading) return <p>Loading orders...</p>;
+  if (loading) return <LoadingSpinner label="Loading orders..." fullscreen={false} />;
 
   return (
     <div className={styles.tableContainer}>

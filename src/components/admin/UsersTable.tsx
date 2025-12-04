@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "@/styles/admin/UsersTable.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface SupabaseUser {
   id: string;
@@ -81,7 +82,7 @@ export default function UsersTable() {
   const end = start + pageSize;
   const pageRows = filtered.slice(start, end);
 
-  if (loading) return <div className={styles.loading}>Loading users...</div>;
+  if (loading) return <LoadingSpinner label="Loading users..." fullscreen={false} />;
 
   if (filtered.length === 0)
     return (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/admin/ContactSubmissionsTable.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface Submission {
   id: string;
@@ -32,28 +33,34 @@ export default function ContactSubmissionsTable() {
     () => submissions.find((s) => s.id === activeReplyId) || null,
     [submissions, activeReplyId]
   );
+  const previewText = useMemo(() => {
+    const greeting = `Hi ${activeSubmission?.name || "there"},`;
+    const body = (replyText || "").trim();
+    const signature = "Best regards,\nThe TapInk Team";
+    return `${greeting}\n\n${body}\n\n${signature}`;
+  }, [replyText, activeSubmission]);
   const pageSize = 10;
 
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("contact_submissions")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (fetchError) throw fetchError;
-        setSubmissions(data as Submission[] ?? []);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load submissions");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSubmissions();
+  const fetchSubmissions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("contact_submissions")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (fetchError) throw fetchError;
+      setSubmissions((data as Submission[]) ?? []);
+    } catch (err: any) {
+      setError(err?.message || "Failed to load submissions");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
   useEffect(() => {
     setPage(1);
@@ -87,7 +94,12 @@ export default function ContactSubmissionsTable() {
 
   const handleStartReply = (id: string, preset?: string) => {
     setActiveReplyId(id);
-    setReplyText(preset ?? "");
+    const submission = submissions.find((s) => s.id === id);
+    const defaultBody =
+      `Thank you for contacting TapInk. ` +
+      `I appreciate the details you shared${submission?.category ? ` about "${submission.category}"` : ""}. ` +
+      `Here is an update from our team:\n\n`;
+    setReplyText(preset ?? defaultBody);
     setSuccessMsg(null);
   };
 
@@ -116,10 +128,11 @@ export default function ContactSubmissionsTable() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to send reply");
 
+      const updated = data?.submission as Submission | undefined;
       setSubmissions((prev) =>
         prev.map((s) =>
           s.id === submission.id
-            ? {
+            ? updated || {
                 ...s,
                 status: "Replied",
                 admin_reply: replyText,
@@ -128,6 +141,8 @@ export default function ContactSubmissionsTable() {
             : s
         )
       );
+      // fetch fresh copy from DB to ensure persisted status shows
+      fetchSubmissions();
       setActiveReplyId(null);
       setReplyText("");
       setSuccessMsg("Reply sent successfully.");
@@ -138,14 +153,13 @@ export default function ContactSubmissionsTable() {
     }
   };
 
-  if (loading) return <div className={styles.state}>Loading contact submissions…</div>;
+  if (loading) return <LoadingSpinner label="Loading contact submissions…" fullscreen={false} />;
 
   return (
     <div className={styles.tableContainer}>
       <div className={styles.header}>
         <div>
           <h3>Contact Submissions</h3>
-          <p className={styles.subhead}>Reply directly without leaving the admin</p>
         </div>
         <div className={styles.controls}>
           <input
@@ -174,6 +188,7 @@ export default function ContactSubmissionsTable() {
               <th>Category</th>
               <th>Message</th>
               <th>Status</th>
+              <th>Replied At</th>
               <th>Submitted</th>
               <th>Actions</th>
             </tr>
@@ -198,11 +213,12 @@ export default function ContactSubmissionsTable() {
                     {s.status || "Pending"}
                   </span>
                 </td>
+                <td>{s.replied_at ? new Date(s.replied_at).toLocaleString() : "—"}</td>
                 <td>{s.created_at ? new Date(s.created_at).toLocaleString() : "—"}</td>
                 <td className={styles.actions}>
                   <button
                     className={styles.secondaryBtn}
-                    onClick={() => handleStartReply(s.id, `Hi ${s.name || ""},\n\n`)}
+                    onClick={() => handleStartReply(s.id)}
                   >
                     Reply
                   </button>
@@ -241,46 +257,56 @@ export default function ContactSubmissionsTable() {
         </div>
       )}
 
-      {activeReplyId && (
-      <div className={styles.replyBox}>
-        <div className={styles.replyHeader}>
-          <div>
-            <div className={styles.replyTitle}>Reply to submission #{activeReplyId}</div>
-            <div className={styles.replySub}>
-              Sending to: <strong>{activeSubmission?.email || "No email provided"}</strong>
-              {activeSubmission?.name ? ` (${activeSubmission.name})` : ""}
-              {activeSubmission?.category ? ` • ${activeSubmission.category}` : ""}
+      {activeReplyId && activeSubmission && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <div>
+                <div className={styles.replyTitle}>Reply to submission #{activeReplyId}</div>
+                <div className={styles.replySub}>
+                  Sending to: <strong>{activeSubmission.email || "No email provided"}</strong>
+                  {activeSubmission.name ? ` (${activeSubmission.name})` : ""}
+                  {activeSubmission.category ? ` • ${activeSubmission.category}` : ""}
+                </div>
+              </div>
+              <button className={styles.closeBtn} onClick={() => setActiveReplyId(null)}>
+                ✕
+              </button>
             </div>
-            {activeSubmission?.message && (
+
+            {activeSubmission.message && (
               <div className={styles.replyOriginal}>
                 <span>Original message:</span>
                 <p>{activeSubmission.message}</p>
               </div>
             )}
-          </div>
-          <button className={styles.closeBtn} onClick={() => setActiveReplyId(null)}>
-            Close
-          </button>
-        </div>
-          <textarea
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Type your reply..."
-          />
-          <div className={styles.replyActions}>
-            <button
-              className={styles.sendBtn}
-              onClick={() => {
-                const submission = submissions.find((s) => s.id === activeReplyId);
-                if (submission) handleSendReply(submission);
-              }}
-              disabled={sendingId === activeReplyId || !activeSubmission?.email}
-            >
-              {sendingId === activeReplyId ? "Sending..." : "Send Reply"}
-            </button>
-            <button className={styles.cancelBtn} onClick={() => setActiveReplyId(null)}>
-              Cancel
-            </button>
+
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Type your reply..."
+            />
+            <div className={styles.previewBlock}>
+              <div className={styles.previewLabel}>Email preview</div>
+              <div className={styles.previewBox}>
+                <pre>{previewText}</pre>
+              </div>
+            </div>
+            <div className={styles.replyActions}>
+              <button
+                className={styles.sendBtn}
+                onClick={() => {
+                  const submission = submissions.find((s) => s.id === activeReplyId);
+                  if (submission) handleSendReply(submission);
+                }}
+                disabled={sendingId === activeReplyId || !activeSubmission.email}
+              >
+                {sendingId === activeReplyId ? "Sending..." : "Send Reply"}
+              </button>
+              <button className={styles.cancelBtn} onClick={() => setActiveReplyId(null)}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

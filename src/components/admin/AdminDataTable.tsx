@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/styles/admin/AdminDataTable.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface AdminDataTableProps {
   table: string;
@@ -135,7 +136,7 @@ export default function AdminDataTable({
         </div>
       </div>
 
-      {loading && <div className={styles.state}>Loading {table}…</div>}
+      {loading && <LoadingSpinner label={`Loading ${title ?? table}…`} fullscreen={false} />}
       {error && (
         <div className={styles.error}>
           <p>{error}</p>

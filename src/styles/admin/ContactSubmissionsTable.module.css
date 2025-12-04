@@ -177,16 +177,28 @@
   font-weight: 600;
 }
 
-.replyBox {
-  margin-top: 16px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid #e3e8ef;
-  background: #f7f9fd;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 40;
 }
 
-.replyHeader {
+.modal {
+  width: min(760px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e3e8ef;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+  padding: 18px 18px 16px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -197,6 +209,7 @@
 .replyTitle {
   font-weight: 700;
   color: #0f172a;
+  font-size: 18px;
 }
 
 .replySub {
@@ -205,11 +218,11 @@
 }
 
 .replyOriginal {
-  margin-top: 10px;
+  margin: 12px 0;
   padding: 10px;
   border: 1px solid #e4e9f2;
   border-radius: 10px;
-  background: #ffffff;
+  background: #f7f9fd;
   color: #0f172a;
 }
 
@@ -233,22 +246,51 @@
   background: #eef2f7;
 }
 
-.replyBox textarea {
+.modal textarea {
   width: 100%;
-  min-height: 140px;
+  min-height: 160px;
   border: 1px solid #e3e8ef;
   border-radius: 12px;
   padding: 12px;
   font-size: 14px;
   color: #0f172a;
   background: #ffffff;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.previewBlock {
+  margin-bottom: 12px;
+}
+
+.previewLabel {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.previewBox {
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  background: #f7f9fd;
+  padding: 12px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.5;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.previewBox pre {
+  white-space: pre-wrap;
+  margin: 0;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 .replyActions {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: flex-end;
 }
 
 .sendBtn {
@@ -270,6 +312,23 @@
   border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 16px;
+  }
+
+  .replyActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sendBtn,
+  .cancelBtn {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .error {
