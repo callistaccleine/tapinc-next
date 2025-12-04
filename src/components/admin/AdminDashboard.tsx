@@ -9,44 +9,62 @@ import UsersTable from "./UsersTable";
 import ProfilesTable from "./ProfilesTable";
 import DesignProfilesTable from "./DesignProfilesTable";
 import OrdersTable from "./OrdersTable";
+import ContactSubmissionsTable from "./ContactSubmissionsTable";
 import AdminDataTable from "./AdminDataTable";
 
 type TabKey =
+  | "auth"
   | "users"
   | "profiles"
   | "design_profiles"
+  | "contact_submissions"
+  | "work_orders"
   | "orders"
   | "addons"
   | "analytics"
-  | "contact_submissions"
   | "contacts"
   | "order_items"
   | "plans"
   | "product_addons"
   | "products"
-  | "subscriptions"
-  | "work_orders";
+  | "subscriptions";
 
 type DataTabKey = Exclude<
   TabKey,
-  "users" | "profiles" | "design_profiles" | "orders"
+  "auth" | "profiles" | "design_profiles" | "orders"
 >;
 
-const sidebarTabs: { key: TabKey; label: string }[] = [
+type TabConfig = {
+  key: TabKey;
+  label: string;
+};
+
+interface Props {
+  activeTab: TabKey;
+  setActiveTab: (tab: TabKey) => void;
+  primaryTabs: TabConfig[];
+  moreTabs: TabConfig[];
+}
+
+const primaryTabs: { key: TabKey; label: string }[] = [
+  { key: "auth", label: "Auth" },
   { key: "users", label: "Users" },
   { key: "profiles", label: "Profiles" },
   { key: "design_profiles", label: "Design Profiles" },
+  { key: "contact_submissions", label: "Contact Submissions" },
+  { key: "work_orders", label: "Work Orders" },
+];
+
+const moreTabs: { key: TabKey; label: string }[] = [
   { key: "orders", label: "Orders" },
   { key: "addons", label: "Addons" },
   { key: "analytics", label: "Analytics" },
-  { key: "contact_submissions", label: "Contact Submissions" },
   { key: "contacts", label: "Contacts" },
   { key: "order_items", label: "Order Items" },
   { key: "plans", label: "Plans" },
   { key: "product_addons", label: "Product Addons" },
   { key: "products", label: "Products" },
   { key: "subscriptions", label: "Subscriptions" },
-  { key: "work_orders", label: "Work Orders" },
 ];
 
 const dataTabConfig: Record<
@@ -111,11 +129,17 @@ const dataTabConfig: Record<
     title: "Work Orders",
     orderBy: "created_at",
   },
+  users: {
+    table: "users",
+    title: "Users",
+    description: "Users table from the database",
+    orderBy: "created_at",
+  },
 };
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>("users");
+  const [activeTab, setActiveTabState] = useState<TabKey>("auth");
   const [email, setEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
@@ -154,12 +178,14 @@ export default function AdminDashboard() {
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case "users":
+      case "auth":
         return <UsersTable />;
       case "profiles":
         return <ProfilesTable />;
       case "design_profiles":
         return <DesignProfilesTable />;
+      case "contact_submissions":
+        return <ContactSubmissionsTable />;
       case "orders":
         return <OrdersTable />;
       default: {
@@ -182,19 +208,17 @@ export default function AdminDashboard() {
     <div className={styles.adminDashboard}>
       <AdminSidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        tabs={sidebarTabs}
+        setActiveTab={(tab) => setActiveTabState(tab)}
+        primaryTabs={primaryTabs}
+        moreTabs={moreTabs}
+        email={email}
+        onLogout={handleLogout}
       />
 
       <main className={styles.mainContent}>
         <div className={styles.dashboardHeader}>
           <h2>Admin Dashboard</h2>
-          <button onClick={handleLogout} className={styles.btnPrimary}>
-            Logout
-          </button>
         </div>
-
-        <p>Logged in as: {email}</p>
 
         {renderActiveTab()}
       </main>

@@ -1,92 +1,167 @@
 .tableContainer {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #e5e5e5;
-  }
-  
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-  
-  .header h3 {
-    font-size: 22px;
-    font-weight: 600;
-    color: #000;
-  }
-  
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .table th,
-  .table td {
-    padding: 16px 20px;
-    border-bottom: 1px solid #f2f2f7;
-    color: #000;
-  }
-  
-  .table th {
-    background: #fafafa;
-    font-size: 13px;
-    font-weight: 500;
-    color: #86868b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .profileCell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #e5e5e5;
-  }
-  
-  .avatarPlaceholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #f5f5f7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #86868b;
-    font-size: 18px;
-  }
-  
-  .iconBtn {
-    background: transparent;
-    border: none;
-    color: #86868b;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 6px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-  }
-  
-  .iconBtn:hover {
-    background: #f5f5f7;
-    color: #000;
-  }
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e3e8ef;
+}
 
-  .deleteBtn{
-    background: red;
-    padding: 8px;
-    border-radius: 10px;
-    color: white;
-    border: 2px solid red;
-  }
-  
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  gap: 12px;
+}
+
+.header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.subhead {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls input,
+.controls select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e3e8ef;
+  background: #f7f9fd;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.controls input {
+  min-width: 240px;
+}
+
+.controls select {
+  background: #ffffff;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pageBtn {
+  background: #f7f9fd;
+  border: 1px solid #e3e8ef;
+  color: #0f172a;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #eef2f7;
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  color: #475569;
+  font-weight: 600;
+}
+
+.table th,
+.table td {
+  padding: 14px 14px;
+  border-bottom: 1px solid #edf1f7;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.table th {
+  background: #f7f9fd;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b6477;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.profileCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e3e8ef;
+}
+
+.avatarPlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f4f7fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.iconBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 6px;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+}
+
+.iconBtn:hover {
+  background: #f4f7fb;
+  border-color: #e4e9f2;
+  color: #0f172a;
+}
+
+.deleteBtn {
+  background: #fee2e2;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #b91c1c;
+  border: 1px solid #fecdd3;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deleteBtn:hover {
+  background: #fecdd3;
+  color: #991b1b;
+}

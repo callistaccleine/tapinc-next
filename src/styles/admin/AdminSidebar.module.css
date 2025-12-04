@@ -1,46 +1,72 @@
 .sidebar {
-  background: #ffffff;
-  color: #000000;
-  padding: 24px 16px;
+  width: 250px;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  color: #e5edff;
+  padding: 28px 20px;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  box-shadow: none;
-  border-right: 1px solid #e5e5e5;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  box-shadow: 0 14px 50px rgba(15, 23, 42, 0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* brand */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  margin-bottom: 24px;
-}
-
-.brandLogo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #000000;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-weight: 600;
-  color: #ffffff;
-  font-size: 18px;
-}
-
-.brandName {
-  font-weight: 600;
+.sidebar h3 {
+  margin: 0 0 24px;
   font-size: 20px;
-  letter-spacing: -0.5px;
-  color: #000000;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: #f8fafc;
 }
 
-/* nav list */
+.sessionCard {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.16);
+  margin-bottom: 18px;
+}
+
+.sessionLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #cbd5f5;
+  margin-bottom: 6px;
+}
+
+.sessionEmail {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+
+.logoutBtn {
+  width: 100%;
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 12px 26px rgba(244, 63, 94, 0.35);
+}
+
+.logoutBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(244, 63, 94, 0.45);
+}
+
+.logoutBtn:active {
+  transform: translateY(0);
+}
+
 .navList {
   list-style: none;
   padding: 0;
@@ -50,68 +76,59 @@
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  margin: 2px 0;
-  border-radius: 8px;
+  gap: 10px;
+  padding: 12px 14px;
+  margin: 4px 0;
+  border-radius: 12px;
   cursor: pointer;
-  color: #000000;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #e2e8f0;
+  transition: all 0.15s ease;
   font-size: 15px;
+  background: transparent;
 }
 
 .navItem:hover {
-  background: #f5f5f7;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .navItem.active {
-  background: #000000;
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
-  font-weight: 500;
-}
-
-.navIcon {
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  color: inherit;
-  opacity: 0.8;
-}
-
-.navItem.active .navIcon {
-  opacity: 1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.22);
 }
 
 .navLabel {
   flex: 1;
   font-size: 15px;
-  font-weight: 400;
-  letter-spacing: -0.2px;
-}
-
-.navItem.active .navLabel {
   font-weight: 500;
+  letter-spacing: -0.2px;
 }
 
 .navChevron {
   font-size: 14px;
-  opacity: 0.5;
-  transform: translateX(0);
+  opacity: 0.7;
   transition: all 0.2s ease;
 }
 
 .navItem:hover .navChevron {
-  opacity: 0.8;
+  opacity: 1;
   transform: translateX(2px);
 }
 
 .navItem.active .navChevron {
-  opacity: 0.8;
+  opacity: 1;
 }
 
-.divider {
-  height: 1px;
-  background: #e5e5e5;
-  margin: 16px 8px;
+.moreToggle {
+  justify-content: space-between;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.subList {
+  list-style: none;
+  padding: 2px 0 0 8px;
+  margin: 6px 0 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }

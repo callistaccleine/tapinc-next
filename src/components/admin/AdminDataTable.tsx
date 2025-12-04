@@ -24,6 +24,12 @@ export default function AdminDataTable({
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(
+    orderDescending ? "desc" : "asc"
+  );
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const loadRows = async () => {
     setLoading(true);
@@ -32,7 +38,7 @@ export default function AdminDataTable({
     try {
       let query = supabase.from(table).select("*").limit(limit);
       if (orderBy) {
-        query = query.order(orderBy, { ascending: !orderDescending });
+        query = query.order(orderBy, { ascending: sortDir === "asc" });
       }
 
       const { data, error: fetchError } = await query;
@@ -52,12 +58,36 @@ export default function AdminDataTable({
   useEffect(() => {
     loadRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, limit, orderBy, orderDescending]);
+  }, [table, limit, orderBy, sortDir]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, table]);
 
   const columns = useMemo(() => {
     if (!rows.length) return [];
     return Object.keys(rows[0]);
   }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    if (!search.trim()) return rows;
+    const query = search.toLowerCase();
+    return rows.filter((row) =>
+      columns.some((col) => {
+        const value = row[col];
+        if (value === null || value === undefined) return false;
+        const text =
+          typeof value === "object" ? JSON.stringify(value) : String(value);
+        return text.toLowerCase().includes(query);
+      })
+    );
+  }, [rows, search, columns]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageRows = filteredRows.slice(start, end);
 
   const formatValue = (value: any) => {
     if (value === null || value === undefined) return "—";
@@ -76,10 +106,32 @@ export default function AdminDataTable({
           {description && <p className={styles.subhead}>{description}</p>}
         </div>
         <div className={styles.headerActions}>
-          <span className={styles.rowCount}>{rows.length} rows</span>
+          <span className={styles.rowCount}>{filteredRows.length} rows</span>
           <button onClick={loadRows} className={styles.refreshBtn}>
             Refresh
           </button>
+        </div>
+      </div>
+
+      <div className={styles.toolbar}>
+        <div className={styles.searchBox}>
+          <input
+            type="text"
+            placeholder="Search anything..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className={styles.sortBox}>
+          <label>Sort</label>
+          <select
+            value={sortDir}
+            onChange={(e) => setSortDir(e.target.value as "asc" | "desc")}
+            disabled={!orderBy}
+          >
+            <option value="desc">Newest</option>
+            <option value="asc">Oldest</option>
+          </select>
         </div>
       </div>
 
@@ -97,7 +149,7 @@ export default function AdminDataTable({
         <div className={styles.state}>No rows found.</div>
       )}
 
-      {!loading && !error && rows.length > 0 && (
+      {!loading && !error && filteredRows.length > 0 && (
         <div className={styles.scrollArea}>
           <table className={styles.table}>
             <thead>
@@ -108,7 +160,7 @@ export default function AdminDataTable({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {pageRows.map((row, index) => (
                 <tr key={row.id ?? `${table}-${index}`}>
                   {columns.map((col) => (
                     <td
@@ -122,6 +174,28 @@ export default function AdminDataTable({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!loading && !error && filteredRows.length > 0 && (
+        <div className={styles.pagination}>
+          <button
+            className={styles.pageBtn}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className={styles.pageInfo}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className={styles.pageBtn}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
