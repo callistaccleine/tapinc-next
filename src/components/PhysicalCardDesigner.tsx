@@ -42,7 +42,7 @@ type CardElementType = "text" | "image" | "qr" | "shape" | "line" | "border";
 
 const MIN_FONT_SCALE = 0.5;
 const MAX_FONT_SCALE = 1;
-const DEFAULT_FONT_SCALE = 0.55;
+const DEFAULT_FONT_SCALE = 0.50;
 type FontOption = "sfpro" | "manrope" | "apple-system" | "helveticas" | "arial" | "playfair" | "times" | "serif" | "mono" | "courier" | "pacifio" | "brush" | "cursive" | "poppins" | "avenir" | "default";
 
 const FONT_STACKS: Record<FontOption, string> = {
@@ -89,7 +89,9 @@ export type CardElement = {
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
   borderColor?: string;
+  fontFamily?: FontOption;
   locked?: boolean;
+  rotation?: number;
 };
 
 const DEFAULT_CARD_ELEMENTS: CardElement[] = [
@@ -99,9 +101,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "front",
     x: 0.08,
     y: 0.58,
-    width: 0.84,
-    height: 0.18,
-    fontSize: 0.12,
+    fontSize: 0.50,
     textAlign: "left",
     contentKey: "headline",
   },
@@ -111,9 +111,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "front",
     x: 0.08,
     y: 0.75,
-    width: 0.84,
-    height: 0.12,
-    fontSize: 0.06,
+    fontSize: 0.50,
     textAlign: "left",
     contentKey: "tagline",
   },
@@ -132,8 +130,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.12,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "name",
@@ -144,8 +140,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.25,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "role",
@@ -156,8 +150,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.38,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "phone",
@@ -168,8 +160,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.5,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "email",
@@ -183,6 +173,16 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     width: 0.28,
     height: 0.28,
   },
+  {
+    id: "role",
+    type: "text",
+    side: "back",
+    x: 0.08,
+    y: 0.25,
+    fontSize: 0.055,
+    textAlign: "left",
+    contentKey: "role",
+  }
 ];
 
 const TEXT_PRESET_OPTIONS: { label: string; value: TextContentKey }[] = [
@@ -202,7 +202,6 @@ const cloneDefaultElements = (): CardElement[] => DEFAULT_CARD_ELEMENTS.map((el)
 
 export type CardDesignSettings = {
   backgroundColor: string;
-  // accentColor: string;
   textColor: string;
   headline: string;
   tagline?: string;
@@ -326,6 +325,65 @@ export function PhysicalCardDesigner({
 }: PhysicalCardDesignerProps) {
   const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const AlignIcon = ({ variant }: { variant: "left" | "center" | "right" | "top" | "middle" | "bottom" }) => {
+    const common = {
+      width: 16,
+      height: 16,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round" as const,
+      strokeLinejoin: "round" as const,
+      "aria-hidden": true as const,
+    };
+    if (variant === "left") {
+      return (
+        <svg {...common}>
+          <line x1="6" y1="4" x2="6" y2="20" />
+          <rect x="8" y="7" width="10" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "center") {
+      return (
+        <svg {...common}>
+          <line x1="12" y1="4" x2="12" y2="20" />
+          <rect x="6" y="7" width="12" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "right") {
+      return (
+        <svg {...common}>
+          <line x1="18" y1="4" x2="18" y2="20" />
+          <rect x="4" y="7" width="10" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "top") {
+      return (
+        <svg {...common}>
+          <line x1="4" y1="6" x2="20" y2="6" />
+          <rect x="7" y="8" width="10" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "middle") {
+      return (
+        <svg {...common}>
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <rect x="7" y="6" width="10" height="12" rx="2" />
+        </svg>
+      );
+    }
+    return (
+      <svg {...common}>
+        <line x1="4" y1="18" x2="20" y2="18" />
+        <rect x="7" y="6" width="10" height="10" rx="2" />
+      </svg>
+    );
+  };
   const logoAssets = logoItems.filter((entry) => entry.type === "logo");
   const imageAssets = logoItems.filter((entry) => entry.type === "image");
   useEffect(() => {
@@ -429,7 +487,27 @@ export function PhysicalCardDesigner({
     updateCardDesign({ elements: next });
   };
 
+  const measureTextWidthPx = (text: string, fontSizePx: number, fontFamily: string) => {
+    if (typeof document === "undefined") {
+      return text.length * fontSizePx * 0.6;
+    }
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return text.length * fontSizePx * 0.6;
+    ctx.font = `600 ${fontSizePx}px ${fontFamily}`;
+    const metrics = ctx.measureText(text || "");
+    return metrics.width || 0;
+  };
+
   const getElementWidth = (element: CardElement) => {
+    if (element.type === "text") {
+      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
+      const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
+      const fontFamily = FONT_STACKS[fontKey];
+      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily) + 2;
+      const measuredRatio = textWidthPx / displayedWidth;
+      return Math.max(measuredRatio, 0.02);
+    }
     if (typeof element.width === "number") return element.width;
     if (element.type === "qr") return 0.28;
     if (element.type === "image") return 0.22;
@@ -440,6 +518,11 @@ export function PhysicalCardDesigner({
   };
 
   const getElementHeight = (element: CardElement) => {
+    if (element.type === "text") {
+      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
+      const lineHeightPx = fontSizePx * 1.15;
+      return lineHeightPx / displayedHeight;
+    }
     if (typeof element.height === "number") return element.height;
     if (element.type === "qr") return getElementWidth(element);
     if (element.type === "image") return 0.22;
@@ -536,6 +619,7 @@ export function PhysicalCardDesigner({
   };
 
 const renderElement = (element: CardElement) => {
+  const isSelected = selectedElements.some((sel) => sel.id === element.id);
   const widthRatio = getElementWidth(element);
   const heightRatio = getElementHeight(element);
   const widthPx = widthRatio * displayedWidth;
@@ -554,19 +638,25 @@ const renderElement = (element: CardElement) => {
       alignItems: element.type === "image" ? "center" : undefined,
       justifyContent: element.type === "image" ? "center" : undefined,
       cursor: showGuides ? (element.locked? "not-allowed": "grab") : "default",
-      border: "none",
+      border: showGuides
+        ? isSelected
+          ? "1px dotted rgba(255,255,255,0.9)"
+          : "1px dotted rgba(255,255,255,0.35)"
+        : "none",
       borderRadius: element.type === "text" ? 8 : 10,
-      padding: element.type === "text" ? "4px 6px" : 0,
       boxSizing: "border-box",
       userSelect: "none",
       touchAction: "none",
       opacity: element.locked ? 0.6 : 1,
+      transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+      transformOrigin: "center center",
     };
 
     if (element.type === "text") {
       const fontSize = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
       const textAlign = element.textAlign ?? "left";
-      const fontFamily = FONT_STACKS[cardDesign.fontFamily ?? "default"];
+      const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
+      const fontFamily = FONT_STACKS[fontKey];
       return (
         <div
           key={element.id}
@@ -579,9 +669,8 @@ const renderElement = (element: CardElement) => {
               fontSize,
               textAlign,
               fontWeight: 600,
-              width: "100%",
-              lineHeight: 1.2,
-              whiteSpace: "pre-wrap",
+              lineHeight: 1.15,
+              whiteSpace: "pre",
               fontFamily,
             }}
           >
@@ -596,7 +685,14 @@ const renderElement = (element: CardElement) => {
       return (
         <div
           key={element.id}
-          style={{ ...baseStyle, border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none" }}
+          style={{
+            ...baseStyle,
+            border: showGuides
+              ? isSelected
+                ? "1px solid rgba(255,255,255,0.7)"
+                : "1px dashed rgba(255,255,255,0.35)"
+              : "none",
+          }}
           onPointerDown={(event) => startDrag(event, element)}
         >
           {src ? (
@@ -895,7 +991,7 @@ const renderElement = (element: CardElement) => {
           type: "line",
           side: selectedElementSide,
           x: 0.08,
-          y: 0.55,
+          y: 0.50,
           width: 0.6,
           height: 0.012,
           backgroundColor: cardDesign.textColor,
@@ -927,6 +1023,38 @@ const renderElement = (element: CardElement) => {
   const toggleLockElement = (id: string) => {
     setElements((prev) =>
       prev.map((element) => (element.id === id ? { ...element, locked: !element.locked } : element))
+    );
+  };
+
+  const alignElement = (
+    id: string,
+    options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }
+  ) => {
+    setElements((prev) =>
+      prev.map((element) => {
+        if (element.id !== id) return element;
+        if (element.locked || element.type === "border") return element;
+
+        const widthRatio = getElementWidth(element);
+        const heightRatio = getElementHeight(element);
+        const minX = bleedXRatio;
+        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
+        const minY = bleedYRatio;
+        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+
+        const next = { ...element };
+        if (options.horizontal) {
+          if (options.horizontal === "left") next.x = minX;
+          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, minX, maxX);
+          if (options.horizontal === "right") next.x = maxX;
+        }
+        if (options.vertical) {
+          if (options.vertical === "top") next.y = minY;
+          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, minY, maxY);
+          if (options.vertical === "bottom") next.y = maxY;
+        }
+        return next;
+      })
     );
   };
 
@@ -1907,9 +2035,137 @@ const renderElement = (element: CardElement) => {
                             handleResizeElement(element.id, parseFloat(event.target.value) / cardWidthPx)
                           }
                           style={{ width: "100%" }}
+                          disabled={element.locked}
                         />
                       </div>
                     )}
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", alignItems: "center" }}>
+                      <span style={{ fontSize: "12px", color: "#6b7280" }}>Align Elements:</span>
+                      <div style={{ display: "inline-flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { horizontal: "left" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Left"
+                        >
+                          <AlignIcon variant="left" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { horizontal: "center" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Center"
+                        >
+                          <AlignIcon variant="center" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { horizontal: "right" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Right"
+                        >
+                          <AlignIcon variant="right" />
+                        </button>
+                      </div>
+                      <div style={{ display: "inline-flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { vertical: "top" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Top"
+                        >
+                          <AlignIcon variant="top" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { vertical: "middle" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Middle"
+                        >
+                          <AlignIcon variant="middle" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { vertical: "bottom" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Bottom"
+                        >
+                          <AlignIcon variant="bottom" />
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
+                          <span>Rotation</span>
+                          <span>{Math.round(element.rotation ?? 0)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={-180}
+                          max={180}
+                          step={1}
+                          value={element.rotation ?? 0}
+                          onChange={(event) =>
+                            setElements((prev) =>
+                              prev.map((el) =>
+                                el.id === element.id
+                                  ? { ...el, rotation: parseInt(event.target.value, 10) }
+                                  : el
+                              )
+                            )
+                          }
+                          disabled={element.locked}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                    </div>
                     {element.type === "shape" && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
@@ -2144,6 +2400,7 @@ const renderElement = (element: CardElement) => {
                               border: "1px solid #d0d5dd",
                               marginTop: "4px",
                             }}
+                            disabled={element.locked}
                           />
                         </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
@@ -2167,49 +2424,50 @@ const renderElement = (element: CardElement) => {
                               )
                             }
                             style={{ width: "100%" }}
+                            disabled={element.locked}
                           />
                         </label>
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleLockElement(element.id)}
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      color: element.locked ? "#16a34a" : "#475467",
-                      cursor: "pointer",
-                      fontSize: "16px",
-                      marginRight: "8px",
-                    }}
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleLockElement(element.id)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: element.locked ? "#16a34a" : "#475467",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                      }}
                     >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      {element.locked ? (
-                        <>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                          <rect x="5" y="11" width="14" height="10" rx="2" />
-                          <path d="M12 15v2" />
-                        </>
-                      ) : (
-                        <>
-                          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                          <rect x="5" y="11" width="14" height="10" rx="2" />
-                          <path d="M12 15v2" />
-                        </>
-                      )}
-                    </svg>
-                  </button>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        {element.locked ? (
+                          <>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                            <path d="M12 15v2" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                            <path d="M12 15v2" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
                   <button
                     type="button"
                     onClick={() => removeElement(element.id)}
@@ -2223,6 +2481,7 @@ const renderElement = (element: CardElement) => {
                   >
                     Remove
                   </button>
+                  </div>
                 </div>
               ))
             )}
