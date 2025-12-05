@@ -43,15 +43,25 @@ type CardElementType = "text" | "image" | "qr" | "shape" | "line" | "border";
 const MIN_FONT_SCALE = 0.5;
 const MAX_FONT_SCALE = 1;
 const DEFAULT_FONT_SCALE = 0.55;
-type FontOption = "default" | "serif" | "mono" | "cursive" | "rounded" | "geometric";
+type FontOption = "sfpro" | "manrope" | "apple-system" | "helveticas" | "arial" | "playfair" | "times" | "serif" | "mono" | "courier" | "pacifio" | "brush" | "cursive" | "poppins" | "avenir" | "default";
 
 const FONT_STACKS: Record<FontOption, string> = {
-  default: "'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif",
-  serif: "'Playfair Display', 'Times New Roman', serif",
-  mono: "'Space Mono', 'Courier New', monospace",
-  cursive: "'Pacifico', 'Brush Script MT', cursive",
-  rounded: "'Nunito', 'Quicksand', sans-serif",
-  geometric: "'Futura', 'Poppins', 'Avenir Next', sans-serif",
+  sfpro: "SF Pro Display",
+  manrope: "Manrope",
+  "apple-system": "-apple-system",
+  helveticas: "Helvetica Neue",
+  arial: "Arial",
+  playfair: "Playfair Display",
+  times: "Times New Roman",
+  serif: "serif",
+  mono: "'Space Mono'",
+  courier: "'Courier New'",
+  pacifio: "'Pacifico'",
+  brush: "'Brush Script MT'",
+  cursive: "cursive",
+  poppins: "Poppins",
+  avenir: "Avenir",
+  default: "Manrope"
 };
 const clampFontScale = (value: number) =>
   Math.min(
@@ -79,6 +89,7 @@ export type CardElement = {
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
   borderColor?: string;
+  locked?: boolean;
 };
 
 const DEFAULT_CARD_ELEMENTS: CardElement[] = [
@@ -314,6 +325,7 @@ export function PhysicalCardDesigner({
   uploadingLogo,
 }: PhysicalCardDesignerProps) {
   const [isCompactLayout, setIsCompactLayout] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
   const logoAssets = logoItems.filter((entry) => entry.type === "logo");
   const imageAssets = logoItems.filter((entry) => entry.type === "image");
   useEffect(() => {
@@ -465,7 +477,7 @@ export function PhysicalCardDesigner({
   };
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>, element: CardElement) => {
-    if (exporting) return;
+    if (exporting || element.locked) return;
     const targetRef = element.side === "front" ? frontRef : backRef;
     const cardEl = targetRef.current;
     if (!cardEl) return;
@@ -541,13 +553,14 @@ const renderElement = (element: CardElement) => {
       display: element.type === "image" ? "flex" : "block",
       alignItems: element.type === "image" ? "center" : undefined,
       justifyContent: element.type === "image" ? "center" : undefined,
-      cursor: showGuides ? "grab" : "default",
+      cursor: showGuides ? (element.locked? "not-allowed": "grab") : "default",
       border: "none",
       borderRadius: element.type === "text" ? 8 : 10,
       padding: element.type === "text" ? "4px 6px" : 0,
       boxSizing: "border-box",
       userSelect: "none",
       touchAction: "none",
+      opacity: element.locked ? 0.6 : 1,
     };
 
     if (element.type === "text") {
@@ -911,6 +924,12 @@ const renderElement = (element: CardElement) => {
     setElements((prev) => prev.filter((element) => element.id !== id));
   };
 
+  const toggleLockElement = (id: string) => {
+    setElements((prev) =>
+      prev.map((element) => (element.id === id ? { ...element, locked: !element.locked } : element))
+    );
+  };
+
   const updateCustomText = (id: string, value: string) => {
     setElements((prev) =>
       prev.map((element) =>
@@ -937,6 +956,8 @@ const renderElement = (element: CardElement) => {
     return "Custom text";
   };
   const handleResizeElement = (id: string, ratio: number) => {
+    const target = cardElements.find((el) => el.id === id);
+    if (target?.locked) return;
     const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
     setElements((prev) =>
       prev.map((element) =>
@@ -975,6 +996,21 @@ const renderElement = (element: CardElement) => {
       }}
       ref={ref}
     >
+      {showGrid && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px)",
+            backgroundSize: "16px 16px, 16px 16px",
+            mixBlendMode: "screen",
+            opacity: 0.7,
+            zIndex: 2,
+          }}
+        />
+      )}
       {elements.map((element) => renderElement(element))}
     </div>
   );
@@ -1059,13 +1095,13 @@ const renderElement = (element: CardElement) => {
           gap: "18px",
         }}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "12px",
-          }}
-        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "12px",
+            }}
+          >
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Resolution
             <select
@@ -1088,40 +1124,49 @@ const renderElement = (element: CardElement) => {
               Lower DPI may lead to diminished print detail
             </span>
           </label>
-          <div style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
-            Orientation
-            <div
-              style={{
-                display: "inline-flex",
-                border: "1px solid #d0d5dd",
-                borderRadius: "12px",
-                overflow: "hidden",
-              }}
-            >
-              {orientationOptions.map((option) => {
-                const selected = orientation === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => updateCardDesign({ orientation: option.value })}
-                    style={{
-                      flex: 1,
-                      padding: "10px 14px",
-                      border: "none",
-                      background: selected ? "#000000" : "transparent",
-                      color: selected ? "#ffffff" : "#0f172a",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+            <div style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
+              Orientation
+              <div
+                style={{
+                  display: "inline-flex",
+                  border: "1px solid #d0d5dd",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                }}
+              >
+                {orientationOptions.map((option) => {
+                  const selected = orientation === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => updateCardDesign({ orientation: option.value })}
+                      style={{
+                        flex: 1,
+                        padding: "10px 14px",
+                        border: "none",
+                        background: selected ? "#000000" : "transparent",
+                        color: selected ? "#ffffff" : "#0f172a",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            <label style={{ fontSize: "13px", color: "#475467", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                checked={showGrid}
+                onChange={(e) => setShowGrid(e.target.checked)}
+                style={{ width: "16px", height: "16px" }}
+              />
+              Show grid overlay
+            </label>
           </div>
-        </div>
 
         <div
           style={{
@@ -1239,21 +1284,6 @@ const renderElement = (element: CardElement) => {
               </div>
             )}
           </div>
-          {/* <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
-            Accent colour
-            <input
-              type="color"
-              value={cardDesign.accentColor}
-              onChange={(e) => updateCardDesign({ accentColor: e.target.value })}
-              style={{
-                width: "100%",
-                height: "36px",
-                border: "1px solid #d0d5dd",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            />
-          </label> */}
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Text colour
             <input
@@ -1280,12 +1310,23 @@ const renderElement = (element: CardElement) => {
                 marginTop: "4px",
               }}
             >
-              <option value="default">Default (Manrope)</option>
+              <option value="sfpro">SF Pro</option>
+              <option value="manrope">Manrope</option>
+              <option value="-apple-system">Apple System</option>
+              <option value="helveticas">Helvetica</option>
+              <option value="arial">Arial</option>
+              <option value="serif">Sans Serif</option>
+              <option value="playfair">Playfair</option>
+              <option value="times">Times New Roman</option>
               <option value="serif">Serif</option>
               <option value="mono">Monospace</option>
-              <option value="cursive">Cursive Script</option>
-              <option value="rounded">Rounded Sans</option>
-              <option value="geometric">Geometric Sans</option>
+              <option value="courier">Courier New</option>
+              <option value="pacifio">Pacifio</option>
+              <option value="brush">Brush</option>
+              <option value="cursive">Cursive</option>
+              <option value="poppins">Poppins</option>
+              <option value="avenir">Avenir</option>
+
             </select>
           </label>
         </div>
@@ -2082,7 +2123,93 @@ const renderElement = (element: CardElement) => {
                         </label>
                       </div>
                     )}
+                    {element.type === "border" && (
+                      <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Border colour
+                          <input
+                            type="color"
+                            value={element.borderColor || "#0f172a"}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id ? { ...el, borderColor: event.target.value } : el
+                                )
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              height: "32px",
+                              borderRadius: "8px",
+                              border: "1px solid #d0d5dd",
+                              marginTop: "4px",
+                            }}
+                          />
+                        </label>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Border thickness</span>
+                            <span>{Math.round((element.borderThickness ?? 2) )} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={1}
+                            max={24}
+                            step={1}
+                            value={element.borderThickness ?? 2}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? { ...el, borderThickness: parseInt(event.target.value, 10) }
+                                    : el
+                                )
+                              )
+                            }
+                            style={{ width: "100%" }}
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleLockElement(element.id)}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      color: element.locked ? "#16a34a" : "#475467",
+                      cursor: "pointer",
+                      fontSize: "16px",
+                      marginRight: "8px",
+                    }}
+                    >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      {element.locked ? (
+                        <>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          <rect x="5" y="11" width="14" height="10" rx="2" />
+                          <path d="M12 15v2" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                          <rect x="5" y="11" width="14" height="10" rx="2" />
+                          <path d="M12 15v2" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeElement(element.id)}
