@@ -40,9 +40,6 @@ type TextContentKey =
 
 type CardElementType = "text" | "image" | "qr" | "shape" | "line" | "border";
 
-const MIN_FONT_SCALE = 0.5;
-const MAX_FONT_SCALE = 1;
-const DEFAULT_FONT_SCALE = 0.50;
 type FontOption = "sfpro" | "manrope" | "apple-system" | "helveticas" | "arial" | "playfair" | "times" | "serif" | "mono" | "courier" | "pacifio" | "brush" | "cursive" | "poppins" | "avenir" | "default";
 
 const FONT_STACKS: Record<FontOption, string> = {
@@ -63,13 +60,10 @@ const FONT_STACKS: Record<FontOption, string> = {
   avenir: "Avenir",
   default: "Manrope"
 };
-const clampFontScale = (value: number) =>
-  Math.min(
-    MAX_FONT_SCALE,
-    Math.max(MIN_FONT_SCALE, Number.isFinite(value) ? value : DEFAULT_FONT_SCALE)
-  );
 const MIN_RESIZABLE_RATIO = 0.08;
 const MAX_RESIZABLE_RATIO = 0.6;
+const MIN_FONT_RATIO = 0.01;
+const MAX_FONT_RATIO = 0.2;
 
 export type CardElement = {
   id: string;
@@ -208,7 +202,6 @@ export type CardDesignSettings = {
   logoUrl?: string | null;
   resolution: CardResolution;
   elements?: CardElement[];
-  fontScale?: number;
   orientation?: CardOrientation;
   fontFamily?: FontOption;
 };
@@ -230,7 +223,6 @@ export const DEFAULT_CARD_DESIGN: CardDesignSettings = {
   logoUrl: null,
   resolution: "600",
   elements: [],
-  fontScale: DEFAULT_FONT_SCALE,
   orientation: "landscape",
   fontFamily: "default",
 };
@@ -415,11 +407,6 @@ export function PhysicalCardDesigner({
   const backgroundMode: BackgroundFillMode =
     existingStops.length >= 3 ? "gradient3" : existingStops.length >= 2 ? "gradient2" : "solid";
   const activeGradientStops = getGradientStopsForMode(backgroundMode, existingStops);
-  const fontScale = clampFontScale(cardDesign.fontScale ?? DEFAULT_FONT_SCALE);
-  const updateFontScale = (value: number) => {
-    updateCardDesign({ fontScale: clampFontScale(value) });
-  };
-  const resetFontScale = () => updateCardDesign({ fontScale: DEFAULT_FONT_SCALE });
   const dpi = Number(cardDesign.resolution || "300");
   const widthMm = isPortrait ? CARD_MM_HEIGHT : CARD_MM_WIDTH;
   const heightMm = isPortrait ? CARD_MM_WIDTH : CARD_MM_HEIGHT;
@@ -431,6 +418,8 @@ export function PhysicalCardDesigner({
   const previewScale = Math.min(0.74, PREVIEW_MAX_WIDTH / baseDimensionPx);
   const displayedWidth = cardWidthPx * previewScale;
   const displayedHeight = cardHeightPx * previewScale;
+  const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
+  const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
   const minElementSizePx = MIN_RESIZABLE_RATIO * cardWidthPx;
   const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
@@ -501,7 +490,7 @@ export function PhysicalCardDesigner({
 
   const getElementWidth = (element: CardElement) => {
     if (element.type === "text") {
-      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
+      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
       const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily) + 2;
@@ -519,7 +508,7 @@ export function PhysicalCardDesigner({
 
   const getElementHeight = (element: CardElement) => {
     if (element.type === "text") {
-      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
+      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
       const lineHeightPx = fontSizePx * 1.15;
       return lineHeightPx / displayedHeight;
     }
@@ -653,7 +642,7 @@ const renderElement = (element: CardElement) => {
     };
 
     if (element.type === "text") {
-      const fontSize = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
+      const fontSize = (element.fontSize ?? 0.05) * displayedWidth;
       const textAlign = element.textAlign ?? "left";
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
@@ -1700,72 +1689,6 @@ const renderElement = (element: CardElement) => {
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              gap: "12px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#0f172a" }}>
-                Typography scale{" "}
-                <a
-                  href="/help/physical-card-font-guide"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: "#ff7a00", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
-                >
-                  (Font guide)
-                </a>
-              </p>
-              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#475467" }}>
-                Adjust all text sizes on the physical card preview.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={resetFontScale}
-              disabled={Math.abs(fontScale - 1) < 0.001}
-              style={{
-                border: "none",
-                borderRadius: "999px",
-                padding: "8px 16px",
-                background: "#f3f4f6",
-                color: "#111827",
-                fontWeight: 600,
-                cursor: Math.abs(fontScale - 1) < 0.001 ? "not-allowed" : "pointer",
-                opacity: Math.abs(fontScale - 1) < 0.001 ? 0.6 : 1,
-              }}
-            >
-              Reset
-            </button>
-          </div>
-
-          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-            <input
-              type="range"
-              min={MIN_FONT_SCALE}
-              max={MAX_FONT_SCALE}
-              step={0.01}
-              value={fontScale}
-              onChange={(event) => updateFontScale(parseFloat(event.target.value))}
-              style={{
-                flex: 1,
-                appearance: "none",
-                height: 6,
-                borderRadius: 999,
-                background: "#f3f4f6",
-                outline: "none",
-              }}
-            />
-            <span style={{ minWidth: 64, textAlign: "right", fontWeight: 600 }}>
-              {Math.round(fontScale * 24)} pt
-            </span>
-         </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
               gap: "12px",
               flexWrap: "wrap",
             }}
@@ -1993,6 +1916,69 @@ const renderElement = (element: CardElement) => {
                           padding: "6px 8px",
                         }}
                       />
+                    )}
+                    {element.type === "text" && (
+                      <label style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b7280" }}>
+                        Text colour
+                        <input
+                          type="color"
+                          value={element.color || cardDesign.textColor}
+                          onChange={(event) =>
+                            setElements((prev) =>
+                              prev.map((el) =>
+                                el.id === element.id ? { ...el, color: event.target.value } : el
+                              )
+                            )
+                          }
+                          disabled={element.locked}
+                          style={{
+                            width: "100%",
+                            height: "32px",
+                            borderRadius: "8px",
+                            border: "1px solid #d0d5dd",
+                          }}
+                        />
+                      </label>
+                    )}
+                    {element.type === "text" && (
+                      <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
+                          <span>Text size</span>
+                          <span>{ratioToPt(element.fontSize ?? 0.05)} pt</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <input
+                            type="range"
+                            min={MIN_FONT_RATIO}
+                            max={MAX_FONT_RATIO}
+                            step={0.001}
+                            value={element.fontSize ?? 0.05}
+                            onChange={(event) => {
+                              const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        fontSize: next,
+                                      }
+                                    : el
+                                )
+                              );
+                            }}
+                            style={{ flex: 1 }}
+                            disabled={element.locked}
+                          />
+                          <a
+                            href="/help/physical-card-font-guide"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ fontSize: "12px", color: "#ff7a00", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                          >
+                            Font guide
+                          </a>
+                        </div>
+                      </div>
                     )}
                     {(element.type === "image" || element.type === "qr") && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
