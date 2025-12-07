@@ -393,14 +393,14 @@ export function PhysicalCardDesigner({
     window.addEventListener("resize", handle);
     return () => window.removeEventListener("resize", handle);
   }, []);
-  const assetCardStyle = (isActive: boolean): CSSProperties => ({
+  const assetCardStyle = (): CSSProperties => ({
     display: isCompactLayout ? "block" : "flex",
     alignItems: isCompactLayout ? "flex-start" : "center",
     gap: isCompactLayout ? "8px" : "12px",
     border: "1px solid #eef0f3",
     borderRadius: "12px",
     padding: "10px 12px",
-    background: isActive ? "rgba(255, 153, 82, 0.08)" : "#fff",
+    background: "#fff",
     width: "100%",
   });
   const actionRowStyle: CSSProperties = {
@@ -1499,9 +1499,8 @@ const renderElement = (element: CardElement) => {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {logoAssets.length ? (
                 logoAssets.map((entry, index) => {
-                  const isActive = cardDesign.logoUrl === entry.url;
                   return (
-                  <div key={`logo-${index}`} style={assetCardStyle(isActive)}>
+                  <div key={`logo-${index}`} style={assetCardStyle()}>
                       <img
                         src={entry.url}
                         alt={`Logo ${index + 1}`}
@@ -1509,9 +1508,6 @@ const renderElement = (element: CardElement) => {
                       />
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>Logo&nbsp;{index + 1}</p>
-                        <p style={{ margin: 0, fontSize: 12, color: "#667085" }}>
-                          {isActive ? "Active in designer" : "Not active"}
-                        </p>
                       </div>
                     <div style={actionRowStyle}>
                       <button
@@ -1529,23 +1525,6 @@ const renderElement = (element: CardElement) => {
                       >
                         Add to card
                       </button>
-                      {isActive && (
-                        <button
-                          type="button"
-                          onClick={() => updateCardDesign({ logoUrl: null })}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#ff6b6b",
-                            padding: "6px 12px",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Clear active
-                        </button>
-                      )}
                     </div>
                     {onRemoveAsset && (
                       <button
@@ -1577,9 +1556,8 @@ const renderElement = (element: CardElement) => {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {imageAssets.length ? (
                 imageAssets.map((entry, index) => {
-                  const isActive = cardDesign.logoUrl === entry.url;
                   return (
-                    <div key={`image-${index}`} style={assetCardStyle(isActive)}>
+                    <div key={`image-${index}`} style={assetCardStyle()}>
                       <img
                         src={entry.url}
                         alt={`Image ${index + 1}`}
@@ -1587,9 +1565,6 @@ const renderElement = (element: CardElement) => {
                       />
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>Image {index + 1}</p>
-                        <p style={{ margin: 0, fontSize: 12, color: "#667085" }}>
-                          {isActive ? "Active in designer" : "Not active"}
-                        </p>
                       </div>
                     <div style={actionRowStyle}>
                       <button
@@ -1607,7 +1582,7 @@ const renderElement = (element: CardElement) => {
                       >
                         Add to card
                       </button>
-                      {isActive && (
+                      {cardDesign.logoUrl === entry.url && (
                         <button
                           type="button"
                           onClick={() => updateCardDesign({ logoUrl: null })}
@@ -2141,29 +2116,45 @@ const renderElement = (element: CardElement) => {
                           <AlignIcon variant="bottom" />
                         </button>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "6px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
-                          <span>Rotation</span>
+                          <span>Rotate</span>
                           <span>{Math.round(element.rotation ?? 0)}°</span>
                         </div>
-                        <input
-                          type="range"
-                          min={-180}
-                          max={180}
-                          step={1}
-                          value={element.rotation ?? 0}
-                          onChange={(event) =>
-                            setElements((prev) =>
-                              prev.map((el) =>
-                                el.id === element.id
-                                  ? { ...el, rotation: parseInt(event.target.value, 10) }
-                                  : el
-                              )
-                            )
-                          }
-                          disabled={element.locked}
-                          style={{ width: "100%" }}
-                        />
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          {[
+                            { label: "Up", value: -90 },
+                            { label: "Side", value: 0 },
+                            { label: "Down", value: 90 },
+                          ].map((option) => {
+                            const active = Math.round(element.rotation ?? 0) === option.value;
+                            return (
+                              <button
+                                key={option.label}
+                                type="button"
+                                onClick={() =>
+                                  setElements((prev) =>
+                                    prev.map((el) =>
+                                      el.id === element.id ? { ...el, rotation: option.value } : el
+                                    )
+                                  )
+                                }
+                                disabled={element.locked}
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: "8px",
+                                  border: active ? "2px solid #0f172a" : "1px solid #d0d5dd",
+                                  background: active ? "#0f172a" : "#ffffff",
+                                  color: active ? "#ffffff" : "#0f172a",
+                                  fontSize: "12px",
+                                  cursor: element.locked ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                {option.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                     {element.type === "shape" && (
