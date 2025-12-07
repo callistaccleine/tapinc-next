@@ -2,221 +2,110 @@
 .adminDashboard {
   display: flex;
   min-height: 100vh;
-  background: #f5f5f7;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-  color: #000000;
+  background: radial-gradient(circle at 10% 20%, #f3f7ff 0, #eef2f7 50%, #e8edf4 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  color: #0f172a;
 }
 
-/* Sidebar */
-.sidebar {
-  width: 240px;
-  background: #ffffff;
-  color: #000000;
-  padding: 24px 16px;
-  border-right: 1px solid #e5e5e5;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  box-shadow: none;
-}
-
-/* Brand */
-.sidebar h3 {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  letter-spacing: -0.5px;
-  color: #000000;
-}
-
-/* Nav */
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #000000;
-  font-size: 15px;
-}
-
-.sidebar li:hover {
-  background: #f5f5f7;
-}
-
-.sidebar .active {
-  background: #000000;
-  color: #ffffff;
-  font-weight: 500;
-}
-
-/* Divider */
-.divider {
-  height: 1px;
-  background: #e5e5e5;
-  margin: 16px 8px;
-}
-
-/* Main Content */
 .mainContent {
   flex: 1;
-  padding: 40px;
+  padding: 48px 40px;
   overflow-y: auto;
-  background: #f5f5f7;
 }
 
-/* Header */
-.mainContent h2 {
-  font-size: 28px;
-  font-weight: 600;
-  color: #000000;
+.dashboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
-/* Table Container */
-.tableContainer {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e5e5e5;
+.dashboardHeader h2 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #0b1224;
 }
 
-/* Table */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
-}
-
-.table th,
-.table td {
-  border-bottom: 1px solid #f0f0f0;
-  padding: 14px 16px;
-  text-align: left;
-  font-size: 15px;
-}
-
-.table th {
-  background: #fafafa;
-  color: #86868b;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  font-size: 13px;
-}
-
-.table tr:hover {
-  background: #fafafa;
-}
-
-/* Buttons */
-.btn {
-  background: #000000;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 20px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn:hover {
-  background: #1d1d1f;
-  transform: translateY(-1px);
-}
-
-.btn:active {
-  transform: translateY(0);
-}
-
-/* Subtle Status Labels */
-.statusActive {
-  background: #000000;
-  color: #ffffff;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.statusInactive {
-  background: #f5f5f7;
-  color: #86868b;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
+.pill {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 24px;
-}
-
-.paginationBtn {
-  background: #ffffff;
-  border: 1px solid #d2d2d7;
-  color: #000000;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
+  background: #e6edff;
+  color: #1d4ed8;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 600;
   font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.paginationBtn:hover {
-  border-color: #000000;
-  background: #f5f5f7;
-}
-
-.paginationBtn.active {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
-}
-
-.paginationBtn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
 }
 
 .btnPrimary {
-  background: #000000;
+  background: linear-gradient(135deg, #1d4ed8, #0f172a);
   border: none;
   color: #ffffff;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 10px 18px;
+  border-radius: 12px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 15px;
-  transition: all 0.2s ease;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 10px 25px rgba(13, 37, 91, 0.18);
 }
 
 .btnPrimary:hover {
-  background: #1d1d1f;
   transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(13, 37, 91, 0.25);
 }
 
 .btnPrimary:active {
   transform: translateY(0);
+  box-shadow: 0 10px 25px rgba(13, 37, 91, 0.18);
 }
 
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e3e8ef;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  padding: 22px 24px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: #475569;
+}
+
+.infoRow strong {
+  color: #0f172a;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #edf1f7;
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.table th {
+  background: #f7f9fd;
+  color: #5b6477;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+}
+
+.table tr:hover {
+  background: #f4f7fb;
+}

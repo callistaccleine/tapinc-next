@@ -40,26 +40,30 @@ type TextContentKey =
 
 type CardElementType = "text" | "image" | "qr" | "shape" | "line" | "border";
 
-const MIN_FONT_SCALE = 0.5;
-const MAX_FONT_SCALE = 1;
-const DEFAULT_FONT_SCALE = 0.55;
-type FontOption = "default" | "serif" | "mono" | "cursive" | "rounded" | "geometric";
+type FontOption = "sfpro" | "manrope" | "apple-system" | "helveticas" | "arial" | "playfair" | "times" | "serif" | "mono" | "courier" | "pacifio" | "brush" | "cursive" | "poppins" | "avenir" | "default";
 
 const FONT_STACKS: Record<FontOption, string> = {
-  default: "'SF Pro Display', 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif",
-  serif: "'Playfair Display', 'Times New Roman', serif",
-  mono: "'Space Mono', 'Courier New', monospace",
-  cursive: "'Pacifico', 'Brush Script MT', cursive",
-  rounded: "'Nunito', 'Quicksand', sans-serif",
-  geometric: "'Futura', 'Poppins', 'Avenir Next', sans-serif",
+  sfpro: "SF Pro Display",
+  manrope: "Manrope",
+  "apple-system": "-apple-system",
+  helveticas: "Helvetica Neue",
+  arial: "Arial",
+  playfair: "Playfair Display",
+  times: "Times New Roman",
+  serif: "serif",
+  mono: "'Space Mono'",
+  courier: "'Courier New'",
+  pacifio: "'Pacifico'",
+  brush: "'Brush Script MT'",
+  cursive: "cursive",
+  poppins: "Poppins",
+  avenir: "Avenir",
+  default: "Manrope"
 };
-const clampFontScale = (value: number) =>
-  Math.min(
-    MAX_FONT_SCALE,
-    Math.max(MIN_FONT_SCALE, Number.isFinite(value) ? value : DEFAULT_FONT_SCALE)
-  );
 const MIN_RESIZABLE_RATIO = 0.08;
 const MAX_RESIZABLE_RATIO = 0.6;
+const MIN_FONT_RATIO = 0.01;
+const MAX_FONT_RATIO = 0.2;
 
 export type CardElement = {
   id: string;
@@ -79,6 +83,9 @@ export type CardElement = {
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
   borderColor?: string;
+  fontFamily?: FontOption;
+  locked?: boolean;
+  rotation?: number;
 };
 
 const DEFAULT_CARD_ELEMENTS: CardElement[] = [
@@ -88,9 +95,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "front",
     x: 0.08,
     y: 0.58,
-    width: 0.84,
-    height: 0.18,
-    fontSize: 0.12,
+    fontSize: 0.50,
     textAlign: "left",
     contentKey: "headline",
   },
@@ -100,9 +105,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "front",
     x: 0.08,
     y: 0.75,
-    width: 0.84,
-    height: 0.12,
-    fontSize: 0.06,
+    fontSize: 0.50,
     textAlign: "left",
     contentKey: "tagline",
   },
@@ -121,8 +124,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.12,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "name",
@@ -133,8 +134,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.25,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "role",
@@ -145,8 +144,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.38,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "phone",
@@ -157,8 +154,6 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.5,
-    width: 0.46,
-    height: 0.12,
     fontSize: 0.055,
     textAlign: "left",
     contentKey: "email",
@@ -172,6 +167,16 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     width: 0.28,
     height: 0.28,
   },
+  {
+    id: "role",
+    type: "text",
+    side: "back",
+    x: 0.08,
+    y: 0.25,
+    fontSize: 0.055,
+    textAlign: "left",
+    contentKey: "role",
+  }
 ];
 
 const TEXT_PRESET_OPTIONS: { label: string; value: TextContentKey }[] = [
@@ -191,14 +196,12 @@ const cloneDefaultElements = (): CardElement[] => DEFAULT_CARD_ELEMENTS.map((el)
 
 export type CardDesignSettings = {
   backgroundColor: string;
-  // accentColor: string;
   textColor: string;
   headline: string;
   tagline?: string;
   logoUrl?: string | null;
   resolution: CardResolution;
   elements?: CardElement[];
-  fontScale?: number;
   orientation?: CardOrientation;
   fontFamily?: FontOption;
 };
@@ -220,7 +223,6 @@ export const DEFAULT_CARD_DESIGN: CardDesignSettings = {
   logoUrl: null,
   resolution: "600",
   elements: [],
-  fontScale: DEFAULT_FONT_SCALE,
   orientation: "landscape",
   fontFamily: "default",
 };
@@ -314,6 +316,66 @@ export function PhysicalCardDesigner({
   uploadingLogo,
 }: PhysicalCardDesignerProps) {
   const [isCompactLayout, setIsCompactLayout] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const AlignIcon = ({ variant }: { variant: "left" | "center" | "right" | "top" | "middle" | "bottom" }) => {
+    const common = {
+      width: 16,
+      height: 16,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round" as const,
+      strokeLinejoin: "round" as const,
+      "aria-hidden": true as const,
+    };
+    if (variant === "left") {
+      return (
+        <svg {...common}>
+          <line x1="6" y1="4" x2="6" y2="20" />
+          <rect x="8" y="7" width="10" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "center") {
+      return (
+        <svg {...common}>
+          <line x1="12" y1="4" x2="12" y2="20" />
+          <rect x="6" y="7" width="12" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "right") {
+      return (
+        <svg {...common}>
+          <line x1="18" y1="4" x2="18" y2="20" />
+          <rect x="4" y="7" width="10" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "top") {
+      return (
+        <svg {...common}>
+          <line x1="4" y1="6" x2="20" y2="6" />
+          <rect x="7" y="8" width="10" height="10" rx="2" />
+        </svg>
+      );
+    }
+    if (variant === "middle") {
+      return (
+        <svg {...common}>
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <rect x="7" y="6" width="10" height="12" rx="2" />
+        </svg>
+      );
+    }
+    return (
+      <svg {...common}>
+        <line x1="4" y1="18" x2="20" y2="18" />
+        <rect x="7" y="6" width="10" height="10" rx="2" />
+      </svg>
+    );
+  };
   const logoAssets = logoItems.filter((entry) => entry.type === "logo");
   const imageAssets = logoItems.filter((entry) => entry.type === "image");
   useEffect(() => {
@@ -323,14 +385,14 @@ export function PhysicalCardDesigner({
     window.addEventListener("resize", handle);
     return () => window.removeEventListener("resize", handle);
   }, []);
-  const assetCardStyle = (isActive: boolean): CSSProperties => ({
+  const assetCardStyle = (): CSSProperties => ({
     display: isCompactLayout ? "block" : "flex",
     alignItems: isCompactLayout ? "flex-start" : "center",
     gap: isCompactLayout ? "8px" : "12px",
     border: "1px solid #eef0f3",
     borderRadius: "12px",
     padding: "10px 12px",
-    background: isActive ? "rgba(255, 153, 82, 0.08)" : "#fff",
+    background: "#fff",
     width: "100%",
   });
   const actionRowStyle: CSSProperties = {
@@ -345,11 +407,6 @@ export function PhysicalCardDesigner({
   const backgroundMode: BackgroundFillMode =
     existingStops.length >= 3 ? "gradient3" : existingStops.length >= 2 ? "gradient2" : "solid";
   const activeGradientStops = getGradientStopsForMode(backgroundMode, existingStops);
-  const fontScale = clampFontScale(cardDesign.fontScale ?? DEFAULT_FONT_SCALE);
-  const updateFontScale = (value: number) => {
-    updateCardDesign({ fontScale: clampFontScale(value) });
-  };
-  const resetFontScale = () => updateCardDesign({ fontScale: DEFAULT_FONT_SCALE });
   const dpi = Number(cardDesign.resolution || "300");
   const widthMm = isPortrait ? CARD_MM_HEIGHT : CARD_MM_WIDTH;
   const heightMm = isPortrait ? CARD_MM_WIDTH : CARD_MM_HEIGHT;
@@ -361,6 +418,8 @@ export function PhysicalCardDesigner({
   const previewScale = Math.min(0.74, PREVIEW_MAX_WIDTH / baseDimensionPx);
   const displayedWidth = cardWidthPx * previewScale;
   const displayedHeight = cardHeightPx * previewScale;
+  const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
+  const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
   const minElementSizePx = MIN_RESIZABLE_RATIO * cardWidthPx;
   const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
@@ -417,7 +476,27 @@ export function PhysicalCardDesigner({
     updateCardDesign({ elements: next });
   };
 
+  const measureTextWidthPx = (text: string, fontSizePx: number, fontFamily: string) => {
+    if (typeof document === "undefined") {
+      return text.length * fontSizePx * 0.6;
+    }
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return text.length * fontSizePx * 0.6;
+    ctx.font = `600 ${fontSizePx}px ${fontFamily}`;
+    const metrics = ctx.measureText(text || "");
+    return metrics.width || 0;
+  };
+
   const getElementWidth = (element: CardElement) => {
+    if (element.type === "text") {
+      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
+      const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
+      const fontFamily = FONT_STACKS[fontKey];
+      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily) + 2;
+      const measuredRatio = textWidthPx / displayedWidth;
+      return Math.max(measuredRatio, 0.02);
+    }
     if (typeof element.width === "number") return element.width;
     if (element.type === "qr") return 0.28;
     if (element.type === "image") return 0.22;
@@ -428,6 +507,11 @@ export function PhysicalCardDesigner({
   };
 
   const getElementHeight = (element: CardElement) => {
+    if (element.type === "text") {
+      const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
+      const lineHeightPx = fontSizePx * 1.15;
+      return lineHeightPx / displayedHeight;
+    }
     if (typeof element.height === "number") return element.height;
     if (element.type === "qr") return getElementWidth(element);
     if (element.type === "image") return 0.22;
@@ -465,7 +549,7 @@ export function PhysicalCardDesigner({
   };
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>, element: CardElement) => {
-    if (exporting) return;
+    if (exporting || element.locked) return;
     const targetRef = element.side === "front" ? frontRef : backRef;
     const cardEl = targetRef.current;
     if (!cardEl) return;
@@ -524,6 +608,7 @@ export function PhysicalCardDesigner({
   };
 
 const renderElement = (element: CardElement) => {
+  const isSelected = selectedElements.some((sel) => sel.id === element.id);
   const widthRatio = getElementWidth(element);
   const heightRatio = getElementHeight(element);
   const widthPx = widthRatio * displayedWidth;
@@ -541,19 +626,26 @@ const renderElement = (element: CardElement) => {
       display: element.type === "image" ? "flex" : "block",
       alignItems: element.type === "image" ? "center" : undefined,
       justifyContent: element.type === "image" ? "center" : undefined,
-      cursor: showGuides ? "grab" : "default",
-      border: "none",
+      cursor: showGuides ? (element.locked? "not-allowed": "grab") : "default",
+      border: showGuides
+        ? isSelected
+          ? "1px dotted rgba(255,255,255,0.9)"
+          : "1px dotted rgba(255,255,255,0.35)"
+        : "none",
       borderRadius: element.type === "text" ? 8 : 10,
-      padding: element.type === "text" ? "4px 6px" : 0,
       boxSizing: "border-box",
       userSelect: "none",
       touchAction: "none",
+      opacity: element.locked ? 0.6 : 1,
+      transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+      transformOrigin: "center center",
     };
 
     if (element.type === "text") {
-      const fontSize = (element.fontSize ?? 0.05) * displayedWidth * fontScale;
+      const fontSize = (element.fontSize ?? 0.05) * displayedWidth;
       const textAlign = element.textAlign ?? "left";
-      const fontFamily = FONT_STACKS[cardDesign.fontFamily ?? "default"];
+      const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
+      const fontFamily = FONT_STACKS[fontKey];
       return (
         <div
           key={element.id}
@@ -566,9 +658,8 @@ const renderElement = (element: CardElement) => {
               fontSize,
               textAlign,
               fontWeight: 600,
-              width: "100%",
-              lineHeight: 1.2,
-              whiteSpace: "pre-wrap",
+              lineHeight: 1.15,
+              whiteSpace: "pre",
               fontFamily,
             }}
           >
@@ -583,7 +674,14 @@ const renderElement = (element: CardElement) => {
       return (
         <div
           key={element.id}
-          style={{ ...baseStyle, border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none" }}
+          style={{
+            ...baseStyle,
+            border: showGuides
+              ? isSelected
+                ? "1px solid rgba(255,255,255,0.7)"
+                : "1px dashed rgba(255,255,255,0.35)"
+              : "none",
+          }}
           onPointerDown={(event) => startDrag(event, element)}
         >
           {src ? (
@@ -882,7 +980,7 @@ const renderElement = (element: CardElement) => {
           type: "line",
           side: selectedElementSide,
           x: 0.08,
-          y: 0.55,
+          y: 0.50,
           width: 0.6,
           height: 0.012,
           backgroundColor: cardDesign.textColor,
@@ -911,6 +1009,44 @@ const renderElement = (element: CardElement) => {
     setElements((prev) => prev.filter((element) => element.id !== id));
   };
 
+  const toggleLockElement = (id: string) => {
+    setElements((prev) =>
+      prev.map((element) => (element.id === id ? { ...element, locked: !element.locked } : element))
+    );
+  };
+
+  const alignElement = (
+    id: string,
+    options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }
+  ) => {
+    setElements((prev) =>
+      prev.map((element) => {
+        if (element.id !== id) return element;
+        if (element.locked || element.type === "border") return element;
+
+        const widthRatio = getElementWidth(element);
+        const heightRatio = getElementHeight(element);
+        const minX = bleedXRatio;
+        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
+        const minY = bleedYRatio;
+        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+
+        const next = { ...element };
+        if (options.horizontal) {
+          if (options.horizontal === "left") next.x = minX;
+          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, minX, maxX);
+          if (options.horizontal === "right") next.x = maxX;
+        }
+        if (options.vertical) {
+          if (options.vertical === "top") next.y = minY;
+          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, minY, maxY);
+          if (options.vertical === "bottom") next.y = maxY;
+        }
+        return next;
+      })
+    );
+  };
+
   const updateCustomText = (id: string, value: string) => {
     setElements((prev) =>
       prev.map((element) =>
@@ -937,6 +1073,8 @@ const renderElement = (element: CardElement) => {
     return "Custom text";
   };
   const handleResizeElement = (id: string, ratio: number) => {
+    const target = cardElements.find((el) => el.id === id);
+    if (target?.locked) return;
     const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
     setElements((prev) =>
       prev.map((element) =>
@@ -975,6 +1113,21 @@ const renderElement = (element: CardElement) => {
       }}
       ref={ref}
     >
+      {showGrid && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px)",
+            backgroundSize: "16px 16px, 16px 16px",
+            mixBlendMode: "screen",
+            opacity: 0.7,
+            zIndex: 2,
+          }}
+        />
+      )}
       {elements.map((element) => renderElement(element))}
     </div>
   );
@@ -1059,13 +1212,13 @@ const renderElement = (element: CardElement) => {
           gap: "18px",
         }}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "12px",
-          }}
-        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "12px",
+            }}
+          >
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Resolution
             <select
@@ -1088,40 +1241,49 @@ const renderElement = (element: CardElement) => {
               Lower DPI may lead to diminished print detail
             </span>
           </label>
-          <div style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
-            Orientation
-            <div
-              style={{
-                display: "inline-flex",
-                border: "1px solid #d0d5dd",
-                borderRadius: "12px",
-                overflow: "hidden",
-              }}
-            >
-              {orientationOptions.map((option) => {
-                const selected = orientation === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => updateCardDesign({ orientation: option.value })}
-                    style={{
-                      flex: 1,
-                      padding: "10px 14px",
-                      border: "none",
-                      background: selected ? "#000000" : "transparent",
-                      color: selected ? "#ffffff" : "#0f172a",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+            <div style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
+              Orientation
+              <div
+                style={{
+                  display: "inline-flex",
+                  border: "1px solid #d0d5dd",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                }}
+              >
+                {orientationOptions.map((option) => {
+                  const selected = orientation === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => updateCardDesign({ orientation: option.value })}
+                      style={{
+                        flex: 1,
+                        padding: "10px 14px",
+                        border: "none",
+                        background: selected ? "#000000" : "transparent",
+                        color: selected ? "#ffffff" : "#0f172a",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            <label style={{ fontSize: "13px", color: "#475467", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                checked={showGrid}
+                onChange={(e) => setShowGrid(e.target.checked)}
+                style={{ width: "16px", height: "16px" }}
+              />
+              Show grid overlay
+            </label>
           </div>
-        </div>
 
         <div
           style={{
@@ -1239,21 +1401,6 @@ const renderElement = (element: CardElement) => {
               </div>
             )}
           </div>
-          {/* <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
-            Accent colour
-            <input
-              type="color"
-              value={cardDesign.accentColor}
-              onChange={(e) => updateCardDesign({ accentColor: e.target.value })}
-              style={{
-                width: "100%",
-                height: "36px",
-                border: "1px solid #d0d5dd",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            />
-          </label> */}
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Text colour
             <input
@@ -1280,12 +1427,23 @@ const renderElement = (element: CardElement) => {
                 marginTop: "4px",
               }}
             >
-              <option value="default">Default (Manrope)</option>
-              <option value="serif">Elegant Serif</option>
+              <option value="sfpro">SF Pro</option>
+              <option value="manrope">Manrope</option>
+              <option value="-apple-system">Apple System</option>
+              <option value="helveticas">Helvetica</option>
+              <option value="arial">Arial</option>
+              <option value="serif">Sans Serif</option>
+              <option value="playfair">Playfair</option>
+              <option value="times">Times New Roman</option>
+              <option value="serif">Serif</option>
               <option value="mono">Monospace</option>
-              <option value="cursive">Cursive Script</option>
-              <option value="rounded">Rounded Sans</option>
-              <option value="geometric">Geometric Sans</option>
+              <option value="courier">Courier New</option>
+              <option value="pacifio">Pacifio</option>
+              <option value="brush">Brush</option>
+              <option value="cursive">Cursive</option>
+              <option value="poppins">Poppins</option>
+              <option value="avenir">Avenir</option>
+
             </select>
           </label>
         </div>
@@ -1330,9 +1488,8 @@ const renderElement = (element: CardElement) => {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {logoAssets.length ? (
                 logoAssets.map((entry, index) => {
-                  const isActive = cardDesign.logoUrl === entry.url;
                   return (
-                  <div key={`logo-${index}`} style={assetCardStyle(isActive)}>
+                  <div key={`logo-${index}`} style={assetCardStyle()}>
                       <img
                         src={entry.url}
                         alt={`Logo ${index + 1}`}
@@ -1340,9 +1497,6 @@ const renderElement = (element: CardElement) => {
                       />
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>Logo&nbsp;{index + 1}</p>
-                        <p style={{ margin: 0, fontSize: 12, color: "#667085" }}>
-                          {isActive ? "Active in designer" : "Not active"}
-                        </p>
                       </div>
                     <div style={actionRowStyle}>
                       <button
@@ -1360,23 +1514,6 @@ const renderElement = (element: CardElement) => {
                       >
                         Add to card
                       </button>
-                      {isActive && (
-                        <button
-                          type="button"
-                          onClick={() => updateCardDesign({ logoUrl: null })}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#ff6b6b",
-                            padding: "6px 12px",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Clear active
-                        </button>
-                      )}
                     </div>
                     {onRemoveAsset && (
                       <button
@@ -1408,9 +1545,8 @@ const renderElement = (element: CardElement) => {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {imageAssets.length ? (
                 imageAssets.map((entry, index) => {
-                  const isActive = cardDesign.logoUrl === entry.url;
                   return (
-                    <div key={`image-${index}`} style={assetCardStyle(isActive)}>
+                    <div key={`image-${index}`} style={assetCardStyle()}>
                       <img
                         src={entry.url}
                         alt={`Image ${index + 1}`}
@@ -1418,9 +1554,6 @@ const renderElement = (element: CardElement) => {
                       />
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>Image {index + 1}</p>
-                        <p style={{ margin: 0, fontSize: 12, color: "#667085" }}>
-                          {isActive ? "Active in designer" : "Not active"}
-                        </p>
                       </div>
                     <div style={actionRowStyle}>
                       <button
@@ -1438,7 +1571,7 @@ const renderElement = (element: CardElement) => {
                       >
                         Add to card
                       </button>
-                      {isActive && (
+                      {cardDesign.logoUrl === entry.url && (
                         <button
                           type="button"
                           onClick={() => updateCardDesign({ logoUrl: null })}
@@ -1552,72 +1685,6 @@ const renderElement = (element: CardElement) => {
             gap: "16px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "12px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#0f172a" }}>
-                Typography scale{" "}
-                <a
-                  href="/help/physical-card-font-guide"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: "#ff7a00", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
-                >
-                  (Font guide)
-                </a>
-              </p>
-              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#475467" }}>
-                Adjust all text sizes on the physical card preview.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={resetFontScale}
-              disabled={Math.abs(fontScale - 1) < 0.001}
-              style={{
-                border: "none",
-                borderRadius: "999px",
-                padding: "8px 16px",
-                background: "#f3f4f6",
-                color: "#111827",
-                fontWeight: 600,
-                cursor: Math.abs(fontScale - 1) < 0.001 ? "not-allowed" : "pointer",
-                opacity: Math.abs(fontScale - 1) < 0.001 ? 0.6 : 1,
-              }}
-            >
-              Reset
-            </button>
-          </div>
-
-          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-            <input
-              type="range"
-              min={MIN_FONT_SCALE}
-              max={MAX_FONT_SCALE}
-              step={0.01}
-              value={fontScale}
-              onChange={(event) => updateFontScale(parseFloat(event.target.value))}
-              style={{
-                flex: 1,
-                appearance: "none",
-                height: 6,
-                borderRadius: 999,
-                background: "#f3f4f6",
-                outline: "none",
-              }}
-            />
-            <span style={{ minWidth: 64, textAlign: "right", fontWeight: 600 }}>
-              {Math.round(fontScale * 24)} pt
-            </span>
-         </div>
-
           <div
             style={{
               display: "flex",
@@ -1850,6 +1917,69 @@ const renderElement = (element: CardElement) => {
                         }}
                       />
                     )}
+                    {element.type === "text" && (
+                      <label style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b7280" }}>
+                        Text colour
+                        <input
+                          type="color"
+                          value={element.color || cardDesign.textColor}
+                          onChange={(event) =>
+                            setElements((prev) =>
+                              prev.map((el) =>
+                                el.id === element.id ? { ...el, color: event.target.value } : el
+                              )
+                            )
+                          }
+                          disabled={element.locked}
+                          style={{
+                            width: "100%",
+                            height: "32px",
+                            borderRadius: "8px",
+                            border: "1px solid #d0d5dd",
+                          }}
+                        />
+                      </label>
+                    )}
+                    {element.type === "text" && (
+                      <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
+                          <span>Text size</span>
+                          <span>{ratioToPt(element.fontSize ?? 0.05)} pt</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <input
+                            type="range"
+                            min={MIN_FONT_RATIO}
+                            max={MAX_FONT_RATIO}
+                            step={0.001}
+                            value={element.fontSize ?? 0.05}
+                            onChange={(event) => {
+                              const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        fontSize: next,
+                                      }
+                                    : el
+                                )
+                              );
+                            }}
+                            style={{ flex: 1 }}
+                            disabled={element.locked}
+                          />
+                          <a
+                            href="/help/physical-card-font-guide"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ fontSize: "12px", color: "#ff7a00", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                          >
+                            Font guide
+                          </a>
+                        </div>
+                      </div>
+                    )}
                     {(element.type === "image" || element.type === "qr") && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
@@ -1866,9 +1996,153 @@ const renderElement = (element: CardElement) => {
                             handleResizeElement(element.id, parseFloat(event.target.value) / cardWidthPx)
                           }
                           style={{ width: "100%" }}
+                          disabled={element.locked}
                         />
                       </div>
                     )}
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", alignItems: "center" }}>
+                      <span style={{ fontSize: "12px", color: "#6b7280" }}>Align Elements:</span>
+                      <div style={{ display: "inline-flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { horizontal: "left" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Left"
+                        >
+                          <AlignIcon variant="left" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { horizontal: "center" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Center"
+                        >
+                          <AlignIcon variant="center" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { horizontal: "right" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Right"
+                        >
+                          <AlignIcon variant="right" />
+                        </button>
+                      </div>
+                      <div style={{ display: "inline-flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { vertical: "top" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Top"
+                        >
+                          <AlignIcon variant="top" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { vertical: "middle" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Middle"
+                        >
+                          <AlignIcon variant="middle" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignElement(element.id, { vertical: "bottom" })}
+                          disabled={element.locked}
+                          style={{
+                            border: "1px solid #d0d5dd",
+                            background: "#fff",
+                            borderRadius: "6px",
+                            padding: "6px 8px",
+                            fontSize: "12px",
+                            cursor: element.locked ? "not-allowed" : "pointer",
+                          }}
+                          title="Bottom"
+                        >
+                          <AlignIcon variant="bottom" />
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "6px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#6b7280" }}>
+                          <span>Rotate</span>
+                          <span>{Math.round(element.rotation ?? 0)}°</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          {[
+                            { label: "Up", value: -90 },
+                            { label: "Side", value: 0 },
+                            { label: "Down", value: 90 },
+                          ].map((option) => {
+                            const active = Math.round(element.rotation ?? 0) === option.value;
+                            return (
+                              <button
+                                key={option.label}
+                                type="button"
+                                onClick={() =>
+                                  setElements((prev) =>
+                                    prev.map((el) =>
+                                      el.id === element.id ? { ...el, rotation: option.value } : el
+                                    )
+                                  )
+                                }
+                                disabled={element.locked}
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: "8px",
+                                  border: active ? "2px solid #0f172a" : "1px solid #d0d5dd",
+                                  background: active ? "#0f172a" : "#ffffff",
+                                  color: active ? "#ffffff" : "#0f172a",
+                                  fontSize: "12px",
+                                  cursor: element.locked ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                {option.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                     {element.type === "shape" && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
@@ -2082,7 +2356,95 @@ const renderElement = (element: CardElement) => {
                         </label>
                       </div>
                     )}
+                    {element.type === "border" && (
+                      <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Border colour
+                          <input
+                            type="color"
+                            value={element.borderColor || "#0f172a"}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id ? { ...el, borderColor: event.target.value } : el
+                                )
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              height: "32px",
+                              borderRadius: "8px",
+                              border: "1px solid #d0d5dd",
+                              marginTop: "4px",
+                            }}
+                            disabled={element.locked}
+                          />
+                        </label>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Border thickness</span>
+                            <span>{Math.round((element.borderThickness ?? 2) )} px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={1}
+                            max={24}
+                            step={1}
+                            value={element.borderThickness ?? 2}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? { ...el, borderThickness: parseInt(event.target.value, 10) }
+                                    : el
+                                )
+                              )
+                            }
+                            style={{ width: "100%" }}
+                            disabled={element.locked}
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleLockElement(element.id)}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: element.locked ? "#16a34a" : "#475467",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                      }}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        {element.locked ? (
+                          <>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                            <path d="M12 15v2" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                            <path d="M12 15v2" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
                   <button
                     type="button"
                     onClick={() => removeElement(element.id)}
@@ -2096,6 +2458,7 @@ const renderElement = (element: CardElement) => {
                   >
                     Remove
                   </button>
+                  </div>
                 </div>
               ))
             )}

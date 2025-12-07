@@ -9,12 +9,138 @@ import UsersTable from "./UsersTable";
 import ProfilesTable from "./ProfilesTable";
 import DesignProfilesTable from "./DesignProfilesTable";
 import OrdersTable from "./OrdersTable";
+import ContactSubmissionsTable from "./ContactSubmissionsTable";
+import AdminDataTable from "./AdminDataTable";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
-type TabKey = "users" | "profiles" | "design_profiles" | "orders";
+type TabKey =
+  | "auth"
+  | "users"
+  | "profiles"
+  | "design_profiles"
+  | "contact_submissions"
+  | "work_orders"
+  | "orders"
+  | "addons"
+  | "analytics"
+  | "contacts"
+  | "order_items"
+  | "plans"
+  | "product_addons"
+  | "products"
+  | "subscriptions";
+
+type DataTabKey = Exclude<
+  TabKey,
+  "auth" | "profiles" | "design_profiles" | "orders"
+>;
+
+type TabConfig = {
+  key: TabKey;
+  label: string;
+};
+
+interface Props {
+  activeTab: TabKey;
+  setActiveTab: (tab: TabKey) => void;
+  primaryTabs: TabConfig[];
+  moreTabs: TabConfig[];
+}
+
+const primaryTabs: { key: TabKey; label: string }[] = [
+  { key: "auth", label: "Auth" },
+  { key: "users", label: "Users" },
+  { key: "profiles", label: "Profiles" },
+  { key: "design_profiles", label: "Design Profiles" },
+  { key: "contact_submissions", label: "Contact Submissions" },
+  { key: "work_orders", label: "Work Orders" },
+];
+
+const moreTabs: { key: TabKey; label: string }[] = [
+  { key: "orders", label: "Orders" },
+  { key: "addons", label: "Addons" },
+  { key: "analytics", label: "Analytics" },
+  { key: "contacts", label: "Contacts" },
+  { key: "order_items", label: "Order Items" },
+  { key: "plans", label: "Plans" },
+  { key: "product_addons", label: "Product Addons" },
+  { key: "products", label: "Products" },
+  { key: "subscriptions", label: "Subscriptions" },
+];
+
+const dataTabConfig: Record<
+  DataTabKey,
+  {
+    table: string;
+    title: string;
+    description?: string;
+    orderBy?: string;
+    orderDescending?: boolean;
+  }
+> = {
+  addons: {
+    table: "addons",
+    title: "Addons",
+  },
+  analytics: {
+    table: "analytics",
+    title: "Analytics",
+    description: "Events and engagement records",
+    orderBy: "created_at",
+  },
+  contact_submissions: {
+    table: "contact_submissions",
+    title: "Contact Submissions",
+    description: "Messages sent via the contact form",
+    orderBy: "created_at",
+  },
+  contacts: {
+    table: "contacts",
+    title: "Contacts",
+    description: "Saved contact imports",
+    orderBy: "created_at",
+  },
+  order_items: {
+    table: "order_items",
+    title: "Order Items",
+    description: "Line items attached to orders",
+    orderBy: "created_at",
+  },
+  plans: {
+    table: "plans",
+    title: "Plans",
+    description: "Pricing plans and attributes",
+  },
+  product_addons: {
+    table: "product_addons",
+    title: "Product Addons",
+  },
+  products: {
+    table: "products",
+    title: "Products",
+    orderBy: "created_at",
+  },
+  subscriptions: {
+    table: "subscriptions",
+    title: "Subscriptions",
+    orderBy: "created_at",
+  },
+  work_orders: {
+    table: "work_orders",
+    title: "Work Orders",
+    orderBy: "created_at",
+  },
+  users: {
+    table: "users",
+    title: "Users",
+    description: "Users table from the database",
+    orderBy: "created_at",
+  },
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>("users");
+  const [activeTab, setActiveTabState] = useState<TabKey>("auth");
   const [email, setEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
@@ -31,7 +157,7 @@ export default function AdminDashboard() {
       const userEmail = (data.user.email || "").trim().toLowerCase();
       setEmail(userEmail);
 
-      if (userEmail === "tapinc.io.au@gmail.com" || "hello@tapink.com.au") {
+      if (userEmail === "tapinc.io.au@gmail.com" || userEmail === "hello@tapink.com.au") {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
@@ -48,27 +174,54 @@ export default function AdminDashboard() {
     router.push("/");
   };
 
-  if (isAdmin === null) return <p>Loading admin dashboard...</p>;
+  if (isAdmin === null) return <LoadingSpinner label="Loading admin dashboard..." fullscreen={false} />;
   if (!isAdmin) return <p>Redirecting...</p>;
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case "auth":
+        return <UsersTable />;
+      case "profiles":
+        return <ProfilesTable />;
+      case "design_profiles":
+        return <DesignProfilesTable />;
+      case "contact_submissions":
+        return <ContactSubmissionsTable />;
+      case "orders":
+        return <OrdersTable />;
+      default: {
+        const dataTabKey = activeTab as DataTabKey;
+        const config = dataTabConfig[dataTabKey];
+        return (
+          <AdminDataTable
+            table={config.table}
+            title={config.title}
+            description={config.description}
+            orderBy={config.orderBy}
+            orderDescending={config.orderDescending}
+          />
+        );
+      }
+    }
+  };
 
   return (
     <div className={styles.adminDashboard}>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AdminSidebar
+        activeTab={activeTab}
+        setActiveTab={(tab) => setActiveTabState(tab)}
+        primaryTabs={primaryTabs}
+        moreTabs={moreTabs}
+        email={email}
+        onLogout={handleLogout}
+      />
 
       <main className={styles.mainContent}>
         <div className={styles.dashboardHeader}>
           <h2>Admin Dashboard</h2>
-          <button onClick={handleLogout} className={styles.btnPrimary}>
-            Logout
-          </button>
         </div>
 
-        <p>Logged in as: {email}</p>
-
-        {activeTab === "users" && <UsersTable />}
-        {activeTab === "profiles" && <ProfilesTable />}
-        {activeTab === "design_profiles" && <DesignProfilesTable />}
-        {activeTab === "orders" && <OrdersTable />}
+        {renderActiveTab()}
       </main>
     </div>
   );

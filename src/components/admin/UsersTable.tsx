@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "@/styles/admin/UsersTable.module.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface SupabaseUser {
   id: string;
@@ -13,6 +14,12 @@ interface SupabaseUser {
 export default function UsersTable() {
   const [users, setUsers] = useState<SupabaseUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "role-az" | "role-za">(
+    "newest"
+  );
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -32,9 +39,52 @@ export default function UsersTable() {
     fetchUsers();
   }, []);
 
-  if (loading) return <div className={styles.loading}>Loading users...</div>;
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortBy]);
 
-  if (users.length === 0)
+  const filtered = users
+    .filter((u) => {
+      if (!search.trim()) return true;
+      const query = search.toLowerCase();
+      const name = u.user_metadata?.full_name?.toLowerCase() || "";
+      const email = (u.email || "").toLowerCase();
+      const role = (u.user_metadata?.role || "").toLowerCase();
+      return (
+        name.includes(query) ||
+        email.includes(query) ||
+        role.includes(query) ||
+        u.id.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      const roleA = (a.user_metadata?.role || "").toLowerCase();
+      const roleB = (b.user_metadata?.role || "").toLowerCase();
+
+      switch (sortBy) {
+        case "oldest":
+          return dateA - dateB;
+        case "role-az":
+          return roleA.localeCompare(roleB);
+        case "role-za":
+          return roleB.localeCompare(roleA);
+        case "newest":
+        default:
+          return dateB - dateA;
+      }
+    });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageRows = filtered.slice(start, end);
+
+  if (loading) return <LoadingSpinner label="Loading users..." fullscreen={false} />;
+
+  if (filtered.length === 0)
     return (
       <div className={styles.noResults}>
         <h3>No Users Found</h3>
@@ -44,7 +94,31 @@ export default function UsersTable() {
 
   return (
     <div className={styles.tableContainer}>
-      <h3>Registered Users</h3>
+      <div className={styles.header}>
+        <div>
+          <h3>Registered Users</h3>
+          <p className={styles.subhead}>Supabase Auth users</p>
+        </div>
+        <div className={styles.controls}>
+          <input
+            type="text"
+            placeholder="Search by email, name, or UID"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            value={sortBy}
+            onChange={(e) =>
+              setSortBy(e.target.value as "newest" | "oldest" | "role-az" | "role-za")
+            }
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="role-az">Role A → Z</option>
+            <option value="role-za">Role Z → A</option>
+          </select>
+        </div>
+      </div>
 
       <table className={styles.table}>
         <thead>
@@ -52,21 +126,45 @@ export default function UsersTable() {
             <th>UID</th>
             <th>Email</th>
             <th>Display Name</th>
+            <th>Role</th>
             <th>Created At</th>
           </tr>
         </thead>
 
         <tbody>
-          {users.map((user) => (
+          {pageRows.map((user) => (
             <tr key={user.id}>
               <td>{user.id}</td>
               <td>{user.email ?? "—"}</td>
               <td>{user.user_metadata?.full_name || "—"}</td>
+              <td>{user.user_metadata?.role || "—"}</td>
               <td>{new Date(user.created_at).toLocaleDateString()}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {filtered.length > 0 && (
+        <div className={styles.pagination}>
+          <button
+            className={styles.pageBtn}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className={styles.pageInfo}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className={styles.pageBtn}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
