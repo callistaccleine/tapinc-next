@@ -317,6 +317,8 @@ export function PhysicalCardDesigner({
 }: PhysicalCardDesignerProps) {
   const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const [activeElementId, setActiveElementId] = useState<string | null>(null);
+  const [toolbarPosition, setToolbarPosition] = useState<{ left: number; top: number } | null>(null);
   const AlignIcon = ({ variant }: { variant: "left" | "center" | "right" | "top" | "middle" | "bottom" }) => {
     const common = {
       width: 16,
@@ -429,11 +431,15 @@ export function PhysicalCardDesigner({
   const [saving, setSaving] = useState(false);
   const [savingDesign, setSavingDesign] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [activeElementIds, setActiveElementIds] = useState<string[]>([]);
   const [selectedElementSide, setSelectedElementSide] = useState<CardSide>("front");
   const [selectedPreset, setSelectedPreset] = useState<TextContentKey>("headline");
   const [customText, setCustomText] = useState("TapInk");
   const pixelRatio = displayedWidth > 0 ? cardWidthPx / displayedWidth : 1;
   const cardElements = cardDesign.elements ?? [];
+  const previewWrapperRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const headerRowRef = useRef<HTMLDivElement>(null);
 
   const qrValue =
     profileUrl || (previewData.email ? `mailto:${previewData.email}` : "https://tapink.com.au");
@@ -548,6 +554,32 @@ export function PhysicalCardDesigner({
     }
   };
 
+  const selectElement = (element: CardElement, event?: ReactPointerEvent<HTMLDivElement>) => {
+    const allowMulti = event?.metaKey || event?.ctrlKey || event?.shiftKey;
+    if (!allowMulti) {
+      setActiveElementId(element.id);
+      setActiveElementIds([element.id]);
+      setSelectedElementSide(element.side);
+      return;
+    }
+    if (element.side !== selectedElementSide) {
+      setSelectedElementSide(element.side);
+      setActiveElementIds([element.id]);
+      setActiveElementId(element.id);
+      return;
+    }
+    setActiveElementIds((prev) => {
+      if (prev.includes(element.id)) {
+        const next = prev.filter((id) => id !== element.id);
+        setActiveElementId(next[0] ?? null);
+        return next;
+      }
+      const next = [...prev, element.id];
+      setActiveElementId(element.id);
+      return next;
+    });
+  };
+
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>, element: CardElement) => {
     if (exporting || element.locked) return;
     const targetRef = element.side === "front" ? frontRef : backRef;
@@ -607,15 +639,32 @@ export function PhysicalCardDesigner({
     event.preventDefault();
   };
 
+  const handleElementPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    element: CardElement
+  ) => {
+    selectElement(element, event);
+    startDrag(event, element);
+  };
+  const clearSelection = () => {
+    setActiveElementId(null);
+    setActiveElementIds([]);
+  };
+
 const renderElement = (element: CardElement) => {
-  const isSelected = selectedElements.some((sel) => sel.id === element.id);
+  const isOnActiveSide = element.side === selectedElementSide;
+  const isSelected = activeElementIds.length
+    ? activeElementIds.includes(element.id)
+    : activeElementId
+    ? element.id === activeElementId
+    : isOnActiveSide;
   const widthRatio = getElementWidth(element);
   const heightRatio = getElementHeight(element);
   const widthPx = widthRatio * displayedWidth;
   const heightPx = heightRatio * displayedHeight;
     const left = (element.x ?? 0) * displayedWidth;
     const top = (element.y ?? 0) * displayedHeight;
-    const showGuides = !exporting;
+    const showGuides = !exporting && isOnActiveSide;
 
   const baseStyle: CSSProperties = {
       position: "absolute",
@@ -629,7 +678,7 @@ const renderElement = (element: CardElement) => {
       cursor: showGuides ? (element.locked? "not-allowed": "grab") : "default",
       border: showGuides
         ? isSelected
-          ? "1px dotted rgba(255,255,255,0.9)"
+          ? "1px solid rgba(255,255,255,0.9)"
           : "1px dotted rgba(255,255,255,0.35)"
         : "none",
       borderRadius: element.type === "text" ? 8 : 10,
@@ -650,7 +699,7 @@ const renderElement = (element: CardElement) => {
         <div
           key={element.id}
           style={baseStyle}
-          onPointerDown={(event) => startDrag(event, element)}
+          onPointerDown={(event) => handleElementPointerDown(event, element)}
         >
           <div
             style={{
@@ -682,7 +731,7 @@ const renderElement = (element: CardElement) => {
                 : "1px dashed rgba(255,255,255,0.35)"
               : "none",
           }}
-          onPointerDown={(event) => startDrag(event, element)}
+          onPointerDown={(event) => handleElementPointerDown(event, element)}
         >
           {src ? (
             <img
@@ -713,7 +762,7 @@ const renderElement = (element: CardElement) => {
               height: heightPx,
               cursor: showGuides ? "grab" : "default",
             }}
-            onPointerDown={(event) => startDrag(event, element)}
+            onPointerDown={(event) => handleElementPointerDown(event, element)}
           >
             <div
               style={{
@@ -740,7 +789,7 @@ const renderElement = (element: CardElement) => {
             borderRadius: radius,
             border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
           }}
-          onPointerDown={(event) => startDrag(event, element)}
+          onPointerDown={(event) => handleElementPointerDown(event, element)}
         />
       );
     }
@@ -755,7 +804,7 @@ const renderElement = (element: CardElement) => {
             borderRadius: "999px",
             border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
           }}
-          onPointerDown={(event) => startDrag(event, element)}
+          onPointerDown={(event) => handleElementPointerDown(event, element)}
         />
       );
     }
@@ -799,7 +848,7 @@ const renderElement = (element: CardElement) => {
       <div
         key={element.id}
         style={{ ...baseStyle, display: "flex", alignItems: "center", justifyContent: "center" }}
-        onPointerDown={(event) => startDrag(event, element)}
+        onPointerDown={(event) => handleElementPointerDown(event, element)}
       >
         <QRCodeCanvas
           value={qrValue}
@@ -821,11 +870,92 @@ const renderElement = (element: CardElement) => {
     () => cardElements.filter((element) => element.side === "back"),
     [cardElements]
   );
+  const activeElements = useMemo(
+    () => cardElements.filter((element) => activeElementIds.includes(element.id)),
+    [cardElements, activeElementIds]
+  );
   const selectedElements = useMemo(
     () => cardElements.filter((element) => element.side === selectedElementSide),
     [cardElements, selectedElementSide]
   );
+  const activeElement = useMemo(
+    () => activeElements[0] ?? cardElements.find((element) => element.id === activeElementId) ?? null,
+    [activeElements, cardElements, activeElementId]
+  );
 
+  useEffect(() => {
+    if (activeElementId && !activeElement) {
+      setActiveElementId(null);
+      setToolbarPosition(null);
+    }
+    if (activeElements.length && !activeElementId) {
+      setActiveElementId(activeElements[0].id);
+    }
+    if (!activeElements.length && activeElementIds.length) {
+      setActiveElementIds([]);
+    }
+  }, [activeElementId, activeElement, activeElements, activeElementIds]);
+
+  useEffect(() => {
+    if (!activeElement) {
+      setToolbarPosition(null);
+      return;
+    }
+    const wrapper = previewWrapperRef.current;
+    const header = headerRowRef.current;
+    if (!wrapper || !header) return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    const left = headerRect.right - wrapperRect.left + 16;
+    const top = headerRect.top - wrapperRect.top + headerRect.height + 8;
+    setToolbarPosition({
+      left: clamp(left, 12, wrapperRect.width - 12),
+      top: clamp(top, 12, wrapperRect.height - 12),
+    });
+  }, [activeElement, displayedWidth, displayedHeight, previewScale]);
+
+  const selectedIds = useMemo(
+    () => (activeElementIds.length ? activeElementIds : activeElementId ? [activeElementId] : []),
+    [activeElementIds, activeElementId]
+  );
+  const selectionBucket = useMemo(
+    () =>
+      activeElements.length
+        ? activeElements
+        : activeElement
+        ? [activeElement]
+        : [],
+    [activeElements, activeElement]
+  );
+  const selectionCount = selectionBucket.length;
+  const hasMultiSelection = selectionCount > 1;
+  const anyUnlockedSelected = selectionBucket.some((el) => !el.locked);
+  const tidyTargets = useMemo(
+    () =>
+      cardElements.filter(
+        (element) =>
+          selectedIds.includes(element.id) &&
+          element.side === selectedElementSide &&
+          !element.locked &&
+          element.type !== "border"
+      ),
+    [selectedIds, cardElements, selectedElementSide]
+  );
+  const canDistributeX = tidyTargets.length >= 2;
+  const canDistributeY = tidyTargets.length >= 2;
+
+  useEffect(() => {
+    const handleOutsideClick = (event: PointerEvent) => {
+      const target = event.target as Node;
+      const insideToolbar = toolbarRef.current?.contains(target);
+      const insidePreview = previewWrapperRef.current?.contains(target);
+      if (!insideToolbar && !insidePreview) {
+        clearSelection();
+      }
+    };
+    document.addEventListener("pointerdown", handleOutsideClick, true);
+    return () => document.removeEventListener("pointerdown", handleOutsideClick, true);
+  }, []);
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
@@ -1015,6 +1145,96 @@ const renderElement = (element: CardElement) => {
     );
   };
 
+  const alignBulk = (options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }) => {
+    const targetIds = selectedIds;
+    if (!targetIds.length) return;
+    setElements((prev) =>
+      prev.map((element) => {
+        const isSelected =
+          targetIds.includes(element.id) &&
+          element.side === selectedElementSide &&
+          !element.locked &&
+          element.type !== "border";
+        if (!isSelected) return element;
+
+        const widthRatio = getElementWidth(element);
+        const heightRatio = getElementHeight(element);
+        const minX = bleedXRatio;
+        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
+        const minY = bleedYRatio;
+        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+
+        const next = { ...element };
+        if (options.horizontal) {
+          if (options.horizontal === "left") next.x = minX;
+          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, minX, maxX);
+          if (options.horizontal === "right") next.x = maxX;
+        }
+        if (options.vertical) {
+          if (options.vertical === "top") next.y = minY;
+          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, minY, maxY);
+          if (options.vertical === "bottom") next.y = maxY;
+        }
+        return next;
+      })
+    );
+  };
+
+  const distributeEvenly = (direction: "horizontal" | "vertical") => {
+    const targetIds = selectedIds;
+    setElements((prev) => {
+      const targets = prev.filter(
+        (element) =>
+          targetIds.includes(element.id) &&
+          element.side === selectedElementSide &&
+          !element.locked &&
+          element.type !== "border"
+      );
+      if (targets.length < 2) return prev;
+      const sizeFn = direction === "horizontal" ? getElementWidth : getElementHeight;
+      const posKey = direction === "horizontal" ? "x" : "y";
+      const sorted = [...targets].sort((a, b) => {
+        const aPos = a[posKey] ?? 0;
+        const bPos = b[posKey] ?? 0;
+        return aPos - bPos;
+      });
+      const minStart = Math.min(...sorted.map((el) => (el[posKey] ?? 0)));
+      const maxEnd = Math.max(...sorted.map((el) => (el[posKey] ?? 0) + sizeFn(el)));
+      const totalSpan = sorted.reduce((sum, el) => sum + sizeFn(el), 0);
+      const gap =
+        sorted.length > 1 ? Math.max((maxEnd - minStart - totalSpan) / (sorted.length - 1), 0) : 0;
+      let cursor = minStart;
+      const nextPositions = new Map<string, number>();
+      sorted.forEach((el) => {
+        nextPositions.set(el.id, cursor);
+        cursor += sizeFn(el) + gap;
+      });
+      return prev.map((el) => {
+        const next = nextPositions.get(el.id);
+        if (next === undefined) return el;
+        return {
+          ...el,
+          [posKey]: next,
+        } as CardElement;
+      });
+    });
+  };
+
+  const setRotationForSelection = (rotation: number) => {
+    const clamped = Math.max(-180, Math.min(rotation, 180));
+    const targetIds = selectedIds;
+    setElements((prev) =>
+      prev.map((el) => {
+        const isSelected =
+          targetIds.includes(el.id) &&
+          el.side === selectedElementSide &&
+          !el.locked;
+        if (!isSelected) return el;
+        return { ...el, rotation: clamped };
+      })
+    );
+  };
+
   const alignElement = (
     id: string,
     options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }
@@ -1045,6 +1265,16 @@ const renderElement = (element: CardElement) => {
         return next;
       })
     );
+  };
+
+  const alignSelection = (options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }) => {
+    if (selectionCount > 1) {
+      alignBulk(options);
+      return;
+    }
+    if (activeElement) {
+      alignElement(activeElement.id, options);
+    }
   };
 
   const updateCustomText = (id: string, value: string) => {
@@ -1087,6 +1317,8 @@ const renderElement = (element: CardElement) => {
                   ? clamped
                   : element.type === "line"
                   ? element.height
+                  : element.type === "shape" && (element.shapeVariant === "circle" || element.shapeVariant === "square")
+                  ? clamped
                   : element.height,
             }
           : element
@@ -1145,7 +1377,9 @@ const renderElement = (element: CardElement) => {
           flexDirection: "column",
           gap: "18px",
           marginBottom: "24px",
+          position: "relative",
         }}
+        ref={previewWrapperRef}
       >
         <div
           style={{
@@ -1155,14 +1389,518 @@ const renderElement = (element: CardElement) => {
             flexWrap: "wrap",
             gap: "12px",
           }}
+          ref={headerRowRef}
         >
           <span style={{ fontSize: "12px", letterSpacing: "0.14em", color: "#667085" }}>
             CARD PREVIEW
           </span>
-          <span style={{ fontSize: "12px", color: "#98a2b3" }}>
-            Card size: 86mm x 54mm • {cardDesign.resolution} DPI export
-          </span>
-        </div>
+            <span style={{ fontSize: "12px", color: "#98a2b3" }}>
+              Card size: 86mm x 54mm • {cardDesign.resolution} DPI export
+            </span>
+          </div>
+        {activeElement && toolbarPosition && (
+          <div
+            style={{
+              position: "absolute",
+              left: toolbarPosition.left,
+              top: toolbarPosition.top,
+              transform: "translate(-100%, 0)",
+              background: "rgba(15,23,42,0.96)",
+              color: "#ffffff",
+              padding: "12px 14px",
+              borderRadius: "14px",
+              boxShadow: "0 18px 40px rgba(15,23,42,0.24)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              minWidth: "280px",
+              maxWidth: "360px",
+              maxHeight: "calc(100% - 24px)",
+              overflowY: "auto",
+              zIndex: 5,
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            ref={toolbarRef}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "11px", letterSpacing: "0.08em", color: "#cbd5e1" }}>QUICK EDIT</span>
+                <span style={{ fontWeight: 700, fontSize: "13px" }}>{getElementLabel(activeElement)}</span>
+                <span style={{ fontSize: "12px", color: "#e2e8f0" }}>
+                  {activeElement.side === "front" ? "Front" : "Back"} side
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={() => toggleLockElement(activeElement.id)}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: activeElement.locked ? "#22c55e" : "transparent",
+                    color: activeElement.locked ? "#0b1b0f" : "#ffffff",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                  }}
+                  aria-label={activeElement.locked ? "Unlock element" : "Lock element"}
+                  title={activeElement.locked ? "Unlock" : "Lock"}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    {activeElement.locked ? (
+                      <>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        <rect x="5" y="11" width="14" height="10" rx="2" />
+                        <path d="M12 15v2" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                        <rect x="5" y="11" width="14" height="10" rx="2" />
+                        <path d="M12 15v2" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to delete this element?")) {
+                      removeElement(activeElement.id);
+                      clearSelection();
+                    }
+                  }}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "rgba(239,68,68,0.14)",
+                    color: "#fecdd3",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "40px",
+                    height: "36px",
+                  }}
+                  aria-label="Remove element"
+                  title="Remove"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                alignItems: "center",
+                marginTop: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ fontSize: "12px", color: "#cbd5e1" }}>Align</span>
+              <button
+                type="button"
+                onClick={() => alignSelection({ horizontal: "left" })}
+                disabled={activeElement.locked}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "transparent",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  cursor: activeElement.locked ? "not-allowed" : "pointer",
+                }}
+                aria-label="Align left"
+                title="Align left"
+              >
+                <AlignIcon variant="left" />
+              </button>
+              <button
+                type="button"
+                onClick={() => alignSelection({ horizontal: "center" })}
+                disabled={activeElement.locked}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "transparent",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  cursor: activeElement.locked ? "not-allowed" : "pointer",
+                }}
+                aria-label="Align center"
+                title="Align center"
+              >
+                <AlignIcon variant="center" />
+              </button>
+              <button
+                type="button"
+                onClick={() => alignSelection({ horizontal: "right" })}
+                disabled={activeElement.locked}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "transparent",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  cursor: activeElement.locked ? "not-allowed" : "pointer",
+                }}
+                aria-label="Align right"
+                title="Align right"
+              >
+                <AlignIcon variant="right" />
+              </button>
+              <button
+                type="button"
+                onClick={() => alignSelection({ vertical: "top" })}
+                disabled={activeElement.locked}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "transparent",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  cursor: activeElement.locked ? "not-allowed" : "pointer",
+                }}
+                aria-label="Align top"
+                title="Align top"
+              >
+                <AlignIcon variant="top" />
+              </button>
+              <button
+                type="button"
+                onClick={() => alignSelection({ vertical: "middle" })}
+                disabled={activeElement.locked}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "transparent",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  cursor: activeElement.locked ? "not-allowed" : "pointer",
+                }}
+                aria-label="Align middle"
+                title="Align middle"
+              >
+                <AlignIcon variant="middle" />
+              </button>
+              <button
+                type="button"
+                onClick={() => alignSelection({ vertical: "bottom" })}
+                disabled={activeElement.locked}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "transparent",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  cursor: activeElement.locked ? "not-allowed" : "pointer",
+                }}
+                aria-label="Align bottom"
+                title="Align bottom"
+              >
+                <AlignIcon variant="bottom" />
+              </button>
+            </div>
+            {selectionCount > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "#cbd5e1",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Rotate (applies to all selected)</span>
+                  <span>{Math.round(activeElement.rotation ?? 0)}°</span>
+                </div>
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  step={1}
+                  value={activeElement.rotation ?? 0}
+                  onChange={(event) => setRotationForSelection(parseInt(event.target.value, 10))}
+                  disabled={!anyUnlockedSelected}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            )}
+            {activeElement.type === "text" && (
+              <>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", fontSize: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#cbd5e1" }}>
+                    <span>Font size</span>
+                    <span>{ratioToPt(activeElement.fontSize ?? 0.05)} pt</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={MIN_FONT_RATIO}
+                    max={MAX_FONT_RATIO}
+                    step={0.001}
+                    value={activeElement.fontSize ?? 0.05}
+                    disabled={activeElement.locked}
+                    onChange={(event) => {
+                      const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                      setElements((prev) =>
+                        prev.map((el) => (el.id === activeElement.id ? { ...el, fontSize: next } : el))
+                      );
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Text colour
+                  <input
+                    type="color"
+                    value={activeElement.color || cardDesign.textColor}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id
+                            ? {
+                                ...el,
+                                color: event.target.value,
+                              }
+                            : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      height: "32px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "transparent",
+                    }}
+                  />
+                </label>
+              </>
+            )}
+            {(activeElement.type === "image" || activeElement.type === "qr") && (
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px", fontSize: "12px", color: "#cbd5e1" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Size</span>
+                  <span>{Math.round(getElementWidth(activeElement) * cardWidthPx)} px</span>
+                </div>
+                <input
+                  type="range"
+                  min={Math.round(minElementSizePx)}
+                  max={Math.round(maxElementSizePx)}
+                  step={1}
+                  value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
+                  onChange={(event) => handleResizeElement(activeElement.id, parseFloat(event.target.value) / cardWidthPx)}
+                  disabled={activeElement.locked}
+                />
+              </label>
+            )}
+            {activeElement.type === "shape" && (
+              <>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Fill
+                  <input
+                    type="color"
+                    value={activeElement.backgroundColor || cardDesign.textColor}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id ? { ...el, backgroundColor: event.target.value } : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      height: "32px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "transparent",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Width</span>
+                    <span>{Math.round(getElementWidth(activeElement) * cardWidthPx)} px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={Math.round(minElementSizePx)}
+                    max={Math.round(maxElementSizePx)}
+                    step={1}
+                    value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
+                    onChange={(event) => handleResizeElement(activeElement.id, parseFloat(event.target.value) / cardWidthPx)}
+                    disabled={activeElement.locked}
+                  />
+                </label>
+              </>
+            )}
+            {activeElement.type === "line" && (
+              <>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Colour
+                  <input
+                    type="color"
+                    value={activeElement.backgroundColor || cardDesign.textColor}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id ? { ...el, backgroundColor: event.target.value } : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      height: "32px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "transparent",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Length</span>
+                    <span>{Math.round(getElementWidth(activeElement) * cardWidthPx)} px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.2}
+                    max={0.95}
+                    step={0.01}
+                    value={getElementWidth(activeElement)}
+                    onChange={(event) => handleResizeElement(activeElement.id, parseFloat(event.target.value))}
+                    disabled={activeElement.locked}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Thickness</span>
+                    <span>{Math.round(getElementHeight(activeElement) * cardHeightPx)} px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.005}
+                    max={0.05}
+                    step={0.002}
+                    value={getElementHeight(activeElement)}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id
+                            ? { ...el, height: clamp(parseFloat(event.target.value), 0.005, 0.05) }
+                            : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                  />
+                </label>
+              </>
+            )}
+            {activeElement.type === "border" && (
+              <>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Border colour
+                  <input
+                    type="color"
+                    value={activeElement.borderColor || "#0f172a"}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id ? { ...el, borderColor: event.target.value } : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      height: "32px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "transparent",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Border thickness</span>
+                    <span>{Math.round(activeElement.borderThickness ?? 2)} px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={24}
+                    step={1}
+                    value={activeElement.borderThickness ?? 2}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id
+                            ? { ...el, borderThickness: parseInt(event.target.value, 10) }
+                            : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                  />
+                </label>
+              </>
+            )}
+          </div>
+        )}
         <div
           style={{
             display: "flex",
