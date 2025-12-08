@@ -40,12 +40,30 @@ type TextContentKey =
 
 type CardElementType = "text" | "image" | "qr" | "shape" | "line" | "border";
 
-type FontOption = "sfpro" | "manrope" | "apple-system" | "helveticas" | "arial" | "playfair" | "times" | "serif" | "mono" | "courier" | "pacifio" | "brush" | "cursive" | "poppins" | "avenir" | "default";
+type FontOption =
+  | "sfpro"
+  | "manrope"
+  | "apple-system"
+  | "-apple-system"
+  | "helveticas"
+  | "arial"
+  | "playfair"
+  | "times"
+  | "serif"
+  | "mono"
+  | "courier"
+  | "pacifio"
+  | "brush"
+  | "cursive"
+  | "poppins"
+  | "avenir"
+  | "default";
 
 const FONT_STACKS: Record<FontOption, string> = {
   sfpro: "SF Pro Display",
   manrope: "Manrope",
   "apple-system": "-apple-system",
+  "-apple-system": "-apple-system",
   helveticas: "Helvetica Neue",
   arial: "Arial",
   playfair: "Playfair Display",
@@ -60,6 +78,24 @@ const FONT_STACKS: Record<FontOption, string> = {
   avenir: "Avenir",
   default: "Manrope"
 };
+const FONT_OPTIONS: { label: string; value: FontOption }[] = [
+  { label: "SF Pro", value: "sfpro" },
+  { label: "Manrope", value: "manrope" },
+  { label: "Apple System", value: "-apple-system" },
+  { label: "Helvetica", value: "helveticas" },
+  { label: "Arial", value: "arial" },
+  { label: "Playfair", value: "playfair" },
+  { label: "Times New Roman", value: "times" },
+  { label: "Serif", value: "serif" },
+  { label: "Monospace", value: "mono" },
+  { label: "Courier New", value: "courier" },
+  { label: "Pacifico", value: "pacifio" },
+  { label: "Brush", value: "brush" },
+  { label: "Cursive", value: "cursive" },
+  { label: "Poppins", value: "poppins" },
+  { label: "Avenir", value: "avenir" },
+  { label: "Default (Manrope)", value: "default" },
+];
 const MIN_RESIZABLE_RATIO = 0.08;
 const MAX_RESIZABLE_RATIO = 0.6;
 const MIN_FONT_RATIO = 0.01;
@@ -1748,6 +1784,33 @@ const renderElement = (element: CardElement) => {
                       );
                     }}
                   />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Font family
+                  <select
+                    value={activeElement.fontFamily ?? cardDesign.fontFamily ?? "default"}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id ? { ...el, fontFamily: event.target.value as FontOption } : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      borderRadius: "10px",
+                      padding: "8px 10px",
+                    }}
+                  >
+                    {FONT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Text colour
