@@ -12,11 +12,13 @@ import OrdersTable from "./OrdersTable";
 import ContactSubmissionsTable from "./ContactSubmissionsTable";
 import AdminDataTable from "./AdminDataTable";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AdminEmailPanel from "./AdminEmailPanel";
 
 type TabKey =
   | "auth"
   | "users"
   | "profiles"
+  | "email"
   | "design_profiles"
   | "contact_submissions"
   | "work_orders"
@@ -32,7 +34,7 @@ type TabKey =
 
 type DataTabKey = Exclude<
   TabKey,
-  "auth" | "profiles" | "design_profiles" | "orders"
+  "auth" | "profiles" | "design_profiles" | "orders" | "email"
 >;
 
 type TabConfig = {
@@ -51,6 +53,7 @@ const primaryTabs: { key: TabKey; label: string }[] = [
   { key: "auth", label: "Auth" },
   { key: "users", label: "Users" },
   { key: "profiles", label: "Profiles" },
+  { key: "email", label: "Email" },
   { key: "design_profiles", label: "Design Profiles" },
   { key: "contact_submissions", label: "Contact Submissions" },
   { key: "work_orders", label: "Work Orders" },
@@ -187,6 +190,8 @@ export default function AdminDashboard() {
         return <DesignProfilesTable />;
       case "contact_submissions":
         return <ContactSubmissionsTable />;
+      case "email":
+        return <AdminEmailPanel />;
       case "orders":
         return <OrdersTable />;
       default: {
