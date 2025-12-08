@@ -980,6 +980,24 @@ const renderElement = (element: CardElement) => {
   const canDistributeX = tidyTargets.length >= 2;
   const canDistributeY = tidyTargets.length >= 2;
 
+  const applyToSelection = (
+    predicate: (element: CardElement) => boolean,
+    updater: (element: CardElement) => CardElement
+  ) => {
+    const targets = selectedIds.length ? selectedIds : activeElement ? [activeElement.id] : [];
+    if (!targets.length) return;
+    setElements((prev) =>
+      prev.map((element) => {
+        const isSelected =
+          targets.includes(element.id) &&
+          element.side === selectedElementSide &&
+          !element.locked &&
+          predicate(element);
+        return isSelected ? updater(element) : element;
+      })
+    );
+  };
+
   useEffect(() => {
     const handleOutsideClick = (event: PointerEvent) => {
       const target = event.target as Node;
@@ -1275,6 +1293,18 @@ const renderElement = (element: CardElement) => {
       })
     );
   };
+  const resizeSelection = (ratio: number, predicate: (element: CardElement) => boolean) => {
+    const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
+    applyToSelection(predicate, (element) => {
+      if (element.type === "image" || element.type === "qr" || element.type === "shape") {
+        return { ...element, width: clamped, height: element.type === "shape" ? element.height : clamped };
+      }
+      if (element.type === "line") {
+        return { ...element, width: clamped };
+      }
+      return element;
+    });
+  };
 
   const alignElement = (
     id: string,
@@ -1462,6 +1492,25 @@ const renderElement = (element: CardElement) => {
             onClick={(event) => event.stopPropagation()}
             ref={toolbarRef}
           >
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={clearSelection}
+                aria-label="Close quick edit"
+                title="Close"
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  padding: "4px",
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
             <div
               style={{
                 display: "flex",
@@ -1779,9 +1828,7 @@ const renderElement = (element: CardElement) => {
                     disabled={activeElement.locked}
                     onChange={(event) => {
                       const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
-                      setElements((prev) =>
-                        prev.map((el) => (el.id === activeElement.id ? { ...el, fontSize: next } : el))
-                      );
+                      applyToSelection((el) => el.type === "text", (el) => ({ ...el, fontSize: next }));
                     }}
                   />
                 </label>
@@ -1790,10 +1837,9 @@ const renderElement = (element: CardElement) => {
                   <select
                     value={activeElement.fontFamily ?? cardDesign.fontFamily ?? "default"}
                     onChange={(event) =>
-                      setElements((prev) =>
-                        prev.map((el) =>
-                          el.id === activeElement.id ? { ...el, fontFamily: event.target.value as FontOption } : el
-                        )
+                      applyToSelection(
+                        (el) => el.type === "text",
+                        (el) => ({ ...el, fontFamily: event.target.value as FontOption })
                       )
                     }
                     disabled={activeElement.locked}
@@ -1818,15 +1864,9 @@ const renderElement = (element: CardElement) => {
                     type="color"
                     value={activeElement.color || cardDesign.textColor}
                     onChange={(event) =>
-                      setElements((prev) =>
-                        prev.map((el) =>
-                          el.id === activeElement.id
-                            ? {
-                                ...el,
-                                color: event.target.value,
-                              }
-                            : el
-                        )
+                      applyToSelection(
+                        (el) => el.type === "text",
+                        (el) => ({ ...el, color: event.target.value })
                       )
                     }
                     disabled={activeElement.locked}
@@ -1853,7 +1893,11 @@ const renderElement = (element: CardElement) => {
                   max={Math.round(maxElementSizePx)}
                   step={1}
                   value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
-                  onChange={(event) => handleResizeElement(activeElement.id, parseFloat(event.target.value) / cardWidthPx)}
+                  onChange={(event) =>
+                    resizeSelection(parseFloat(event.target.value) / cardWidthPx, (el) =>
+                      el.type === "image" || el.type === "qr"
+                    )
+                  }
                   disabled={activeElement.locked}
                 />
               </label>
@@ -1866,10 +1910,9 @@ const renderElement = (element: CardElement) => {
                     type="color"
                     value={activeElement.backgroundColor || cardDesign.textColor}
                     onChange={(event) =>
-                      setElements((prev) =>
-                        prev.map((el) =>
-                          el.id === activeElement.id ? { ...el, backgroundColor: event.target.value } : el
-                        )
+                      applyToSelection(
+                        (el) => el.type === "shape",
+                        (el) => ({ ...el, backgroundColor: event.target.value })
                       )
                     }
                     disabled={activeElement.locked}
@@ -1893,7 +1936,9 @@ const renderElement = (element: CardElement) => {
                     max={Math.round(maxElementSizePx)}
                     step={1}
                     value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
-                    onChange={(event) => handleResizeElement(activeElement.id, parseFloat(event.target.value) / cardWidthPx)}
+                    onChange={(event) =>
+                      resizeSelection(parseFloat(event.target.value) / cardWidthPx, (el) => el.type === "shape")
+                    }
                     disabled={activeElement.locked}
                   />
                 </label>
