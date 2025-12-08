@@ -463,7 +463,13 @@ export function PhysicalCardDesigner({
   const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ id: string; side: CardSide; offsetX: number; offsetY: number } | null>(null);
+  const dragState = useRef<{
+    id: string;
+    side: CardSide;
+    offsetX: number;
+    offsetY: number;
+    deltas: Record<string, { dx: number; dy: number }>;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingDesign, setSavingDesign] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -627,11 +633,33 @@ export function PhysicalCardDesigner({
     const left = (element.x ?? 0) * rect.width;
     const top = (element.y ?? 0) * rect.height;
 
+    const idsToMoveBase =
+      activeElementIds.length && activeElementIds.includes(element.id) ? activeElementIds : [element.id];
+    const movableIds = cardElements
+      .filter(
+        (el) =>
+          idsToMoveBase.includes(el.id) &&
+          el.side === element.side &&
+          !el.locked &&
+          el.type !== "border"
+      )
+      .map((el) => el.id);
+
+    const deltas: Record<string, { dx: number; dy: number }> = {};
+    cardElements.forEach((el) => {
+      if (!movableIds.includes(el.id)) return;
+      deltas[el.id] = {
+        dx: (el.x ?? 0) - (element.x ?? 0),
+        dy: (el.y ?? 0) - (element.y ?? 0),
+      };
+    });
+
     dragState.current = {
       id: element.id,
       side: element.side,
       offsetX: pointerX - left,
       offsetY: pointerY - top,
+      deltas,
     };
 
     const handleMove = (moveEvent: PointerEvent) => {
@@ -642,25 +670,25 @@ export function PhysicalCardDesigner({
       const activeRect = activeEl.getBoundingClientRect();
       const posX = moveEvent.clientX - activeRect.left - dragState.current.offsetX;
       const posY = moveEvent.clientY - activeRect.top - dragState.current.offsetY;
-      const widthRatio = getElementWidth(element);
-      const heightRatio = getElementHeight(element);
-      const minX = bleedXRatio;
-      const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-      const minY = bleedYRatio;
-      const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
-      const nextX = clamp(posX / activeRect.width, minX, maxX);
-      const nextY = clamp(posY / activeRect.height, minY, maxY);
 
       setElements((prev) =>
-        prev.map((item) =>
-          item.id === dragState.current?.id
-            ? {
-                ...item,
-                x: nextX,
-                y: nextY,
-              }
-            : item
-        )
+        prev.map((item) => {
+          const delta = dragState.current?.deltas[item.id];
+          if (!delta || item.side !== dragState.current?.side || item.locked || item.type === "border") {
+            return item;
+          }
+
+          const widthRatio = getElementWidth(item);
+          const heightRatio = getElementHeight(item);
+          const minX = bleedXRatio;
+          const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
+          const minY = bleedYRatio;
+          const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+
+          const nextX = clamp(posX / activeRect.width + delta.dx, minX, maxX);
+          const nextY = clamp(posY / activeRect.height + delta.dy, minY, maxY);
+          return { ...item, x: nextX, y: nextY };
+        })
       );
     };
 
