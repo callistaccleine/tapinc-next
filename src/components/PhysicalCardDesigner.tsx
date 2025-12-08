@@ -1220,6 +1220,11 @@ const renderElement = (element: CardElement) => {
     });
   };
 
+  const distributeSelection = (direction: "horizontal" | "vertical") => {
+    if (selectionCount < 2) return;
+    distributeEvenly(direction);
+  };
+
   const setRotationForSelection = (rotation: number) => {
     const clamped = Math.max(-180, Math.min(rotation, 180));
     const targetIds = selectedIds;
@@ -1675,6 +1680,51 @@ const renderElement = (element: CardElement) => {
                   disabled={!anyUnlockedSelected}
                   style={{ width: "100%" }}
                 />
+              </div>
+            )}
+            {hasMultiSelection && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  alignItems: "center",
+                  marginTop: "8px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontSize: "12px", color: "#cbd5e1" }}>Tidy up</span>
+                <button
+                  type="button"
+                  onClick={() => distributeSelection("horizontal")}
+                  disabled={!canDistributeX}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: canDistributeX ? "transparent" : "rgba(255,255,255,0.08)",
+                    color: canDistributeX ? "#ffffff" : "rgba(255,255,255,0.5)",
+                    borderRadius: "8px",
+                    padding: "6px 10px",
+                    fontSize: "12px",
+                    cursor: canDistributeX ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Space evenly (X)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => distributeSelection("vertical")}
+                  disabled={!canDistributeY}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: canDistributeY ? "transparent" : "rgba(255,255,255,0.08)",
+                    color: canDistributeY ? "#ffffff" : "rgba(255,255,255,0.5)",
+                    borderRadius: "8px",
+                    padding: "6px 10px",
+                    fontSize: "12px",
+                    cursor: canDistributeY ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Space evenly (Y)
+                </button>
               </div>
             )}
             {activeElement.type === "text" && (
