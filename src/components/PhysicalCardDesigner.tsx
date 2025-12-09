@@ -112,6 +112,12 @@ const MAX_RESIZABLE_RATIO = 0.6;
 const MIN_FONT_RATIO = 0.01;
 const MAX_FONT_RATIO = 0.2;
 
+const isCustomTextElement = (element: CardElement) =>
+  element.type === "text" && (!element.contentKey || element.contentKey === "custom");
+
+const isBorderElement = (element: CardElement) => element.type === "border";
+const isShapeElement = (element: CardElement) => element.type === "shape";
+
 export type CardElement = {
   id: string;
   type: CardElementType;
@@ -482,6 +488,7 @@ export function PhysicalCardDesigner({
   const cutLineColor = "rgba(255,255,255,0.7)";
   const safeLineColor = "rgba(82, 211, 151, 0.7)";
   const bleedLineColor = "rgba(255, 111, 97, 0.75)";
+  const bleedOverlayColor = "rgba(255, 111, 97, 0.08)";
   const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
   const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
@@ -505,6 +512,8 @@ export function PhysicalCardDesigner({
   const [customText, setCustomText] = useState("TapInk");
   const pixelRatio = displayedWidth > 0 ? cardWidthPx / displayedWidth : 1;
   const cardElements = cardDesign.elements ?? [];
+  const [showGuidesOverlay, setShowGuidesOverlay] = useState(true);
+  const [showGuidesHint, setShowGuidesHint] = useState(false);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const headerRowRef = useRef<HTMLDivElement>(null);
@@ -531,12 +540,16 @@ export function PhysicalCardDesigner({
   }, [cardDesign.orientation, safeXRatio, safeYRatio]);
 
   const clampElementPosition = (element: CardElement): CardElement => {
+    if (isBorderElement(element)) {
+      return { ...element, x: 0, y: 0, width: 1, height: 1 };
+    }
     const widthRatio = getElementWidth(element);
     const heightRatio = getElementHeight(element);
-    const minX = safeXRatio;
-    const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
-    const minY = safeYRatio;
-    const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
+    const allowFull = isCustomTextElement(element) || isShapeElement(element);
+    const minX = allowFull ? 0 : safeXRatio;
+    const maxX = allowFull ? Math.max(0, 1 - widthRatio) : Math.max(minX, 1 - safeXRatio - widthRatio);
+    const minY = allowFull ? 0 : safeYRatio;
+    const maxY = allowFull ? Math.max(minY, 1 - heightRatio) : Math.max(minY, 1 - safeYRatio - heightRatio);
 
     return {
       ...element,
@@ -657,7 +670,7 @@ export function PhysicalCardDesigner({
   };
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>, element: CardElement) => {
-    if (exporting || element.locked) return;
+    if (exporting || element.locked || isBorderElement(element)) return;
     const targetRef = element.side === "front" ? frontRef : backRef;
     const cardEl = targetRef.current;
     if (!cardEl) return;
@@ -707,8 +720,8 @@ export function PhysicalCardDesigner({
       const trimmedPosX = posX - bleedXPx;
       const trimmedPosY = posY - bleedYPx;
 
-      setElements((prev) =>
-        prev.map((item) => {
+    setElements((prev) =>
+      prev.map((item) => {
           const delta = dragState.current?.deltas[item.id];
           if (!delta || item.side !== dragState.current?.side || item.locked || item.type === "border") {
             return item;
@@ -716,10 +729,15 @@ export function PhysicalCardDesigner({
 
           const widthRatio = getElementWidth(item);
           const heightRatio = getElementHeight(item);
-          const minX = safeXRatio;
-          const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
-          const minY = safeYRatio;
-          const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
+          const allowFull = isCustomTextElement(item) || isShapeElement(item);
+          const minX = allowFull ? 0 : safeXRatio;
+          const maxX = allowFull
+            ? Math.max(0, 1 - widthRatio)
+            : Math.max(minX, 1 - safeXRatio - widthRatio);
+          const minY = allowFull ? 0 : safeYRatio;
+          const maxY = allowFull
+            ? Math.max(minY, 1 - heightRatio)
+            : Math.max(minY, 1 - safeYRatio - heightRatio);
 
           const nextX = clamp(trimmedPosX / displayedWidth + delta.dx, minX, maxX);
           const nextY = clamp(trimmedPosY / displayedHeight + delta.dy, minY, maxY);
@@ -920,30 +938,85 @@ const renderElement = (element: CardElement) => {
       const innerWidth = Math.max(displayedWidth - insetXPx * 2, 0);
       const innerHeight = Math.max(displayedHeight - insetYPx * 2, 0);
       return (
-        <div
-          key={element.id}
-          style={{
-            position: "absolute",
-            left: contentOffsetX,
-            top: contentOffsetY,
-            width: displayedWidth,
-            height: displayedHeight,
-            pointerEvents: "none",
-          }}
-        >
+        <>
+          {/* Hit areas for selecting the border without blocking inner elements */}
           <div
+            key={`${element.id}-hit-top`}
             style={{
               position: "absolute",
-              left: insetXPx,
-              top: insetYPx,
-              width: innerWidth,
-              height: innerHeight,
-              border: `${thicknessPx}px solid ${borderColor}`,
-              borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
-              boxSizing: "border-box",
+              left: contentOffsetX,
+              top: contentOffsetY,
+              width: displayedWidth,
+              height: Math.max(thicknessPx * 2, 12),
+              background: "transparent",
+              cursor: "pointer",
             }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
           />
-        </div>
+          <div
+            key={`${element.id}-hit-bottom`}
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY + Math.max(displayedHeight - Math.max(thicknessPx * 2, 12), 0),
+              width: displayedWidth,
+              height: Math.max(thicknessPx * 2, 12),
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+          />
+          <div
+            key={`${element.id}-hit-left`}
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY + Math.max(thicknessPx * 2, 12),
+              width: Math.max(thicknessPx * 2, 12),
+              height: Math.max(displayedHeight - Math.max(thicknessPx * 4, 24), 0),
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+          />
+          <div
+            key={`${element.id}-hit-right`}
+            style={{
+              position: "absolute",
+              left: contentOffsetX + Math.max(displayedWidth - Math.max(thicknessPx * 2, 12), 0),
+              top: contentOffsetY + Math.max(thicknessPx * 2, 12),
+              width: Math.max(thicknessPx * 2, 12),
+              height: Math.max(displayedHeight - Math.max(thicknessPx * 4, 24), 0),
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+          />
+          <div
+            key={element.id}
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY,
+              width: displayedWidth,
+              height: displayedHeight,
+              pointerEvents: "none",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: insetXPx,
+                top: insetYPx,
+                width: innerWidth,
+                height: innerHeight,
+                border: `${thicknessPx}px solid ${borderColor}`,
+                borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        </>
       );
     }
 
@@ -1048,6 +1121,33 @@ const renderElement = (element: CardElement) => {
   );
   const canDistributeX = tidyTargets.length >= 2;
   const canDistributeY = tidyTargets.length >= 2;
+  const isOutsideSafeArea = (element: CardElement) => {
+    const widthRatio = getElementWidth(element);
+    const heightRatio = getElementHeight(element);
+    const x = element.x ?? 0;
+    const y = element.y ?? 0;
+    return (
+      x < safeXRatio ||
+      y < safeYRatio ||
+      x + widthRatio > 1 - safeXRatio ||
+      y + heightRatio > 1 - safeYRatio
+    );
+  };
+  const showPlacementWarning =
+    !!activeElement &&
+    (isCustomTextElement(activeElement) || isShapeElement(activeElement)) &&
+    isOutsideSafeArea(activeElement);
+  const guidesVisible = showGuidesOverlay || showGuidesHint;
+
+  useEffect(() => {
+    if (showPlacementWarning) {
+      setShowGuidesHint(true);
+      const timeout = window.setTimeout(() => setShowGuidesHint(false), 1800);
+      return () => window.clearTimeout(timeout);
+    }
+    setShowGuidesHint(false);
+    return;
+  }, [showPlacementWarning]);
 
   const applyToSelection = (
     predicate: (element: CardElement) => boolean,
@@ -1295,36 +1395,100 @@ const renderElement = (element: CardElement) => {
   const alignBulk = (options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }) => {
     const targetIds = selectedIds;
     if (!targetIds.length) return;
-    setElements((prev) =>
-      prev.map((element) => {
+    setElements((prev) => {
+      const selected = prev.filter(
+        (element) =>
+          targetIds.includes(element.id) &&
+          element.side === selectedElementSide &&
+          !element.locked &&
+          element.type !== "border"
+      );
+      if (!selected.length) return prev;
+
+      const widths = new Map<string, number>();
+      const heights = new Map<string, number>();
+      selected.forEach((el) => {
+        widths.set(el.id, getElementWidth(el));
+        heights.set(el.id, getElementHeight(el));
+      });
+
+      const minX = Math.min(...selected.map((el) => el.x ?? 0));
+      const minY = Math.min(...selected.map((el) => el.y ?? 0));
+      const maxX = Math.max(...selected.map((el) => (el.x ?? 0) + (widths.get(el.id) ?? 0)));
+      const maxY = Math.max(...selected.map((el) => (el.y ?? 0) + (heights.get(el.id) ?? 0)));
+      const groupWidth = maxX - minX;
+      const groupHeight = maxY - minY;
+
+      const horizontalDelta = (() => {
+        if (!options.horizontal) return 0;
+        const allowFullWidth = selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const marginX = allowFullWidth ? 0 : safeXRatio;
+        const availableWidth = Math.max(1 - marginX * 2, 0);
+        const targetLeft =
+          options.horizontal === "left"
+            ? marginX
+            : options.horizontal === "right"
+            ? marginX + Math.max(availableWidth - groupWidth, 0)
+            : marginX + Math.max((availableWidth - groupWidth) / 2, 0);
+        const desired = targetLeft - minX;
+
+        let deltaMin = -Infinity;
+        let deltaMax = Infinity;
+        selected.forEach((el) => {
+          const w = widths.get(el.id) ?? 0;
+          const x = el.x ?? 0;
+          const allowFull = isCustomTextElement(el) || isShapeElement(el);
+          const minAllowed = allowFull ? 0 : safeXRatio;
+          const maxAllowed = allowFull
+            ? Math.max(0, 1 - w)
+            : Math.max(minAllowed, 1 - safeXRatio - w);
+          deltaMin = Math.max(deltaMin, minAllowed - x);
+          deltaMax = Math.min(deltaMax, maxAllowed - x);
+        });
+        return clamp(desired, deltaMin, deltaMax);
+      })();
+
+      const verticalDelta = (() => {
+        if (!options.vertical) return 0;
+        const allowFullHeight = selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const marginY = allowFullHeight ? 0 : safeYRatio;
+        const availableHeight = Math.max(1 - marginY * 2, 0);
+        const targetTop =
+          options.vertical === "top"
+            ? marginY
+            : options.vertical === "bottom"
+            ? marginY + Math.max(availableHeight - groupHeight, 0)
+            : marginY + Math.max((availableHeight - groupHeight) / 2, 0);
+        const desired = targetTop - minY;
+
+        let deltaMin = -Infinity;
+        let deltaMax = Infinity;
+        selected.forEach((el) => {
+          const h = heights.get(el.id) ?? 0;
+          const y = el.y ?? 0;
+          const allowFull = isCustomTextElement(el) || isShapeElement(el);
+          const minAllowed = allowFull ? 0 : safeYRatio;
+          const maxAllowed = allowFull ? Math.max(minAllowed, 1 - h) : Math.max(minAllowed, 1 - safeYRatio - h);
+          deltaMin = Math.max(deltaMin, minAllowed - y);
+          deltaMax = Math.min(deltaMax, maxAllowed - y);
+        });
+        return clamp(desired, deltaMin, deltaMax);
+      })();
+
+      return prev.map((element) => {
         const isSelected =
           targetIds.includes(element.id) &&
           element.side === selectedElementSide &&
           !element.locked &&
           element.type !== "border";
         if (!isSelected) return element;
-
-        const widthRatio = getElementWidth(element);
-        const heightRatio = getElementHeight(element);
-        const minX = safeXRatio;
-        const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
-        const minY = safeYRatio;
-        const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
-
-        const next = { ...element };
-        if (options.horizontal) {
-          if (options.horizontal === "left") next.x = minX;
-          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, minX, maxX);
-          if (options.horizontal === "right") next.x = maxX;
-        }
-        if (options.vertical) {
-          if (options.vertical === "top") next.y = minY;
-          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, minY, maxY);
-          if (options.vertical === "bottom") next.y = maxY;
-        }
-        return next;
-      })
-    );
+        return {
+          ...element,
+          x: (element.x ?? 0) + horizontalDelta,
+          y: (element.y ?? 0) + verticalDelta,
+        };
+      });
+    });
   };
 
   const distributeEvenly = (direction: "horizontal" | "vertical") => {
@@ -1410,10 +1574,15 @@ const renderElement = (element: CardElement) => {
 
         const widthRatio = getElementWidth(element);
         const heightRatio = getElementHeight(element);
-        const minX = safeXRatio;
-        const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
-        const minY = safeYRatio;
-        const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
+        const allowFull = isCustomTextElement(element) || isShapeElement(element);
+        const minX = allowFull ? 0 : safeXRatio;
+        const maxX = allowFull
+          ? Math.max(0, 1 - widthRatio)
+          : Math.max(minX, 1 - safeXRatio - widthRatio);
+        const minY = allowFull ? 0 : safeYRatio;
+        const maxY = allowFull
+          ? Math.max(minY, 1 - heightRatio)
+          : Math.max(minY, 1 - safeYRatio - heightRatio);
 
         const next = { ...element };
         if (options.horizontal) {
@@ -1509,48 +1678,97 @@ const renderElement = (element: CardElement) => {
       }}
       ref={ref}
     >
-      {/* Bleed outline */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: displayedWidth + bleedXPx * 2,
-          height: displayedHeight + bleedYPx * 2,
-          border: `1px solid ${bleedLineColor}`,
-          borderRadius: cornerRadiusPx + Math.max(bleedXPx, bleedYPx),
-          boxSizing: "border-box",
-          pointerEvents: "none",
-        }}
-      />
-      {/* Cut line (trim) */}
-      <div
-        style={{
-          position: "absolute",
-          left: contentOffsetX,
-          top: contentOffsetY,
-          width: displayedWidth,
-          height: displayedHeight,
-          border: `1px dashed ${cutLineColor}`,
-          borderRadius: cornerRadiusPx,
-          boxSizing: "border-box",
-          pointerEvents: "none",
-        }}
-      />
-      {/* Safe area */}
-      <div
-        style={{
-          position: "absolute",
-          left: contentOffsetX + safeXPx,
-          top: contentOffsetY + safeYPx,
-          width: Math.max(displayedWidth - safeXPx * 2, 0),
-          height: Math.max(displayedHeight - safeYPx * 2, 0),
-          border: `1px dashed ${safeLineColor}`,
-          borderRadius: Math.max(cornerRadiusPx - safeXPx, 0),
-          boxSizing: "border-box",
-          pointerEvents: "none",
-        }}
-      />
+      {guidesVisible && (
+        <>
+          {/* Bleed shading to indicate non-final area */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: displayedWidth + bleedXPx * 2,
+              height: bleedXPx,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: bleedYPx + displayedHeight,
+              width: displayedWidth + bleedXPx * 2,
+              height: bleedYPx,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: bleedYPx,
+              width: bleedXPx,
+              height: displayedHeight,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: bleedXPx + displayedWidth,
+              top: bleedYPx,
+              width: bleedXPx,
+              height: displayedHeight,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          {/* Bleed outline */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: displayedWidth + bleedXPx * 2,
+              height: displayedHeight + bleedXPx * 2,
+              border: `1px solid ${bleedLineColor}`,
+              borderRadius: cornerRadiusPx + Math.max(bleedXPx, bleedYPx),
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+          {/* Cut line (trim) */}
+          <div
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY,
+              width: displayedWidth,
+              height: displayedHeight,
+              border: `1px dashed ${cutLineColor}`,
+              borderRadius: cornerRadiusPx,
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+          {/* Safe area */}
+          <div
+            style={{
+              position: "absolute",
+              left: contentOffsetX + safeXPx,
+              top: contentOffsetY + safeYPx,
+              width: Math.max(displayedWidth - safeXPx * 2, 0),
+              height: Math.max(displayedHeight - safeYPx * 2, 0),
+              border: `1px dashed ${safeLineColor}`,
+              borderRadius: Math.max(cornerRadiusPx - safeXPx, 0),
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
       {showGrid && (
         <div
           style={{
@@ -1607,6 +1825,41 @@ const renderElement = (element: CardElement) => {
               Card size: 86mm x 54mm • {cardDesign.resolution} DPI export
             </span>
           </div>
+      {showPlacementWarning && (
+          <div
+            style={{
+              marginTop: "4px",
+              padding: "8px 12px",
+              borderRadius: "12px",
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.25)",
+              color: "#ef4444",
+              fontSize: "12px",
+              fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              maxWidth: "100%",
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12" y2="17" />
+            </svg>
+            Danger zone: elements outside the safe area could be cut off during production.
+          </div>
+        )}
         {activeElement && toolbarPosition && (
           <div
             style={{
@@ -1914,6 +2167,95 @@ const renderElement = (element: CardElement) => {
                 <AlignIcon variant="bottom" />
               </button>
             </div>
+            {showPlacementWarning && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  padding: "8px 10px",
+                  borderRadius: "10px",
+                  background: "rgba(255,122,0,0.1)",
+                  color: "#ffb86c",
+                  fontSize: "12px",
+                  lineHeight: 1.4,
+                }}
+              >
+                Placing items outside the safe area might lead to trimming when printed. Proceed carefully.
+              </div>
+            )}
+            {activeElement.type === "shape" && (
+              <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Shape variant
+                  <select
+                    value={activeElement.shapeVariant ?? "rectangle"}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "shape",
+                        (el) => ({ ...el, shapeVariant: event.target.value as CardElement["shapeVariant"] })
+                      )
+                    }
+                    style={{
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      padding: "8px 10px",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <option value="rectangle">Rectangle</option>
+                    <option value="circle">Circle</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            {activeElement.type === "border" && (
+              <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Border color
+                  <input
+                    type="color"
+                    value={activeElement.borderColor || "#0f172a"}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderColor: event.target.value })
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      height: "34px",
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      background: "rgba(255,255,255,0.04)",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Thickness</span>
+                    <span>{Math.round(activeElement.borderThickness ?? 2)} px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={32}
+                    step={1}
+                    value={activeElement.borderThickness ?? 2}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderThickness: parseInt(event.target.value, 10) })
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            )}
             {selectionCount > 0 && (
               <div
                 style={{
@@ -2020,8 +2362,8 @@ const renderElement = (element: CardElement) => {
                   title="Bold"
                   style={{
                     border: "1px solid rgba(255,255,255,0.2)",
-                    background: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
-                    color: "#ffffff",
+                    background: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
+                    color: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "#ffffff" : "rgba(255,255,255,0.85)",
                     borderRadius: "10px",
                     padding: "8px 10px",
                     display: "inline-flex",
@@ -2036,10 +2378,10 @@ const renderElement = (element: CardElement) => {
                 >
                   <span
                     style={{
-                      fontWeight: 800,
+                      fontWeight: 900,
                       fontSize: "14px",
                       lineHeight: 1,
-                      color: "#ffffff",
+                      color: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "#ffffff" : "rgba(255,255,255,0.85)",
                       opacity: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? 1 : 0.75,
                     }}
                   >
@@ -2060,8 +2402,8 @@ const renderElement = (element: CardElement) => {
                   title="Italic"
                   style={{
                     border: "1px solid rgba(255,255,255,0.2)",
-                    background: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
-                    color: "#ffffff",
+                    background: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
+                    color: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "#ffffff" : "rgba(255,255,255,0.85)",
                     borderRadius: "10px",
                     padding: "8px 10px",
                     display: "inline-flex",
@@ -2078,7 +2420,7 @@ const renderElement = (element: CardElement) => {
                       fontWeight: 700,
                       fontSize: "14px",
                       lineHeight: 1,
-                      color: "#ffffff",
+                      color: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "#ffffff" : "rgba(255,255,255,0.85)",
                       opacity: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? 1 : 0.75,
                       fontStyle: "italic",
                     }}
@@ -2424,6 +2766,15 @@ const renderElement = (element: CardElement) => {
                 })}
               </div>
             </div>
+            <label style={{ fontSize: "13px", color: "#475467", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                checked={showGuidesOverlay}
+                onChange={(e) => setShowGuidesOverlay(e.target.checked)}
+                style={{ width: "16px", height: "16px" }}
+              />
+              Show bleed / safe guides
+            </label>
             <label style={{ fontSize: "13px", color: "#475467", display: "flex", alignItems: "center", gap: "8px" }}>
               <input
                 type="checkbox"
