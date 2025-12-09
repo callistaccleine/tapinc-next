@@ -752,6 +752,27 @@ export function PhysicalCardDesigner({
       };
     });
 
+    const idsToMoveBase =
+      activeElementIds.length && activeElementIds.includes(element.id) ? activeElementIds : [element.id];
+    const movableIds = cardElements
+      .filter(
+        (el) =>
+          idsToMoveBase.includes(el.id) &&
+          el.side === element.side &&
+          !el.locked &&
+          el.type !== "border"
+      )
+      .map((el) => el.id);
+
+    const deltas: Record<string, { dx: number; dy: number }> = {};
+    cardElements.forEach((el) => {
+      if (!movableIds.includes(el.id)) return;
+      deltas[el.id] = {
+        dx: (el.x ?? 0) - (element.x ?? 0),
+        dy: (el.y ?? 0) - (element.y ?? 0),
+      };
+    });
+
     dragState.current = {
       id: element.id,
       side: element.side,
