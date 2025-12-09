@@ -111,6 +111,10 @@ const MIN_RESIZABLE_RATIO = 0.08;
 const MAX_RESIZABLE_RATIO = 0.6;
 const MIN_FONT_RATIO = 0.01;
 const MAX_FONT_RATIO = 0.2;
+const MIN_IMAGE_PX = 240;
+const MAX_MEDIA_PX = 765;
+const MIN_OPACITY = 0.1;
+const MAX_OPACITY = 1;
 
 const isCustomTextElement = (element: CardElement) =>
   element.type === "text" && (!element.contentKey || element.contentKey === "custom");
@@ -135,6 +139,7 @@ export type CardElement = {
   text?: string;
   color?: string;
   showIcon?: boolean;
+  opacity?: number;
   imageUrl?: string | null;
   backgroundColor?: string;
   fontWeight?: FontWeightOption;
@@ -492,12 +497,35 @@ export function PhysicalCardDesigner({
   const cutLineColor = "rgba(255,255,255,0.7)";
   const safeLineColor = "rgba(82, 211, 151, 0.7)";
   const bleedLineColor = "rgba(255, 111, 97, 0.75)";
-  const bleedOverlayColor = "rgba(255, 111, 97, 0.08)";
+  const bleedOverlayColor = "rgba(255, 111, 97, 0.04)";
   const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
   const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
+  const minFontRatio = Math.max(MIN_FONT_RATIO, ptToRatio(10));
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
   const minElementSizePx = MIN_RESIZABLE_RATIO * cardWidthPx;
   const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
+  const mediaMaxSliderRatio = Math.min(
+    MAX_RESIZABLE_RATIO,
+    Math.max(1 - safeXRatio * 2, 0),
+    Math.max(1 - safeYRatio * 2, 0),
+    displayedWidth > 0 ? MAX_MEDIA_PX / displayedWidth : MAX_RESIZABLE_RATIO
+  );
+  const mediaMinSliderPx = Math.max(minElementSizePx, MIN_IMAGE_PX);
+  const mediaMaxSliderPx = mediaMaxSliderRatio * cardWidthPx;
+  const mediaMaxRatioForElement = (element: CardElement) => {
+    const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+    const globalMax = mediaMaxSliderRatio;
+    const x = element.x ?? safeXRatio;
+    const y = element.y ?? safeYRatio;
+    const posMaxX = Math.max(1 - safeXRatio - x, minRatio);
+    const posMaxY = Math.max(1 - safeYRatio - y, minRatio);
+    return Math.max(minRatio, Math.min(globalMax, posMaxX, posMaxY));
+  };
+  const clampMediaSizeForElement = (sizeRatio: number, element: CardElement) => {
+    const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+    const maxRatio = mediaMaxRatioForElement(element);
+    return clamp(sizeRatio, minRatio, maxRatio);
+  };
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
@@ -547,6 +575,12 @@ export function PhysicalCardDesigner({
     if (isBorderElement(element)) {
       return { ...element, x: 0, y: 0, width: 1, height: 1 };
     }
+    if (element.type === "qr") {
+      return {
+        ...element,
+        opacity: 1,
+      };
+    }
     const widthRatio = getElementWidth(element);
     const heightRatio = getElementHeight(element);
     const allowFull = isCustomTextElement(element) || isShapeElement(element);
@@ -560,6 +594,7 @@ export function PhysicalCardDesigner({
       x: clamp(element.x ?? minX, minX, maxX),
       y: clamp(element.y ?? minY, minY, maxY),
       showIcon: element.showIcon ?? false,
+      opacity: clamp(element.opacity ?? 1, MIN_OPACITY, MAX_OPACITY),
     };
   };
 
@@ -603,8 +638,14 @@ export function PhysicalCardDesigner({
       return Math.max(measuredRatio, 0.02);
     }
     if (typeof element.width === "number") return element.width;
-    if (element.type === "qr") return 0.28;
-    if (element.type === "image") return 0.22;
+    if (element.type === "qr") {
+      const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+      return Math.max(element.width ?? 0.28, minRatio);
+    }
+    if (element.type === "image") {
+      const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+      return Math.max(element.width ?? 0.22, minRatio);
+    }
     if (element.type === "shape") return 0.25;
     if (element.type === "border") return 1;
     if (element.type === "line") return 0.6;
@@ -813,7 +854,7 @@ const renderElement = (element: CardElement) => {
       boxSizing: "border-box",
       userSelect: "none",
       touchAction: "none",
-      opacity: element.locked ? 0.6 : 1,
+      opacity: (element.opacity ?? 1) * (element.locked ? 0.6 : 1),
       transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
       transformOrigin: "center center",
     };
@@ -1941,7 +1982,45 @@ const renderElement = (element: CardElement) => {
               Card size: 86mm x 54mm • {cardDesign.resolution} DPI export
             </span>
           </div>
-      {showPlacementWarning && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "14px",
+            alignItems: "center",
+            marginTop: "6px",
+            fontSize: "12px",
+            color: "#475467",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ display: "inline-block", width: "14px", height: "14px", border: `2px solid ${bleedLineColor}` }} />
+            <span>Bleed (extra area, not in final cut)</span>
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "14px",
+                height: "14px",
+                border: "2px dashed rgba(148,163,184,0.9)",
+              }}
+            />
+            <span>Cut line (final card size)</span>
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "14px",
+                height: "14px",
+                border: `2px dashed ${safeLineColor}`,
+              }}
+            />
+            <span>Safe area (keep text/logos inside)</span>
+          </span>
+        </div>
+        {showPlacementWarning && (
           <div
             style={{
               marginTop: "4px",
@@ -2318,6 +2397,23 @@ const renderElement = (element: CardElement) => {
             {activeElement.type === "shape" && (
               <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Opacity
+                  <input
+                    type="range"
+                    min={MIN_OPACITY}
+                    max={MAX_OPACITY}
+                    step={0.05}
+                    value={activeElement.opacity ?? 1}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "shape",
+                        (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                      )
+                    }
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Shape variant
                   <select
                     value={activeElement.shapeVariant ?? "rectangle"}
@@ -2346,6 +2442,23 @@ const renderElement = (element: CardElement) => {
             )}
             {activeElement.type === "border" && (
               <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Opacity
+                  <input
+                    type="range"
+                    min={MIN_OPACITY}
+                    max={MAX_OPACITY}
+                    step={0.05}
+                    value={activeElement.opacity ?? 1}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                      )
+                    }
+                  />
+                </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Border color
                   <input
@@ -2470,14 +2583,32 @@ const renderElement = (element: CardElement) => {
                   </div>
                   <input
                     type="range"
-                    min={MIN_FONT_RATIO}
+                    min={minFontRatio}
                     max={MAX_FONT_RATIO}
                     step={0.001}
                     value={activeElement.fontSize ?? 0.05}
                     disabled={activeElement.locked}
                     onChange={(event) => {
-                      const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                      const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
                       applyToSelection((el) => el.type === "text", (el) => ({ ...el, fontSize: next }));
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Opacity
+                  <input
+                    type="range"
+                    min={MIN_OPACITY}
+                    max={MAX_OPACITY}
+                    step={0.05}
+                    value={activeElement.opacity ?? 1}
+                    disabled={activeElement.locked}
+                    onChange={(event) => {
+                      const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                      applyToSelection(
+                        (el) => el.type === "text",
+                        (el) => ({ ...el, opacity: next })
+                      );
                     }}
                   />
                 </label>
@@ -2618,8 +2749,8 @@ const renderElement = (element: CardElement) => {
                 </div>
                 <input
                   type="range"
-                  min={Math.round(minElementSizePx)}
-                  max={Math.round(maxElementSizePx)}
+                  min={Math.round(mediaMinSliderPx)}
+                  max={Math.round(mediaMaxSliderPx)}
                   step={1}
                   value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
                   onChange={(event) =>
@@ -2629,6 +2760,25 @@ const renderElement = (element: CardElement) => {
                   }
                   disabled={activeElement.locked}
                 />
+                {activeElement.type === "image" && (
+                  <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                    Opacity
+                    <input
+                      type="range"
+                      min={MIN_OPACITY}
+                      max={MAX_OPACITY}
+                      step={0.05}
+                      value={activeElement.opacity ?? 1}
+                      disabled={activeElement.locked}
+                      onChange={(event) =>
+                        applyToSelection(
+                          (el) => el.type === "image",
+                          (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                        )
+                      }
+                    />
+                  </label>
+                )}
               </label>
             )}
             {activeElement.type === "shape" && (
@@ -3583,12 +3733,12 @@ const renderElement = (element: CardElement) => {
                         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                           <input
                             type="range"
-                            min={MIN_FONT_RATIO}
+                            min={minFontRatio}
                             max={MAX_FONT_RATIO}
                             step={0.001}
                             value={element.fontSize ?? 0.05}
                             onChange={(event) => {
-                              const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                              const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
                               setElements((prev) =>
                                 prev.map((el) =>
                                   el.id === element.id
@@ -3622,8 +3772,8 @@ const renderElement = (element: CardElement) => {
                         </div>
                         <input
                           type="range"
-                          min={Math.round(minElementSizePx)}
-                          max={Math.round(maxElementSizePx)}
+                          min={Math.round(mediaMinSliderPx)}
+                          max={Math.round(mediaMaxSliderPx)}
                           step={1}
                           value={Math.round(getElementWidth(element) * cardWidthPx)}
                           onChange={(event) =>
@@ -3632,6 +3782,33 @@ const renderElement = (element: CardElement) => {
                           style={{ width: "100%" }}
                           disabled={element.locked}
                         />
+                        {element.type === "image" && (
+                          <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "#6b7280" }}>
+                            Opacity
+                            <input
+                              type="range"
+                              min={MIN_OPACITY}
+                              max={MAX_OPACITY}
+                              step={0.05}
+                              value={element.opacity ?? 1}
+                              onChange={(event) => {
+                                const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                                setElements((prev) =>
+                                  prev.map((el) =>
+                                    el.id === element.id
+                                      ? {
+                                          ...el,
+                                          opacity: next,
+                                        }
+                                      : el
+                                  )
+                                );
+                              }}
+                              style={{ width: "100%" }}
+                              disabled={element.locked}
+                            />
+                          </label>
+                        )}
                       </div>
                     )}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", alignItems: "center" }}>
@@ -3779,6 +3956,31 @@ const renderElement = (element: CardElement) => {
                     </div>
                     {element.type === "shape" && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Opacity
+                          <input
+                            type="range"
+                            min={MIN_OPACITY}
+                            max={MAX_OPACITY}
+                            step={0.05}
+                            value={element.opacity ?? 1}
+                            onChange={(event) => {
+                              const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        opacity: next,
+                                      }
+                                    : el
+                                )
+                              );
+                            }}
+                            style={{ width: "100%" }}
+                            disabled={element.locked}
+                          />
+                        </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
                           Color
                           <input
@@ -3992,6 +4194,31 @@ const renderElement = (element: CardElement) => {
                     )}
                     {element.type === "border" && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Opacity
+                          <input
+                            type="range"
+                            min={MIN_OPACITY}
+                            max={MAX_OPACITY}
+                            step={0.05}
+                            value={element.opacity ?? 1}
+                            onChange={(event) => {
+                              const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        opacity: next,
+                                      }
+                                    : el
+                                )
+                              );
+                            }}
+                            style={{ width: "100%" }}
+                            disabled={element.locked}
+                          />
+                        </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
                           Border colour
                           <input
