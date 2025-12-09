@@ -117,6 +117,9 @@ const isCustomTextElement = (element: CardElement) =>
 
 const isBorderElement = (element: CardElement) => element.type === "border";
 const isShapeElement = (element: CardElement) => element.type === "shape";
+const iconEligibleKeys: TextContentKey[] = ["name", "title", "company", "role", "phone", "email"];
+const canShowIcon = (element: CardElement) =>
+  element.type === "text" && !!element.contentKey && iconEligibleKeys.includes(element.contentKey);
 
 export type CardElement = {
   id: string;
@@ -131,6 +134,7 @@ export type CardElement = {
   contentKey?: TextContentKey;
   text?: string;
   color?: string;
+  showIcon?: boolean;
   imageUrl?: string | null;
   backgroundColor?: string;
   fontWeight?: FontWeightOption;
@@ -555,6 +559,7 @@ export function PhysicalCardDesigner({
       ...element,
       x: clamp(element.x ?? minX, minX, maxX),
       y: clamp(element.y ?? minY, minY, maxY),
+      showIcon: element.showIcon ?? false,
     };
   };
 
@@ -588,7 +593,12 @@ export function PhysicalCardDesigner({
       const fontFamily = FONT_STACKS[fontKey];
       const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
       const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
-      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily, fontWeight, fontStyle) + 2;
+      const iconWidthPx =
+        element.showIcon && element.contentKey && iconEligibleKeys.includes(element.contentKey)
+          ? fontSizePx * 0.9 + 6
+          : 0;
+      const textWidthPx =
+        measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily, fontWeight, fontStyle) + 2 + iconWidthPx;
       const measuredRatio = textWidthPx / displayedWidth;
       return Math.max(measuredRatio, 0.02);
     }
@@ -815,10 +825,17 @@ const renderElement = (element: CardElement) => {
       const fontFamily = FONT_STACKS[fontKey];
       const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
       const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
+      const iconKey = element.contentKey && iconEligibleKeys.includes(element.contentKey) ? element.contentKey : null;
       return (
         <div
           key={element.id}
-          style={baseStyle}
+          style={{
+            ...baseStyle,
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              textAlign === "right" ? "flex-end" : textAlign === "center" ? "center" : "flex-start",
+          }}
           onPointerDown={(event) => handleElementPointerDown(event, element)}
         >
           <div
@@ -831,8 +848,107 @@ const renderElement = (element: CardElement) => {
               lineHeight: 1.15,
               whiteSpace: "pre",
               fontFamily,
+              display: element.showIcon && iconKey ? "inline-flex" : "inline",
+              alignItems: "center",
+              gap: element.showIcon && iconKey ? Math.max(fontSize * 0.2, 6) : undefined,
+              height: "100%",
             }}
           >
+            {element.showIcon && iconKey && (
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: fontSize * 0.9,
+                  height: fontSize * 0.9,
+                  color: element.color || cardDesign.textColor,
+                }}
+              >
+                {iconKey === "phone" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.37 1.7.72 2.49a2 2 0 0 1-.45 2.11l-1.27 1.27a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.79.35 1.63.6 2.49.72A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                )}
+                {iconKey === "email" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 4h16v16H4z" />
+                    <path d="m4 4 8 8 8-8" />
+                  </svg>
+                )}
+                {iconKey === "company" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 21h18" />
+                    <path d="M6 21V9a1 1 0 0 1 1-1h4v13" />
+                    <path d="M13 21h5V5a1 1 0 0 0-1-1h-4z" />
+                    <path d="M6 12h4" />
+                    <path d="M6 16h4" />
+                    <path d="M13 7h2" />
+                    <path d="M13 11h2" />
+                    <path d="M13 15h2" />
+                  </svg>
+                )}
+                {(iconKey === "title" || iconKey === "role") && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 7h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                    <path d="M10 11h4" />
+                  </svg>
+                )}
+                {iconKey === "name" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="7" r="4" />
+                    <path d="M4 21v-1a7 7 0 0 1 16 0v1" />
+                  </svg>
+                )}
+              </span>
+            )}
             {getTextValue(element)}
           </div>
         </div>
@@ -2181,6 +2297,23 @@ const renderElement = (element: CardElement) => {
               >
                 Placing items outside the safe area might lead to trimming when printed. Proceed carefully.
               </div>
+            )}
+            {activeElement.type === "text" && canShowIcon(activeElement) && (
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#cbd5e1", marginTop: "6px" }}>
+                <input
+                  type="checkbox"
+                  checked={!!activeElement.showIcon}
+                  disabled={activeElement.locked}
+                  onChange={(event) =>
+                    applyToSelection(
+                      (el) => el.type === "text" && canShowIcon(el),
+                      (el) => ({ ...el, showIcon: event.target.checked })
+                    )
+                  }
+                  style={{ width: "16px", height: "16px" }}
+                />
+                Show icon for this field
+              </label>
             )}
             {activeElement.type === "shape" && (
               <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
