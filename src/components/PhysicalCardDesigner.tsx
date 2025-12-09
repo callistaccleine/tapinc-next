@@ -20,6 +20,7 @@ const CARD_MM_WIDTH = 86;
 const CARD_MM_HEIGHT = 54;
 const CARD_BORDER_RADIUS_MM = 2.88;
 const CARD_BLEED_MM = 3;
+const SAFE_MARGIN_MM = 4;
 const PREVIEW_MAX_WIDTH = 360;
 
 const mmToPx = (mm: number, dpi: number) => (mm * dpi) / 25.4;
@@ -78,6 +79,14 @@ const FONT_STACKS: Record<FontOption, string> = {
   avenir: "Avenir",
   default: "Manrope"
 };
+
+type FontWeightOption = "400" | "700";
+const FONT_WEIGHT_OPTIONS: { label: string; value: FontWeightOption }[] = [
+  { label: "Normal", value: "400" },
+  { label: "Bold", value: "700" },
+];
+const DEFAULT_FONT_WEIGHT: FontWeightOption = "400";
+
 const FONT_OPTIONS: { label: string; value: FontOption }[] = [
   { label: "SF Pro", value: "sfpro" },
   { label: "Manrope", value: "manrope" },
@@ -116,6 +125,7 @@ export type CardElement = {
   color?: string;
   imageUrl?: string | null;
   backgroundColor?: string;
+  fontWeight?: FontWeightOption;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
   borderColor?: string;
@@ -450,12 +460,25 @@ export function PhysicalCardDesigner({
   const heightMm = isPortrait ? CARD_MM_WIDTH : CARD_MM_HEIGHT;
   const bleedXRatio = CARD_BLEED_MM / widthMm;
   const bleedYRatio = CARD_BLEED_MM / heightMm;
-  const cardWidthPx = mmToPx(widthMm, dpi);
-  const cardHeightPx = mmToPx(heightMm, dpi);
-  const baseDimensionPx = isPortrait ? cardHeightPx : cardWidthPx;
+  const safeXRatio = SAFE_MARGIN_MM / widthMm;
+  const safeYRatio = SAFE_MARGIN_MM / heightMm;
+  const cardWidthPx = mmToPx(widthMm, dpi); // trim size
+  const cardHeightPx = mmToPx(heightMm, dpi); // trim size
+  const bleedPx = mmToPx(CARD_BLEED_MM, dpi);
+  const safeMarginPx = mmToPx(SAFE_MARGIN_MM, dpi);
+  const totalWidthPx = cardWidthPx + bleedPx * 2;
+  const totalHeightPx = cardHeightPx + bleedPx * 2;
+  const baseDimensionPx = isPortrait ? totalHeightPx : totalWidthPx;
   const previewScale = Math.min(0.74, PREVIEW_MAX_WIDTH / baseDimensionPx);
-  const displayedWidth = cardWidthPx * previewScale;
-  const displayedHeight = cardHeightPx * previewScale;
+  const displayedWidth = cardWidthPx * previewScale; // trim render width
+  const displayedHeight = cardHeightPx * previewScale; // trim render height
+  const bleedXPx = bleedPx * previewScale;
+  const bleedYPx = bleedPx * previewScale;
+  const safeXPx = safeMarginPx * previewScale;
+  const safeYPx = safeMarginPx * previewScale;
+  const cutLineColor = "rgba(255,255,255,0.7)";
+  const safeLineColor = "rgba(82, 211, 151, 0.7)";
+  const bleedLineColor = "rgba(255, 111, 97, 0.75)";
   const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
   const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
@@ -502,15 +525,15 @@ export function PhysicalCardDesigner({
     if (changed) {
       updateCardDesign({ elements: clamped });
     }
-  }, [cardDesign.orientation, bleedXRatio, bleedYRatio]);
+  }, [cardDesign.orientation, safeXRatio, safeYRatio]);
 
   const clampElementPosition = (element: CardElement): CardElement => {
     const widthRatio = getElementWidth(element);
     const heightRatio = getElementHeight(element);
-    const minX = bleedXRatio;
-    const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-    const minY = bleedYRatio;
-    const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+    const minX = safeXRatio;
+    const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
+    const minY = safeYRatio;
+    const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
 
     return {
       ...element,
@@ -524,14 +547,19 @@ export function PhysicalCardDesigner({
     updateCardDesign({ elements: next });
   };
 
-  const measureTextWidthPx = (text: string, fontSizePx: number, fontFamily: string) => {
+  const measureTextWidthPx = (
+    text: string,
+    fontSizePx: number,
+    fontFamily: string,
+    fontWeight: FontWeightOption = DEFAULT_FONT_WEIGHT
+  ) => {
     if (typeof document === "undefined") {
       return text.length * fontSizePx * 0.6;
     }
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return text.length * fontSizePx * 0.6;
-    ctx.font = `600 ${fontSizePx}px ${fontFamily}`;
+    ctx.font = `${fontWeight} ${fontSizePx}px ${fontFamily}`;
     const metrics = ctx.measureText(text || "");
     return metrics.width || 0;
   };
@@ -541,7 +569,8 @@ export function PhysicalCardDesigner({
       const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
-      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily) + 2;
+      const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
+      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily, fontWeight) + 2;
       const measuredRatio = textWidthPx / displayedWidth;
       return Math.max(measuredRatio, 0.02);
     }
@@ -630,8 +659,8 @@ export function PhysicalCardDesigner({
     const rect = cardEl.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
     const pointerY = event.clientY - rect.top;
-    const left = (element.x ?? 0) * rect.width;
-    const top = (element.y ?? 0) * rect.height;
+    const left = (element.x ?? 0) * displayedWidth + bleedXPx;
+    const top = (element.y ?? 0) * displayedHeight + bleedYPx;
 
     const idsToMoveBase =
       activeElementIds.length && activeElementIds.includes(element.id) ? activeElementIds : [element.id];
@@ -670,6 +699,8 @@ export function PhysicalCardDesigner({
       const activeRect = activeEl.getBoundingClientRect();
       const posX = moveEvent.clientX - activeRect.left - dragState.current.offsetX;
       const posY = moveEvent.clientY - activeRect.top - dragState.current.offsetY;
+      const trimmedPosX = posX - bleedXPx;
+      const trimmedPosY = posY - bleedYPx;
 
       setElements((prev) =>
         prev.map((item) => {
@@ -680,13 +711,13 @@ export function PhysicalCardDesigner({
 
           const widthRatio = getElementWidth(item);
           const heightRatio = getElementHeight(item);
-          const minX = bleedXRatio;
-          const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-          const minY = bleedYRatio;
-          const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+          const minX = safeXRatio;
+          const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
+          const minY = safeYRatio;
+          const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
 
-          const nextX = clamp(posX / activeRect.width + delta.dx, minX, maxX);
-          const nextY = clamp(posY / activeRect.height + delta.dy, minY, maxY);
+          const nextX = clamp(trimmedPosX / displayedWidth + delta.dx, minX, maxX);
+          const nextY = clamp(trimmedPosY / displayedHeight + delta.dy, minY, maxY);
           return { ...item, x: nextX, y: nextY };
         })
       );
@@ -726,8 +757,8 @@ const renderElement = (element: CardElement) => {
   const heightRatio = getElementHeight(element);
   const widthPx = widthRatio * displayedWidth;
   const heightPx = heightRatio * displayedHeight;
-    const left = (element.x ?? 0) * displayedWidth;
-    const top = (element.y ?? 0) * displayedHeight;
+    const left = contentOffsetX + (element.x ?? 0) * displayedWidth;
+    const top = contentOffsetY + (element.y ?? 0) * displayedHeight;
     const showGuides = !exporting && isOnActiveSide;
 
   const baseStyle: CSSProperties = {
@@ -759,6 +790,7 @@ const renderElement = (element: CardElement) => {
       const textAlign = element.textAlign ?? "left";
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
+      const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
       return (
         <div
           key={element.id}
@@ -770,7 +802,7 @@ const renderElement = (element: CardElement) => {
               color: element.color || cardDesign.textColor,
               fontSize,
               textAlign,
-              fontWeight: 600,
+              fontWeight,
               lineHeight: 1.15,
               whiteSpace: "pre",
               fontFamily,
@@ -885,8 +917,8 @@ const renderElement = (element: CardElement) => {
           key={element.id}
           style={{
             position: "absolute",
-            left: 0,
-            top: 0,
+            left: contentOffsetX,
+            top: contentOffsetY,
             width: displayedWidth,
             height: displayedHeight,
             pointerEvents: "none",
@@ -991,6 +1023,8 @@ const renderElement = (element: CardElement) => {
         : [],
     [activeElements, activeElement]
   );
+  const contentOffsetX = bleedXPx;
+  const contentOffsetY = bleedYPx;
   const selectionCount = selectionBucket.length;
   const hasMultiSelection = selectionCount > 1;
   const anyUnlockedSelected = selectionBucket.some((el) => !el.locked);
@@ -1241,10 +1275,10 @@ const renderElement = (element: CardElement) => {
 
         const widthRatio = getElementWidth(element);
         const heightRatio = getElementHeight(element);
-        const minX = bleedXRatio;
-        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-        const minY = bleedYRatio;
-        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+        const minX = safeXRatio;
+        const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
+        const minY = safeYRatio;
+        const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
 
         const next = { ...element };
         if (options.horizontal) {
@@ -1345,10 +1379,10 @@ const renderElement = (element: CardElement) => {
 
         const widthRatio = getElementWidth(element);
         const heightRatio = getElementHeight(element);
-        const minX = bleedXRatio;
-        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-        const minY = bleedYRatio;
-        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+        const minX = safeXRatio;
+        const maxX = Math.max(minX, 1 - safeXRatio - widthRatio);
+        const minY = safeYRatio;
+        const maxY = Math.max(minY, 1 - safeYRatio - heightRatio);
 
         const next = { ...element };
         if (options.horizontal) {
@@ -1432,10 +1466,10 @@ const renderElement = (element: CardElement) => {
   ) => (
     <div
       style={{
-        width: displayedWidth,
+        width: displayedWidth + bleedXPx * 2,
         maxWidth: "100%",
-        height: displayedHeight,
-        borderRadius: `${cornerRadiusPx}px`,
+        height: displayedHeight + bleedYPx * 2,
+        borderRadius: `${cornerRadiusPx + Math.max(bleedXPx, bleedYPx)}px`,
         background: cardDesign.backgroundColor,
         color: cardDesign.textColor,
         boxShadow: "0 22px 50px rgba(15,23,42,0.22)",
@@ -1444,11 +1478,56 @@ const renderElement = (element: CardElement) => {
       }}
       ref={ref}
     >
+      {/* Bleed outline */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: displayedWidth + bleedXPx * 2,
+          height: displayedHeight + bleedYPx * 2,
+          border: `1px solid ${bleedLineColor}`,
+          borderRadius: cornerRadiusPx + Math.max(bleedXPx, bleedYPx),
+          boxSizing: "border-box",
+          pointerEvents: "none",
+        }}
+      />
+      {/* Cut line (trim) */}
+      <div
+        style={{
+          position: "absolute",
+          left: contentOffsetX,
+          top: contentOffsetY,
+          width: displayedWidth,
+          height: displayedHeight,
+          border: `1px dashed ${cutLineColor}`,
+          borderRadius: cornerRadiusPx,
+          boxSizing: "border-box",
+          pointerEvents: "none",
+        }}
+      />
+      {/* Safe area */}
+      <div
+        style={{
+          position: "absolute",
+          left: contentOffsetX + safeXPx,
+          top: contentOffsetY + safeYPx,
+          width: Math.max(displayedWidth - safeXPx * 2, 0),
+          height: Math.max(displayedHeight - safeYPx * 2, 0),
+          border: `1px dashed ${safeLineColor}`,
+          borderRadius: Math.max(cornerRadiusPx - safeXPx, 0),
+          boxSizing: "border-box",
+          pointerEvents: "none",
+        }}
+      />
       {showGrid && (
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            left: contentOffsetX,
+            top: contentOffsetY,
+            width: displayedWidth,
+            height: displayedHeight,
             pointerEvents: "none",
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px)",
@@ -1860,6 +1939,45 @@ const renderElement = (element: CardElement) => {
                     }}
                   />
                 </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? ("400" as FontWeightOption) : ("700" as FontWeightOption);
+                    applyToSelection(
+                      (el) => el.type === "text",
+                      (el) => ({ ...el, fontWeight: next })
+                    );
+                  }}
+                  disabled={activeElement.locked}
+                  aria-label="Toggle bold"
+                  title="Bold"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
+                    color: "#ffffff",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: activeElement.locked ? "not-allowed" : "pointer",
+                    marginTop: "6px",
+                    width: "40px",
+                    height: "36px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 800,
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      color: "#ffffff",
+                      opacity: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? 1 : 0.75,
+                    }}
+                  >
+                    B
+                  </span>
+                </button>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Font family
                   <select
