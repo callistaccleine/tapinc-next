@@ -2200,10 +2200,75 @@ const renderElement = (element: CardElement) => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm("Are you sure you want to delete this element?")) {
+                    const overlay = document.createElement("div");
+                    overlay.style.position = "fixed";
+                    overlay.style.inset = "0";
+                    overlay.style.background = "rgba(15,23,42,0.55)";
+                    overlay.style.zIndex = "9999";
+                    overlay.style.display = "flex";
+                    overlay.style.alignItems = "center";
+                    overlay.style.justifyContent = "center";
+
+                    const modal = document.createElement("div");
+                    modal.style.background = "#0f172a";
+                    modal.style.border = "1px solid rgba(255,255,255,0.1)";
+                    modal.style.borderRadius = "14px";
+                    modal.style.padding = "18px 20px";
+                    modal.style.width = "320px";
+                    modal.style.boxShadow = "0 24px 60px rgba(0,0,0,0.25)";
+                    modal.style.color = "#e2e8f0";
+                    modal.style.fontFamily = "inherit";
+
+                    const title = document.createElement("div");
+                    title.textContent = "Delete element?";
+                    title.style.fontSize = "16px";
+                    title.style.fontWeight = "700";
+                    title.style.marginBottom = "6px";
+                    modal.appendChild(title);
+
+                    const body = document.createElement("div");
+                    body.textContent = "This will remove the selected element from the card.";
+                    body.style.fontSize = "13px";
+                    body.style.color = "#cbd5e1";
+                    body.style.marginBottom = "12px";
+                    modal.appendChild(body);
+
+                    const actions = document.createElement("div");
+                    actions.style.display = "flex";
+                    actions.style.gap = "10px";
+                    actions.style.justifyContent = "flex-end";
+
+                    const cancel = document.createElement("button");
+                    cancel.textContent = "No";
+                    cancel.style.border = "1px solid rgba(255,255,255,0.2)";
+                    cancel.style.background = "transparent";
+                    cancel.style.color = "#e2e8f0";
+                    cancel.style.borderRadius = "10px";
+                    cancel.style.padding = "8px 12px";
+                    cancel.style.cursor = "pointer";
+                    cancel.onclick = () => overlay.remove();
+
+                    const confirm = document.createElement("button");
+                    confirm.textContent = "Yes, delete";
+                    confirm.style.border = "none";
+                    confirm.style.background = "linear-gradient(135deg, #ef4444, #f97316)";
+                    confirm.style.color = "#0f172a";
+                    confirm.style.fontWeight = "700";
+                    confirm.style.borderRadius = "10px";
+                    confirm.style.padding = "8px 14px";
+                    confirm.style.cursor = "pointer";
+                    confirm.onclick = () => {
                       removeElement(activeElement.id);
                       clearSelection();
-                    }
+                      overlay.remove();
+                    };
+
+                    actions.appendChild(cancel);
+                    actions.appendChild(confirm);
+                    modal.appendChild(actions);
+
+                    overlay.appendChild(modal);
+                    document.body.appendChild(overlay);
                   }}
                   style={{
                     border: "1px solid rgba(255,255,255,0.18)",
@@ -2461,6 +2526,27 @@ const renderElement = (element: CardElement) => {
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Border color
+                  <input
+                    type="text"
+                    value={activeElement.borderColor || "#0f172a"}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderColor: event.target.value })
+                      )
+                    }
+                    placeholder="#000000"
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      padding: "8px 10px",
+                      marginTop: "4px",
+                    }}
+                  />
                   <input
                     type="color"
                     value={activeElement.borderColor || "#0f172a"}
@@ -2721,6 +2807,25 @@ const renderElement = (element: CardElement) => {
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Text colour
                   <input
+                    type="text"
+                    value={activeElement.color || cardDesign.textColor}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "text",
+                        (el) => ({ ...el, color: event.target.value })
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      padding: "8px 10px",
+                    }}
+                  />
+                  <input
                     type="color"
                     value={activeElement.color || cardDesign.textColor}
                     onChange={(event) =>
@@ -2827,6 +2932,27 @@ const renderElement = (element: CardElement) => {
               <>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", fontSize: "12px", color: "#cbd5e1" }}>
                   Colour
+                  <input
+                    type="text"
+                    value={activeElement.backgroundColor || cardDesign.textColor}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id ? { ...el, backgroundColor: event.target.value } : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      padding: "8px 10px",
+                      marginBottom: "4px",
+                    }}
+                  />
                   <input
                     type="color"
                     value={activeElement.backgroundColor || cardDesign.textColor}
@@ -3114,18 +3240,33 @@ const renderElement = (element: CardElement) => {
               })}
             </div>
             {backgroundMode === "solid" && (
-              <input
-                type="color"
-                value={cardDesign.backgroundColor}
-                onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
-                style={{
-                  width: "100%",
-                  height: "36px",
-                  borderRadius: "8px",
-                  border: "1px solid #d0d5dd",
-                  cursor: "pointer",
-                }}
-              />
+              <>
+                <input
+                  type="text"
+                  value={cardDesign.backgroundColor}
+                  onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                  style={{
+                    width: "100%",
+                    borderRadius: "8px",
+                    border: "1px solid #d0d5dd",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                  }}
+                  placeholder="#000000"
+                />
+                <input
+                  type="color"
+                  value={cardDesign.backgroundColor}
+                  onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                  style={{
+                    width: "100%",
+                    height: "36px",
+                    borderRadius: "8px",
+                    border: "1px solid #d0d5dd",
+                    cursor: "pointer",
+                  }}
+                />
+              </>
             )}
             {backgroundMode !== "solid" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -3187,6 +3328,18 @@ const renderElement = (element: CardElement) => {
           </div>
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Text colour
+            <input
+              type="text"
+              value={cardDesign.textColor}
+              onChange={(e) => updateCardDesign({ textColor: e.target.value })}
+              style={{
+                width: "100%",
+                borderRadius: "8px",
+                border: "1px solid #d0d5dd",
+                padding: "8px 10px",
+              }}
+              placeholder="#000000"
+            />
             <input
               type="color"
               value={cardDesign.textColor}
