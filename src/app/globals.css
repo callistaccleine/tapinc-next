@@ -1,7 +1,7 @@
 
 
 /* Optional: import Manrope from Google Fonts for consistency */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;500;600;700&family=Pacifico&display=swap');
 
 /* Reset and apply global font */
 * {
