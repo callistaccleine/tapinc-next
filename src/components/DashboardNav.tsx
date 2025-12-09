@@ -19,6 +19,8 @@ export default function DashboardNav({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<SupabaseUser | null | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState(false);
   const chipRef = useRef<HTMLDivElement>(null);
+  const idleTimerRef = useRef<number | null>(null);
+  const idleSignOutRef = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -41,6 +43,41 @@ export default function DashboardNav({ children }: { children: React.ReactNode }
     if (user === null) {
       router.replace("/auth");
     }
+  }, [user, router]);
+
+  // ✅ Idle sign-out after 1 hour of inactivity
+  useEffect(() => {
+    const IDLE_LIMIT_MS = 60 * 60 * 1000;
+    if (!user) return;
+
+    const clearIdleTimer = () => {
+      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    };
+
+    const handleIdleTimeout = async () => {
+      if (idleSignOutRef.current) return;
+      idleSignOutRef.current = true;
+      clearIdleTimer();
+      await supabase.auth.signOut();
+      router.replace("/auth?timeout=1");
+    };
+
+    const resetIdleTimer = () => {
+      if (idleSignOutRef.current) return;
+      clearIdleTimer();
+      idleTimerRef.current = window.setTimeout(handleIdleTimeout, IDLE_LIMIT_MS);
+    };
+
+    const events: (keyof WindowEventMap)[] = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach((event) => window.addEventListener(event, resetIdleTimer, { passive: true }));
+    resetIdleTimer();
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
+      clearIdleTimer();
+      idleSignOutRef.current = false;
+    };
   }, [user, router]);
 
   // ✅ Close on outside click
