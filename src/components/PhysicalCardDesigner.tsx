@@ -86,6 +86,8 @@ const FONT_WEIGHT_OPTIONS: { label: string; value: FontWeightOption }[] = [
   { label: "Bold", value: "700" },
 ];
 const DEFAULT_FONT_WEIGHT: FontWeightOption = "400";
+type FontStyleOption = "normal" | "italic";
+const DEFAULT_FONT_STYLE: FontStyleOption = "normal";
 
 const FONT_OPTIONS: { label: string; value: FontOption }[] = [
   { label: "SF Pro", value: "sfpro" },
@@ -126,6 +128,7 @@ export type CardElement = {
   imageUrl?: string | null;
   backgroundColor?: string;
   fontWeight?: FontWeightOption;
+  fontStyle?: FontStyleOption;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
   borderColor?: string;
@@ -551,7 +554,8 @@ export function PhysicalCardDesigner({
     text: string,
     fontSizePx: number,
     fontFamily: string,
-    fontWeight: FontWeightOption = DEFAULT_FONT_WEIGHT
+    fontWeight: FontWeightOption = DEFAULT_FONT_WEIGHT,
+    fontStyle: FontStyleOption = DEFAULT_FONT_STYLE
   ) => {
     if (typeof document === "undefined") {
       return text.length * fontSizePx * 0.6;
@@ -559,7 +563,7 @@ export function PhysicalCardDesigner({
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return text.length * fontSizePx * 0.6;
-    ctx.font = `${fontWeight} ${fontSizePx}px ${fontFamily}`;
+    ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${fontFamily}`;
     const metrics = ctx.measureText(text || "");
     return metrics.width || 0;
   };
@@ -570,7 +574,8 @@ export function PhysicalCardDesigner({
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
       const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
-      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily, fontWeight) + 2;
+      const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
+      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily, fontWeight, fontStyle) + 2;
       const measuredRatio = textWidthPx / displayedWidth;
       return Math.max(measuredRatio, 0.02);
     }
@@ -791,6 +796,7 @@ const renderElement = (element: CardElement) => {
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
       const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
+      const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
       return (
         <div
           key={element.id}
@@ -803,6 +809,7 @@ const renderElement = (element: CardElement) => {
               fontSize,
               textAlign,
               fontWeight,
+              fontStyle,
               lineHeight: 1.15,
               whiteSpace: "pre",
               fontFamily,
@@ -1964,6 +1971,7 @@ const renderElement = (element: CardElement) => {
                     marginTop: "6px",
                     width: "40px",
                     height: "36px",
+                    marginRight: "6px",
                   }}
                 >
                   <span
@@ -1976,6 +1984,46 @@ const renderElement = (element: CardElement) => {
                     }}
                   >
                     B
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? ("normal" as FontStyleOption) : ("italic" as FontStyleOption);
+                    applyToSelection(
+                      (el) => el.type === "text",
+                      (el) => ({ ...el, fontStyle: next })
+                    );
+                  }}
+                  disabled={activeElement.locked}
+                  aria-label="Toggle italic"
+                  title="Italic"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
+                    color: "#ffffff",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: activeElement.locked ? "not-allowed" : "pointer",
+                    marginTop: "6px",
+                    width: "40px",
+                    height: "36px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      color: "#ffffff",
+                      opacity: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? 1 : 0.75,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    I
                   </span>
                 </button>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
