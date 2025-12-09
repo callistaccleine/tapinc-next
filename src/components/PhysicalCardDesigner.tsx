@@ -146,6 +146,7 @@ export type CardElement = {
   fontStyle?: FontStyleOption;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
+  borderStyle?: "solid" | "dashed" | "dotted";
   borderColor?: string;
   fontFamily?: FontOption;
   locked?: boolean;
@@ -573,7 +574,7 @@ export function PhysicalCardDesigner({
 
   const clampElementPosition = (element: CardElement): CardElement => {
     if (isBorderElement(element)) {
-      return { ...element, x: 0, y: 0, width: 1, height: 1 };
+      return { ...element, x: 0, y: 0, width: 1, height: 1, borderStyle: element.borderStyle ?? "solid" };
     }
     if (element.type === "qr") {
       return {
@@ -1090,6 +1091,7 @@ const renderElement = (element: CardElement) => {
     if (element.type === "border") {
       const thicknessPx = element.borderThickness ?? 2;
       const borderColor = element.borderColor ?? "#0f172a";
+      const borderStyle = element.borderStyle ?? "solid";
       const insetXPx = bleedXRatio * displayedWidth;
       const insetYPx = bleedYRatio * displayedHeight;
       const innerWidth = Math.max(displayedWidth - insetXPx * 2, 0);
@@ -1167,7 +1169,7 @@ const renderElement = (element: CardElement) => {
                 top: insetYPx,
                 width: innerWidth,
                 height: innerHeight,
-                border: `${thicknessPx}px solid ${borderColor}`,
+                border: `${thicknessPx}px ${borderStyle} ${borderColor}`,
                 borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
                 boxSizing: "border-box",
               }}
@@ -2566,26 +2568,6 @@ const renderElement = (element: CardElement) => {
                     }}
                   />
                 </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Thickness</span>
-                    <span>{Math.round(activeElement.borderThickness ?? 2)} px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={32}
-                    step={1}
-                    value={activeElement.borderThickness ?? 2}
-                    disabled={activeElement.locked}
-                    onChange={(event) =>
-                      applyToSelection(
-                        (el) => el.type === "border",
-                        (el) => ({ ...el, borderThickness: parseInt(event.target.value, 10) })
-                      )
-                    }
-                  />
-                </label>
               </div>
             )}
             {selectionCount > 0 && (
@@ -3038,8 +3020,32 @@ const renderElement = (element: CardElement) => {
                   />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Border style
+                  <select
+                    value={activeElement.borderStyle ?? "solid"}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderStyle: event.target.value as CardElement["borderStyle"] })
+                      )
+                    }
+                    style={{
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      padding: "8px 10px",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                  </select>
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Border thickness</span>
+                    <span>Thickness</span>
                     <span>{Math.round(activeElement.borderThickness ?? 2)} px</span>
                   </div>
                   <input
@@ -4375,6 +4381,26 @@ const renderElement = (element: CardElement) => {
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
                           Border colour
                           <input
+                            type="text"
+                            value={element.borderColor || "#0f172a"}
+                            onChange={(event) =>
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id ? { ...el, borderColor: event.target.value } : el
+                                )
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              borderRadius: "8px",
+                              border: "1px solid #d0d5dd",
+                              padding: "6px 8px",
+                              marginTop: "4px",
+                              marginBottom: "4px",
+                            }}
+                            disabled={element.locked}
+                          />
+                          <input
                             type="color"
                             value={element.borderColor || "#0f172a"}
                             onChange={(event) =>
@@ -4395,28 +4421,30 @@ const renderElement = (element: CardElement) => {
                           />
                         </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span>Border thickness</span>
-                            <span>{Math.round((element.borderThickness ?? 2) )} px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min={1}
-                            max={24}
-                            step={1}
-                            value={element.borderThickness ?? 2}
-                            onChange={(event) =>
+                          Border style
+                          <select
+                            value={element.borderStyle ?? "solid"}
+                            onChange={(event) => {
+                              const style = event.target.value as CardElement["borderStyle"];
                               setElements((prev) =>
                                 prev.map((el) =>
-                                  el.id === element.id
-                                    ? { ...el, borderThickness: parseInt(event.target.value, 10) }
-                                    : el
+                                  el.id === element.id ? { ...el, borderStyle: style } : el
                                 )
-                              )
-                            }
-                            style={{ width: "100%" }}
+                              );
+                            }}
+                            style={{
+                              width: "100%",
+                              border: "1px solid #d0d5dd",
+                              borderRadius: "8px",
+                              padding: "6px 8px",
+                              marginTop: "4px",
+                            }}
                             disabled={element.locked}
-                          />
+                          >
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                          </select>
                         </label>
                       </div>
                     )}
