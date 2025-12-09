@@ -20,6 +20,7 @@ const CARD_MM_WIDTH = 86;
 const CARD_MM_HEIGHT = 54;
 const CARD_BORDER_RADIUS_MM = 2.88;
 const CARD_BLEED_MM = 3;
+const SAFE_MARGIN_MM = 4;
 const PREVIEW_MAX_WIDTH = 360;
 
 const mmToPx = (mm: number, dpi: number) => (mm * dpi) / 25.4;
@@ -78,6 +79,16 @@ const FONT_STACKS: Record<FontOption, string> = {
   avenir: "Avenir",
   default: "Manrope"
 };
+
+type FontWeightOption = "400" | "700";
+const FONT_WEIGHT_OPTIONS: { label: string; value: FontWeightOption }[] = [
+  { label: "Normal", value: "400" },
+  { label: "Bold", value: "700" },
+];
+const DEFAULT_FONT_WEIGHT: FontWeightOption = "400";
+type FontStyleOption = "normal" | "italic";
+const DEFAULT_FONT_STYLE: FontStyleOption = "normal";
+
 const FONT_OPTIONS: { label: string; value: FontOption }[] = [
   { label: "SF Pro", value: "sfpro" },
   { label: "Manrope", value: "manrope" },
@@ -100,6 +111,19 @@ const MIN_RESIZABLE_RATIO = 0.08;
 const MAX_RESIZABLE_RATIO = 0.6;
 const MIN_FONT_RATIO = 0.01;
 const MAX_FONT_RATIO = 0.2;
+const MIN_IMAGE_PX = 240;
+const MAX_MEDIA_PX = 765;
+const MIN_OPACITY = 0.1;
+const MAX_OPACITY = 1;
+
+const isCustomTextElement = (element: CardElement) =>
+  element.type === "text" && (!element.contentKey || element.contentKey === "custom");
+
+const isBorderElement = (element: CardElement) => element.type === "border";
+const isShapeElement = (element: CardElement) => element.type === "shape";
+const iconEligibleKeys: TextContentKey[] = ["name", "title", "company", "role", "phone", "email"];
+const canShowIcon = (element: CardElement) =>
+  element.type === "text" && !!element.contentKey && iconEligibleKeys.includes(element.contentKey);
 
 export type CardElement = {
   id: string;
@@ -114,8 +138,12 @@ export type CardElement = {
   contentKey?: TextContentKey;
   text?: string;
   color?: string;
+  showIcon?: boolean;
+  opacity?: number;
   imageUrl?: string | null;
   backgroundColor?: string;
+  fontWeight?: FontWeightOption;
+  fontStyle?: FontStyleOption;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
   borderThickness?: number;
   borderColor?: string;
@@ -450,17 +478,54 @@ export function PhysicalCardDesigner({
   const heightMm = isPortrait ? CARD_MM_WIDTH : CARD_MM_HEIGHT;
   const bleedXRatio = CARD_BLEED_MM / widthMm;
   const bleedYRatio = CARD_BLEED_MM / heightMm;
-  const cardWidthPx = mmToPx(widthMm, dpi);
-  const cardHeightPx = mmToPx(heightMm, dpi);
-  const baseDimensionPx = isPortrait ? cardHeightPx : cardWidthPx;
+  const safeXRatio = SAFE_MARGIN_MM / widthMm;
+  const safeYRatio = SAFE_MARGIN_MM / heightMm;
+  const cardWidthPx = mmToPx(widthMm, dpi); // trim size
+  const cardHeightPx = mmToPx(heightMm, dpi); // trim size
+  const bleedPx = mmToPx(CARD_BLEED_MM, dpi);
+  const safeMarginPx = mmToPx(SAFE_MARGIN_MM, dpi);
+  const totalWidthPx = cardWidthPx + bleedPx * 2;
+  const totalHeightPx = cardHeightPx + bleedPx * 2;
+  const baseDimensionPx = isPortrait ? totalHeightPx : totalWidthPx;
   const previewScale = Math.min(0.74, PREVIEW_MAX_WIDTH / baseDimensionPx);
-  const displayedWidth = cardWidthPx * previewScale;
-  const displayedHeight = cardHeightPx * previewScale;
+  const displayedWidth = cardWidthPx * previewScale; // trim render width
+  const displayedHeight = cardHeightPx * previewScale; // trim render height
+  const bleedXPx = bleedPx * previewScale;
+  const bleedYPx = bleedPx * previewScale;
+  const safeXPx = safeMarginPx * previewScale;
+  const safeYPx = safeMarginPx * previewScale;
+  const cutLineColor = "rgba(255,255,255,0.7)";
+  const safeLineColor = "rgba(82, 211, 151, 0.7)";
+  const bleedLineColor = "rgba(255, 111, 97, 0.75)";
+  const bleedOverlayColor = "rgba(255, 111, 97, 0.04)";
   const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
   const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
+  const minFontRatio = Math.max(MIN_FONT_RATIO, ptToRatio(10));
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
   const minElementSizePx = MIN_RESIZABLE_RATIO * cardWidthPx;
   const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
+  const mediaMaxSliderRatio = Math.min(
+    MAX_RESIZABLE_RATIO,
+    Math.max(1 - safeXRatio * 2, 0),
+    Math.max(1 - safeYRatio * 2, 0),
+    displayedWidth > 0 ? MAX_MEDIA_PX / displayedWidth : MAX_RESIZABLE_RATIO
+  );
+  const mediaMinSliderPx = Math.max(minElementSizePx, MIN_IMAGE_PX);
+  const mediaMaxSliderPx = mediaMaxSliderRatio * cardWidthPx;
+  const mediaMaxRatioForElement = (element: CardElement) => {
+    const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+    const globalMax = mediaMaxSliderRatio;
+    const x = element.x ?? safeXRatio;
+    const y = element.y ?? safeYRatio;
+    const posMaxX = Math.max(1 - safeXRatio - x, minRatio);
+    const posMaxY = Math.max(1 - safeYRatio - y, minRatio);
+    return Math.max(minRatio, Math.min(globalMax, posMaxX, posMaxY));
+  };
+  const clampMediaSizeForElement = (sizeRatio: number, element: CardElement) => {
+    const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+    const maxRatio = mediaMaxRatioForElement(element);
+    return clamp(sizeRatio, minRatio, maxRatio);
+  };
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
@@ -479,6 +544,8 @@ export function PhysicalCardDesigner({
   const [customText, setCustomText] = useState("TapInk");
   const pixelRatio = displayedWidth > 0 ? cardWidthPx / displayedWidth : 1;
   const cardElements = cardDesign.elements ?? [];
+  const [showGuidesOverlay, setShowGuidesOverlay] = useState(true);
+  const [showGuidesHint, setShowGuidesHint] = useState(false);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const headerRowRef = useRef<HTMLDivElement>(null);
@@ -502,20 +569,32 @@ export function PhysicalCardDesigner({
     if (changed) {
       updateCardDesign({ elements: clamped });
     }
-  }, [cardDesign.orientation, bleedXRatio, bleedYRatio]);
+  }, [cardDesign.orientation, safeXRatio, safeYRatio]);
 
   const clampElementPosition = (element: CardElement): CardElement => {
+    if (isBorderElement(element)) {
+      return { ...element, x: 0, y: 0, width: 1, height: 1 };
+    }
+    if (element.type === "qr") {
+      return {
+        ...element,
+        opacity: 1,
+      };
+    }
     const widthRatio = getElementWidth(element);
     const heightRatio = getElementHeight(element);
-    const minX = bleedXRatio;
-    const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-    const minY = bleedYRatio;
-    const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+    const allowFull = isCustomTextElement(element) || isShapeElement(element);
+    const minX = allowFull ? 0 : safeXRatio;
+    const maxX = allowFull ? Math.max(0, 1 - widthRatio) : Math.max(minX, 1 - safeXRatio - widthRatio);
+    const minY = allowFull ? 0 : safeYRatio;
+    const maxY = allowFull ? Math.max(minY, 1 - heightRatio) : Math.max(minY, 1 - safeYRatio - heightRatio);
 
     return {
       ...element,
       x: clamp(element.x ?? minX, minX, maxX),
       y: clamp(element.y ?? minY, minY, maxY),
+      showIcon: element.showIcon ?? false,
+      opacity: clamp(element.opacity ?? 1, MIN_OPACITY, MAX_OPACITY),
     };
   };
 
@@ -524,14 +603,20 @@ export function PhysicalCardDesigner({
     updateCardDesign({ elements: next });
   };
 
-  const measureTextWidthPx = (text: string, fontSizePx: number, fontFamily: string) => {
+  const measureTextWidthPx = (
+    text: string,
+    fontSizePx: number,
+    fontFamily: string,
+    fontWeight: FontWeightOption = DEFAULT_FONT_WEIGHT,
+    fontStyle: FontStyleOption = DEFAULT_FONT_STYLE
+  ) => {
     if (typeof document === "undefined") {
       return text.length * fontSizePx * 0.6;
     }
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return text.length * fontSizePx * 0.6;
-    ctx.font = `600 ${fontSizePx}px ${fontFamily}`;
+    ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${fontFamily}`;
     const metrics = ctx.measureText(text || "");
     return metrics.width || 0;
   };
@@ -541,13 +626,26 @@ export function PhysicalCardDesigner({
       const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
-      const textWidthPx = measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily) + 2;
+      const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
+      const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
+      const iconWidthPx =
+        element.showIcon && element.contentKey && iconEligibleKeys.includes(element.contentKey)
+          ? fontSizePx * 0.9 + 6
+          : 0;
+      const textWidthPx =
+        measureTextWidthPx(getTextValue(element), fontSizePx, fontFamily, fontWeight, fontStyle) + 2 + iconWidthPx;
       const measuredRatio = textWidthPx / displayedWidth;
       return Math.max(measuredRatio, 0.02);
     }
     if (typeof element.width === "number") return element.width;
-    if (element.type === "qr") return 0.28;
-    if (element.type === "image") return 0.22;
+    if (element.type === "qr") {
+      const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+      return Math.max(element.width ?? 0.28, minRatio);
+    }
+    if (element.type === "image") {
+      const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
+      return Math.max(element.width ?? 0.22, minRatio);
+    }
     if (element.type === "shape") return 0.25;
     if (element.type === "border") return 1;
     if (element.type === "line") return 0.6;
@@ -623,15 +721,15 @@ export function PhysicalCardDesigner({
   };
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>, element: CardElement) => {
-    if (exporting || element.locked) return;
+    if (exporting || element.locked || isBorderElement(element)) return;
     const targetRef = element.side === "front" ? frontRef : backRef;
     const cardEl = targetRef.current;
     if (!cardEl) return;
     const rect = cardEl.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
     const pointerY = event.clientY - rect.top;
-    const left = (element.x ?? 0) * rect.width;
-    const top = (element.y ?? 0) * rect.height;
+    const left = (element.x ?? 0) * displayedWidth + bleedXPx;
+    const top = (element.y ?? 0) * displayedHeight + bleedYPx;
 
     const idsToMoveBase =
       activeElementIds.length && activeElementIds.includes(element.id) ? activeElementIds : [element.id];
@@ -670,9 +768,11 @@ export function PhysicalCardDesigner({
       const activeRect = activeEl.getBoundingClientRect();
       const posX = moveEvent.clientX - activeRect.left - dragState.current.offsetX;
       const posY = moveEvent.clientY - activeRect.top - dragState.current.offsetY;
+      const trimmedPosX = posX - bleedXPx;
+      const trimmedPosY = posY - bleedYPx;
 
-      setElements((prev) =>
-        prev.map((item) => {
+    setElements((prev) =>
+      prev.map((item) => {
           const delta = dragState.current?.deltas[item.id];
           if (!delta || item.side !== dragState.current?.side || item.locked || item.type === "border") {
             return item;
@@ -680,13 +780,18 @@ export function PhysicalCardDesigner({
 
           const widthRatio = getElementWidth(item);
           const heightRatio = getElementHeight(item);
-          const minX = bleedXRatio;
-          const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-          const minY = bleedYRatio;
-          const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+          const allowFull = isCustomTextElement(item) || isShapeElement(item);
+          const minX = allowFull ? 0 : safeXRatio;
+          const maxX = allowFull
+            ? Math.max(0, 1 - widthRatio)
+            : Math.max(minX, 1 - safeXRatio - widthRatio);
+          const minY = allowFull ? 0 : safeYRatio;
+          const maxY = allowFull
+            ? Math.max(minY, 1 - heightRatio)
+            : Math.max(minY, 1 - safeYRatio - heightRatio);
 
-          const nextX = clamp(posX / activeRect.width + delta.dx, minX, maxX);
-          const nextY = clamp(posY / activeRect.height + delta.dy, minY, maxY);
+          const nextX = clamp(trimmedPosX / displayedWidth + delta.dx, minX, maxX);
+          const nextY = clamp(trimmedPosY / displayedHeight + delta.dy, minY, maxY);
           return { ...item, x: nextX, y: nextY };
         })
       );
@@ -726,8 +831,8 @@ const renderElement = (element: CardElement) => {
   const heightRatio = getElementHeight(element);
   const widthPx = widthRatio * displayedWidth;
   const heightPx = heightRatio * displayedHeight;
-    const left = (element.x ?? 0) * displayedWidth;
-    const top = (element.y ?? 0) * displayedHeight;
+    const left = contentOffsetX + (element.x ?? 0) * displayedWidth;
+    const top = contentOffsetY + (element.y ?? 0) * displayedHeight;
     const showGuides = !exporting && isOnActiveSide;
 
   const baseStyle: CSSProperties = {
@@ -749,7 +854,7 @@ const renderElement = (element: CardElement) => {
       boxSizing: "border-box",
       userSelect: "none",
       touchAction: "none",
-      opacity: element.locked ? 0.6 : 1,
+      opacity: (element.opacity ?? 1) * (element.locked ? 0.6 : 1),
       transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
       transformOrigin: "center center",
     };
@@ -759,10 +864,19 @@ const renderElement = (element: CardElement) => {
       const textAlign = element.textAlign ?? "left";
       const fontKey = (element.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption;
       const fontFamily = FONT_STACKS[fontKey];
+      const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
+      const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
+      const iconKey = element.contentKey && iconEligibleKeys.includes(element.contentKey) ? element.contentKey : null;
       return (
         <div
           key={element.id}
-          style={baseStyle}
+          style={{
+            ...baseStyle,
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              textAlign === "right" ? "flex-end" : textAlign === "center" ? "center" : "flex-start",
+          }}
           onPointerDown={(event) => handleElementPointerDown(event, element)}
         >
           <div
@@ -770,12 +884,112 @@ const renderElement = (element: CardElement) => {
               color: element.color || cardDesign.textColor,
               fontSize,
               textAlign,
-              fontWeight: 600,
+              fontWeight,
+              fontStyle,
               lineHeight: 1.15,
               whiteSpace: "pre",
               fontFamily,
+              display: element.showIcon && iconKey ? "inline-flex" : "inline",
+              alignItems: "center",
+              gap: element.showIcon && iconKey ? Math.max(fontSize * 0.2, 6) : undefined,
+              height: "100%",
             }}
           >
+            {element.showIcon && iconKey && (
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: fontSize * 0.9,
+                  height: fontSize * 0.9,
+                  color: element.color || cardDesign.textColor,
+                }}
+              >
+                {iconKey === "phone" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.37 1.7.72 2.49a2 2 0 0 1-.45 2.11l-1.27 1.27a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.79.35 1.63.6 2.49.72A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                )}
+                {iconKey === "email" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 4h16v16H4z" />
+                    <path d="m4 4 8 8 8-8" />
+                  </svg>
+                )}
+                {iconKey === "company" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 21h18" />
+                    <path d="M6 21V9a1 1 0 0 1 1-1h4v13" />
+                    <path d="M13 21h5V5a1 1 0 0 0-1-1h-4z" />
+                    <path d="M6 12h4" />
+                    <path d="M6 16h4" />
+                    <path d="M13 7h2" />
+                    <path d="M13 11h2" />
+                    <path d="M13 15h2" />
+                  </svg>
+                )}
+                {(iconKey === "title" || iconKey === "role") && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 7h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                    <path d="M10 11h4" />
+                  </svg>
+                )}
+                {iconKey === "name" && (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="7" r="4" />
+                    <path d="M4 21v-1a7 7 0 0 1 16 0v1" />
+                  </svg>
+                )}
+              </span>
+            )}
             {getTextValue(element)}
           </div>
         </div>
@@ -881,30 +1095,85 @@ const renderElement = (element: CardElement) => {
       const innerWidth = Math.max(displayedWidth - insetXPx * 2, 0);
       const innerHeight = Math.max(displayedHeight - insetYPx * 2, 0);
       return (
-        <div
-          key={element.id}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: displayedWidth,
-            height: displayedHeight,
-            pointerEvents: "none",
-          }}
-        >
+        <>
+          {/* Hit areas for selecting the border without blocking inner elements */}
           <div
+            key={`${element.id}-hit-top`}
             style={{
               position: "absolute",
-              left: insetXPx,
-              top: insetYPx,
-              width: innerWidth,
-              height: innerHeight,
-              border: `${thicknessPx}px solid ${borderColor}`,
-              borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
-              boxSizing: "border-box",
+              left: contentOffsetX,
+              top: contentOffsetY,
+              width: displayedWidth,
+              height: Math.max(thicknessPx * 2, 12),
+              background: "transparent",
+              cursor: "pointer",
             }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
           />
-        </div>
+          <div
+            key={`${element.id}-hit-bottom`}
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY + Math.max(displayedHeight - Math.max(thicknessPx * 2, 12), 0),
+              width: displayedWidth,
+              height: Math.max(thicknessPx * 2, 12),
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+          />
+          <div
+            key={`${element.id}-hit-left`}
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY + Math.max(thicknessPx * 2, 12),
+              width: Math.max(thicknessPx * 2, 12),
+              height: Math.max(displayedHeight - Math.max(thicknessPx * 4, 24), 0),
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+          />
+          <div
+            key={`${element.id}-hit-right`}
+            style={{
+              position: "absolute",
+              left: contentOffsetX + Math.max(displayedWidth - Math.max(thicknessPx * 2, 12), 0),
+              top: contentOffsetY + Math.max(thicknessPx * 2, 12),
+              width: Math.max(thicknessPx * 2, 12),
+              height: Math.max(displayedHeight - Math.max(thicknessPx * 4, 24), 0),
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+          />
+          <div
+            key={element.id}
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY,
+              width: displayedWidth,
+              height: displayedHeight,
+              pointerEvents: "none",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: insetXPx,
+                top: insetYPx,
+                width: innerWidth,
+                height: innerHeight,
+                border: `${thicknessPx}px solid ${borderColor}`,
+                borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        </>
       );
     }
 
@@ -991,6 +1260,8 @@ const renderElement = (element: CardElement) => {
         : [],
     [activeElements, activeElement]
   );
+  const contentOffsetX = bleedXPx;
+  const contentOffsetY = bleedYPx;
   const selectionCount = selectionBucket.length;
   const hasMultiSelection = selectionCount > 1;
   const anyUnlockedSelected = selectionBucket.some((el) => !el.locked);
@@ -1007,6 +1278,33 @@ const renderElement = (element: CardElement) => {
   );
   const canDistributeX = tidyTargets.length >= 2;
   const canDistributeY = tidyTargets.length >= 2;
+  const isOutsideSafeArea = (element: CardElement) => {
+    const widthRatio = getElementWidth(element);
+    const heightRatio = getElementHeight(element);
+    const x = element.x ?? 0;
+    const y = element.y ?? 0;
+    return (
+      x < safeXRatio ||
+      y < safeYRatio ||
+      x + widthRatio > 1 - safeXRatio ||
+      y + heightRatio > 1 - safeYRatio
+    );
+  };
+  const showPlacementWarning =
+    !!activeElement &&
+    (isCustomTextElement(activeElement) || isShapeElement(activeElement)) &&
+    isOutsideSafeArea(activeElement);
+  const guidesVisible = showGuidesOverlay || showGuidesHint;
+
+  useEffect(() => {
+    if (showPlacementWarning) {
+      setShowGuidesHint(true);
+      const timeout = window.setTimeout(() => setShowGuidesHint(false), 1800);
+      return () => window.clearTimeout(timeout);
+    }
+    setShowGuidesHint(false);
+    return;
+  }, [showPlacementWarning]);
 
   const applyToSelection = (
     predicate: (element: CardElement) => boolean,
@@ -1221,6 +1519,30 @@ const renderElement = (element: CardElement) => {
     setElements((prev) => prev.filter((element) => element.id !== id));
   };
 
+  const duplicateSelection = () => {
+    const targets = selectedIds.length ? selectedIds : activeElement ? [activeElement.id] : [];
+    if (!targets.length) return;
+    const offset = 0.02;
+    const copies: CardElement[] = [];
+    targets.forEach((id, index) => {
+      const original = cardElements.find((el) => el.id === id);
+      if (!original || original.locked) return;
+      const copy: CardElement = clampElementPosition({
+        ...original,
+        id: `${original.id}-copy-${Date.now()}-${index}`,
+        x: (original.x ?? 0) + offset,
+        y: (original.y ?? 0) + offset,
+        locked: false,
+      });
+      copies.push(copy);
+    });
+    if (!copies.length) return;
+    setElements((prev) => [...prev, ...copies]);
+    setActiveElementIds(copies.map((c) => c.id));
+    setActiveElementId(copies[0].id);
+    setSelectedElementSide(copies[0].side);
+  };
+
   const toggleLockElement = (id: string) => {
     setElements((prev) =>
       prev.map((element) => (element.id === id ? { ...element, locked: !element.locked } : element))
@@ -1230,36 +1552,100 @@ const renderElement = (element: CardElement) => {
   const alignBulk = (options: { horizontal?: "left" | "center" | "right"; vertical?: "top" | "middle" | "bottom" }) => {
     const targetIds = selectedIds;
     if (!targetIds.length) return;
-    setElements((prev) =>
-      prev.map((element) => {
+    setElements((prev) => {
+      const selected = prev.filter(
+        (element) =>
+          targetIds.includes(element.id) &&
+          element.side === selectedElementSide &&
+          !element.locked &&
+          element.type !== "border"
+      );
+      if (!selected.length) return prev;
+
+      const widths = new Map<string, number>();
+      const heights = new Map<string, number>();
+      selected.forEach((el) => {
+        widths.set(el.id, getElementWidth(el));
+        heights.set(el.id, getElementHeight(el));
+      });
+
+      const minX = Math.min(...selected.map((el) => el.x ?? 0));
+      const minY = Math.min(...selected.map((el) => el.y ?? 0));
+      const maxX = Math.max(...selected.map((el) => (el.x ?? 0) + (widths.get(el.id) ?? 0)));
+      const maxY = Math.max(...selected.map((el) => (el.y ?? 0) + (heights.get(el.id) ?? 0)));
+      const groupWidth = maxX - minX;
+      const groupHeight = maxY - minY;
+
+      const horizontalDelta = (() => {
+        if (!options.horizontal) return 0;
+        const allowFullWidth = selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const marginX = allowFullWidth ? 0 : safeXRatio;
+        const availableWidth = Math.max(1 - marginX * 2, 0);
+        const targetLeft =
+          options.horizontal === "left"
+            ? marginX
+            : options.horizontal === "right"
+            ? marginX + Math.max(availableWidth - groupWidth, 0)
+            : marginX + Math.max((availableWidth - groupWidth) / 2, 0);
+        const desired = targetLeft - minX;
+
+        let deltaMin = -Infinity;
+        let deltaMax = Infinity;
+        selected.forEach((el) => {
+          const w = widths.get(el.id) ?? 0;
+          const x = el.x ?? 0;
+          const allowFull = isCustomTextElement(el) || isShapeElement(el);
+          const minAllowed = allowFull ? 0 : safeXRatio;
+          const maxAllowed = allowFull
+            ? Math.max(0, 1 - w)
+            : Math.max(minAllowed, 1 - safeXRatio - w);
+          deltaMin = Math.max(deltaMin, minAllowed - x);
+          deltaMax = Math.min(deltaMax, maxAllowed - x);
+        });
+        return clamp(desired, deltaMin, deltaMax);
+      })();
+
+      const verticalDelta = (() => {
+        if (!options.vertical) return 0;
+        const allowFullHeight = selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const marginY = allowFullHeight ? 0 : safeYRatio;
+        const availableHeight = Math.max(1 - marginY * 2, 0);
+        const targetTop =
+          options.vertical === "top"
+            ? marginY
+            : options.vertical === "bottom"
+            ? marginY + Math.max(availableHeight - groupHeight, 0)
+            : marginY + Math.max((availableHeight - groupHeight) / 2, 0);
+        const desired = targetTop - minY;
+
+        let deltaMin = -Infinity;
+        let deltaMax = Infinity;
+        selected.forEach((el) => {
+          const h = heights.get(el.id) ?? 0;
+          const y = el.y ?? 0;
+          const allowFull = isCustomTextElement(el) || isShapeElement(el);
+          const minAllowed = allowFull ? 0 : safeYRatio;
+          const maxAllowed = allowFull ? Math.max(minAllowed, 1 - h) : Math.max(minAllowed, 1 - safeYRatio - h);
+          deltaMin = Math.max(deltaMin, minAllowed - y);
+          deltaMax = Math.min(deltaMax, maxAllowed - y);
+        });
+        return clamp(desired, deltaMin, deltaMax);
+      })();
+
+      return prev.map((element) => {
         const isSelected =
           targetIds.includes(element.id) &&
           element.side === selectedElementSide &&
           !element.locked &&
           element.type !== "border";
         if (!isSelected) return element;
-
-        const widthRatio = getElementWidth(element);
-        const heightRatio = getElementHeight(element);
-        const minX = bleedXRatio;
-        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-        const minY = bleedYRatio;
-        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
-
-        const next = { ...element };
-        if (options.horizontal) {
-          if (options.horizontal === "left") next.x = minX;
-          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, minX, maxX);
-          if (options.horizontal === "right") next.x = maxX;
-        }
-        if (options.vertical) {
-          if (options.vertical === "top") next.y = minY;
-          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, minY, maxY);
-          if (options.vertical === "bottom") next.y = maxY;
-        }
-        return next;
-      })
-    );
+        return {
+          ...element,
+          x: (element.x ?? 0) + horizontalDelta,
+          y: (element.y ?? 0) + verticalDelta,
+        };
+      });
+    });
   };
 
   const distributeEvenly = (direction: "horizontal" | "vertical") => {
@@ -1345,10 +1731,15 @@ const renderElement = (element: CardElement) => {
 
         const widthRatio = getElementWidth(element);
         const heightRatio = getElementHeight(element);
-        const minX = bleedXRatio;
-        const maxX = Math.max(minX, 1 - bleedXRatio - widthRatio);
-        const minY = bleedYRatio;
-        const maxY = Math.max(minY, 1 - bleedYRatio - heightRatio);
+        const allowFull = isCustomTextElement(element) || isShapeElement(element);
+        const minX = allowFull ? 0 : safeXRatio;
+        const maxX = allowFull
+          ? Math.max(0, 1 - widthRatio)
+          : Math.max(minX, 1 - safeXRatio - widthRatio);
+        const minY = allowFull ? 0 : safeYRatio;
+        const maxY = allowFull
+          ? Math.max(minY, 1 - heightRatio)
+          : Math.max(minY, 1 - safeYRatio - heightRatio);
 
         const next = { ...element };
         if (options.horizontal) {
@@ -1432,10 +1823,10 @@ const renderElement = (element: CardElement) => {
   ) => (
     <div
       style={{
-        width: displayedWidth,
+        width: displayedWidth + bleedXPx * 2,
         maxWidth: "100%",
-        height: displayedHeight,
-        borderRadius: `${cornerRadiusPx}px`,
+        height: displayedHeight + bleedYPx * 2,
+        borderRadius: `${cornerRadiusPx + Math.max(bleedXPx, bleedYPx)}px`,
         background: cardDesign.backgroundColor,
         color: cardDesign.textColor,
         boxShadow: "0 22px 50px rgba(15,23,42,0.22)",
@@ -1444,11 +1835,105 @@ const renderElement = (element: CardElement) => {
       }}
       ref={ref}
     >
+      {guidesVisible && (
+        <>
+          {/* Bleed shading to indicate non-final area */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: displayedWidth + bleedXPx * 2,
+              height: bleedXPx,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: bleedYPx + displayedHeight,
+              width: displayedWidth + bleedXPx * 2,
+              height: bleedYPx,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: bleedYPx,
+              width: bleedXPx,
+              height: displayedHeight,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: bleedXPx + displayedWidth,
+              top: bleedYPx,
+              width: bleedXPx,
+              height: displayedHeight,
+              background: bleedOverlayColor,
+              pointerEvents: "none",
+            }}
+          />
+          {/* Bleed outline */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: displayedWidth + bleedXPx * 2,
+              height: displayedHeight + bleedXPx * 2,
+              border: `1px solid ${bleedLineColor}`,
+              borderRadius: cornerRadiusPx + Math.max(bleedXPx, bleedYPx),
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+          {/* Cut line (trim) */}
+          <div
+            style={{
+              position: "absolute",
+              left: contentOffsetX,
+              top: contentOffsetY,
+              width: displayedWidth,
+              height: displayedHeight,
+              border: `1px dashed ${cutLineColor}`,
+              borderRadius: cornerRadiusPx,
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+          {/* Safe area */}
+          <div
+            style={{
+              position: "absolute",
+              left: contentOffsetX + safeXPx,
+              top: contentOffsetY + safeYPx,
+              width: Math.max(displayedWidth - safeXPx * 2, 0),
+              height: Math.max(displayedHeight - safeYPx * 2, 0),
+              border: `1px dashed ${safeLineColor}`,
+              borderRadius: Math.max(cornerRadiusPx - safeXPx, 0),
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
       {showGrid && (
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            left: contentOffsetX,
+            top: contentOffsetY,
+            width: displayedWidth,
+            height: displayedHeight,
             pointerEvents: "none",
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px)",
@@ -1497,6 +1982,79 @@ const renderElement = (element: CardElement) => {
               Card size: 86mm x 54mm • {cardDesign.resolution} DPI export
             </span>
           </div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "14px",
+            alignItems: "center",
+            marginTop: "6px",
+            fontSize: "12px",
+            color: "#475467",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ display: "inline-block", width: "14px", height: "14px", border: `2px solid ${bleedLineColor}` }} />
+            <span>Bleed (extra area, not in final cut)</span>
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "14px",
+                height: "14px",
+                border: "2px dashed rgba(148,163,184,0.9)",
+              }}
+            />
+            <span>Cut line (final card size)</span>
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "14px",
+                height: "14px",
+                border: `2px dashed ${safeLineColor}`,
+              }}
+            />
+            <span>Safe area (keep text/logos inside)</span>
+          </span>
+        </div>
+        {showPlacementWarning && (
+          <div
+            style={{
+              marginTop: "4px",
+              padding: "8px 12px",
+              borderRadius: "12px",
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.25)",
+              color: "#ef4444",
+              fontSize: "12px",
+              fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              maxWidth: "100%",
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12" y2="17" />
+            </svg>
+            Danger zone: elements outside the safe area could be cut off during production.
+          </div>
+        )}
         {activeElement && toolbarPosition && (
           <div
             style={{
@@ -1605,11 +2163,112 @@ const renderElement = (element: CardElement) => {
                 </button>
                 <button
                   type="button"
+                  onClick={duplicateSelection}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#ffffff",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                  }}
+                  aria-label="Duplicate element"
+                  title="Duplicate"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="10" height="10" rx="2" />
+                    <rect x="5" y="5" width="10" height="10" rx="2" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
-                    if (window.confirm("Are you sure you want to delete this element?")) {
+                    const overlay = document.createElement("div");
+                    overlay.style.position = "fixed";
+                    overlay.style.inset = "0";
+                    overlay.style.background = "rgba(15,23,42,0.55)";
+                    overlay.style.zIndex = "9999";
+                    overlay.style.display = "flex";
+                    overlay.style.alignItems = "center";
+                    overlay.style.justifyContent = "center";
+
+                    const modal = document.createElement("div");
+                    modal.style.background = "#0f172a";
+                    modal.style.border = "1px solid rgba(255,255,255,0.1)";
+                    modal.style.borderRadius = "14px";
+                    modal.style.padding = "18px 20px";
+                    modal.style.width = "320px";
+                    modal.style.boxShadow = "0 24px 60px rgba(0,0,0,0.25)";
+                    modal.style.color = "#e2e8f0";
+                    modal.style.fontFamily = "inherit";
+
+                    const title = document.createElement("div");
+                    title.textContent = "Delete element?";
+                    title.style.fontSize = "16px";
+                    title.style.fontWeight = "700";
+                    title.style.marginBottom = "6px";
+                    modal.appendChild(title);
+
+                    const body = document.createElement("div");
+                    body.textContent = "This will remove the selected element from the card.";
+                    body.style.fontSize = "13px";
+                    body.style.color = "#cbd5e1";
+                    body.style.marginBottom = "12px";
+                    modal.appendChild(body);
+
+                    const actions = document.createElement("div");
+                    actions.style.display = "flex";
+                    actions.style.gap = "10px";
+                    actions.style.justifyContent = "flex-end";
+
+                    const cancel = document.createElement("button");
+                    cancel.textContent = "No";
+                    cancel.style.border = "1px solid rgba(255,255,255,0.2)";
+                    cancel.style.background = "transparent";
+                    cancel.style.color = "#e2e8f0";
+                    cancel.style.borderRadius = "10px";
+                    cancel.style.padding = "8px 12px";
+                    cancel.style.cursor = "pointer";
+                    cancel.onclick = () => overlay.remove();
+
+                    const confirm = document.createElement("button");
+                    confirm.textContent = "Yes, delete";
+                    confirm.style.border = "none";
+                    confirm.style.background = "linear-gradient(135deg, #ef4444, #f97316)";
+                    confirm.style.color = "#0f172a";
+                    confirm.style.fontWeight = "700";
+                    confirm.style.borderRadius = "10px";
+                    confirm.style.padding = "8px 14px";
+                    confirm.style.cursor = "pointer";
+                    confirm.onclick = () => {
                       removeElement(activeElement.id);
                       clearSelection();
-                    }
+                      overlay.remove();
+                    };
+
+                    actions.appendChild(cancel);
+                    actions.appendChild(confirm);
+                    modal.appendChild(actions);
+
+                    overlay.appendChild(modal);
+                    document.body.appendChild(overlay);
                   }}
                   style={{
                     border: "1px solid rgba(255,255,255,0.18)",
@@ -1768,6 +2427,167 @@ const renderElement = (element: CardElement) => {
                 <AlignIcon variant="bottom" />
               </button>
             </div>
+            {showPlacementWarning && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  padding: "8px 10px",
+                  borderRadius: "10px",
+                  background: "rgba(255,122,0,0.1)",
+                  color: "#ffb86c",
+                  fontSize: "12px",
+                  lineHeight: 1.4,
+                }}
+              >
+                Placing items outside the safe area might lead to trimming when printed. Proceed carefully.
+              </div>
+            )}
+            {activeElement.type === "text" && canShowIcon(activeElement) && (
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#cbd5e1", marginTop: "6px" }}>
+                <input
+                  type="checkbox"
+                  checked={!!activeElement.showIcon}
+                  disabled={activeElement.locked}
+                  onChange={(event) =>
+                    applyToSelection(
+                      (el) => el.type === "text" && canShowIcon(el),
+                      (el) => ({ ...el, showIcon: event.target.checked })
+                    )
+                  }
+                  style={{ width: "16px", height: "16px" }}
+                />
+                Show icon for this field
+              </label>
+            )}
+            {activeElement.type === "shape" && (
+              <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Opacity
+                  <input
+                    type="range"
+                    min={MIN_OPACITY}
+                    max={MAX_OPACITY}
+                    step={0.05}
+                    value={activeElement.opacity ?? 1}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "shape",
+                        (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                      )
+                    }
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Shape variant
+                  <select
+                    value={activeElement.shapeVariant ?? "rectangle"}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "shape",
+                        (el) => ({ ...el, shapeVariant: event.target.value as CardElement["shapeVariant"] })
+                      )
+                    }
+                    style={{
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      padding: "8px 10px",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <option value="rectangle">Rectangle</option>
+                    <option value="circle">Circle</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            {activeElement.type === "border" && (
+              <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Opacity
+                  <input
+                    type="range"
+                    min={MIN_OPACITY}
+                    max={MAX_OPACITY}
+                    step={0.05}
+                    value={activeElement.opacity ?? 1}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                      )
+                    }
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Border color
+                  <input
+                    type="text"
+                    value={activeElement.borderColor || "#0f172a"}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderColor: event.target.value })
+                      )
+                    }
+                    placeholder="#000000"
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      padding: "8px 10px",
+                      marginTop: "4px",
+                    }}
+                  />
+                  <input
+                    type="color"
+                    value={activeElement.borderColor || "#0f172a"}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderColor: event.target.value })
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      height: "34px",
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      background: "rgba(255,255,255,0.04)",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Thickness</span>
+                    <span>{Math.round(activeElement.borderThickness ?? 2)} px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={32}
+                    step={1}
+                    value={activeElement.borderThickness ?? 2}
+                    disabled={activeElement.locked}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "border",
+                        (el) => ({ ...el, borderThickness: parseInt(event.target.value, 10) })
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            )}
             {selectionCount > 0 && (
               <div
                 style={{
@@ -1849,17 +2669,115 @@ const renderElement = (element: CardElement) => {
                   </div>
                   <input
                     type="range"
-                    min={MIN_FONT_RATIO}
+                    min={minFontRatio}
                     max={MAX_FONT_RATIO}
                     step={0.001}
                     value={activeElement.fontSize ?? 0.05}
                     disabled={activeElement.locked}
                     onChange={(event) => {
-                      const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                      const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
                       applyToSelection((el) => el.type === "text", (el) => ({ ...el, fontSize: next }));
                     }}
                   />
                 </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                  Opacity
+                  <input
+                    type="range"
+                    min={MIN_OPACITY}
+                    max={MAX_OPACITY}
+                    step={0.05}
+                    value={activeElement.opacity ?? 1}
+                    disabled={activeElement.locked}
+                    onChange={(event) => {
+                      const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                      applyToSelection(
+                        (el) => el.type === "text",
+                        (el) => ({ ...el, opacity: next })
+                      );
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? ("400" as FontWeightOption) : ("700" as FontWeightOption);
+                    applyToSelection(
+                      (el) => el.type === "text",
+                      (el) => ({ ...el, fontWeight: next })
+                    );
+                  }}
+                  disabled={activeElement.locked}
+                  aria-label="Toggle bold"
+                  title="Bold"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
+                    color: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "#ffffff" : "rgba(255,255,255,0.85)",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: activeElement.locked ? "not-allowed" : "pointer",
+                    marginTop: "6px",
+                    width: "40px",
+                    height: "36px",
+                    marginRight: "6px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 900,
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      color: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? "#ffffff" : "rgba(255,255,255,0.85)",
+                      opacity: (activeElement.fontWeight ?? DEFAULT_FONT_WEIGHT) === "700" ? 1 : 0.75,
+                    }}
+                  >
+                    B
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? ("normal" as FontStyleOption) : ("italic" as FontStyleOption);
+                    applyToSelection(
+                      (el) => el.type === "text",
+                      (el) => ({ ...el, fontStyle: next })
+                    );
+                  }}
+                  disabled={activeElement.locked}
+                  aria-label="Toggle italic"
+                  title="Italic"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
+                    color: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "#ffffff" : "rgba(255,255,255,0.85)",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: activeElement.locked ? "not-allowed" : "pointer",
+                    marginTop: "6px",
+                    width: "40px",
+                    height: "36px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      color: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? "#ffffff" : "rgba(255,255,255,0.85)",
+                      opacity: (activeElement.fontStyle ?? DEFAULT_FONT_STYLE) === "italic" ? 1 : 0.75,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    I
+                  </span>
+                </button>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Font family
                   <select
@@ -1889,6 +2807,25 @@ const renderElement = (element: CardElement) => {
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Text colour
                   <input
+                    type="text"
+                    value={activeElement.color || cardDesign.textColor}
+                    onChange={(event) =>
+                      applyToSelection(
+                        (el) => el.type === "text",
+                        (el) => ({ ...el, color: event.target.value })
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      padding: "8px 10px",
+                    }}
+                  />
+                  <input
                     type="color"
                     value={activeElement.color || cardDesign.textColor}
                     onChange={(event) =>
@@ -1917,8 +2854,8 @@ const renderElement = (element: CardElement) => {
                 </div>
                 <input
                   type="range"
-                  min={Math.round(minElementSizePx)}
-                  max={Math.round(maxElementSizePx)}
+                  min={Math.round(mediaMinSliderPx)}
+                  max={Math.round(mediaMaxSliderPx)}
                   step={1}
                   value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
                   onChange={(event) =>
@@ -1928,6 +2865,25 @@ const renderElement = (element: CardElement) => {
                   }
                   disabled={activeElement.locked}
                 />
+                {activeElement.type === "image" && (
+                  <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                    Opacity
+                    <input
+                      type="range"
+                      min={MIN_OPACITY}
+                      max={MAX_OPACITY}
+                      step={0.05}
+                      value={activeElement.opacity ?? 1}
+                      disabled={activeElement.locked}
+                      onChange={(event) =>
+                        applyToSelection(
+                          (el) => el.type === "image",
+                          (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                        )
+                      }
+                    />
+                  </label>
+                )}
               </label>
             )}
             {activeElement.type === "shape" && (
@@ -1976,6 +2932,27 @@ const renderElement = (element: CardElement) => {
               <>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", fontSize: "12px", color: "#cbd5e1" }}>
                   Colour
+                  <input
+                    type="text"
+                    value={activeElement.backgroundColor || cardDesign.textColor}
+                    onChange={(event) =>
+                      setElements((prev) =>
+                        prev.map((el) =>
+                          el.id === activeElement.id ? { ...el, backgroundColor: event.target.value } : el
+                        )
+                      )
+                    }
+                    disabled={activeElement.locked}
+                    style={{
+                      width: "100%",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "#ffffff",
+                      padding: "8px 10px",
+                      marginBottom: "4px",
+                    }}
+                  />
                   <input
                     type="color"
                     value={activeElement.backgroundColor || cardDesign.textColor}
@@ -2201,6 +3178,15 @@ const renderElement = (element: CardElement) => {
             <label style={{ fontSize: "13px", color: "#475467", display: "flex", alignItems: "center", gap: "8px" }}>
               <input
                 type="checkbox"
+                checked={showGuidesOverlay}
+                onChange={(e) => setShowGuidesOverlay(e.target.checked)}
+                style={{ width: "16px", height: "16px" }}
+              />
+              Show bleed / safe guides
+            </label>
+            <label style={{ fontSize: "13px", color: "#475467", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
                 checked={showGrid}
                 onChange={(e) => setShowGrid(e.target.checked)}
                 style={{ width: "16px", height: "16px" }}
@@ -2254,18 +3240,33 @@ const renderElement = (element: CardElement) => {
               })}
             </div>
             {backgroundMode === "solid" && (
-              <input
-                type="color"
-                value={cardDesign.backgroundColor}
-                onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
-                style={{
-                  width: "100%",
-                  height: "36px",
-                  borderRadius: "8px",
-                  border: "1px solid #d0d5dd",
-                  cursor: "pointer",
-                }}
-              />
+              <>
+                <input
+                  type="text"
+                  value={cardDesign.backgroundColor}
+                  onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                  style={{
+                    width: "100%",
+                    borderRadius: "8px",
+                    border: "1px solid #d0d5dd",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                  }}
+                  placeholder="#000000"
+                />
+                <input
+                  type="color"
+                  value={cardDesign.backgroundColor}
+                  onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                  style={{
+                    width: "100%",
+                    height: "36px",
+                    borderRadius: "8px",
+                    border: "1px solid #d0d5dd",
+                    cursor: "pointer",
+                  }}
+                />
+              </>
             )}
             {backgroundMode !== "solid" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -2327,6 +3328,18 @@ const renderElement = (element: CardElement) => {
           </div>
           <label style={{ fontSize: "13px", color: "#475467", display: "flex", flexDirection: "column", gap: "6px" }}>
             Text colour
+            <input
+              type="text"
+              value={cardDesign.textColor}
+              onChange={(e) => updateCardDesign({ textColor: e.target.value })}
+              style={{
+                width: "100%",
+                borderRadius: "8px",
+                border: "1px solid #d0d5dd",
+                padding: "8px 10px",
+              }}
+              placeholder="#000000"
+            />
             <input
               type="color"
               value={cardDesign.textColor}
@@ -2873,12 +3886,12 @@ const renderElement = (element: CardElement) => {
                         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                           <input
                             type="range"
-                            min={MIN_FONT_RATIO}
+                            min={minFontRatio}
                             max={MAX_FONT_RATIO}
                             step={0.001}
                             value={element.fontSize ?? 0.05}
                             onChange={(event) => {
-                              const next = clamp(parseFloat(event.target.value) || MIN_FONT_RATIO, MIN_FONT_RATIO, MAX_FONT_RATIO);
+                              const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
                               setElements((prev) =>
                                 prev.map((el) =>
                                   el.id === element.id
@@ -2912,8 +3925,8 @@ const renderElement = (element: CardElement) => {
                         </div>
                         <input
                           type="range"
-                          min={Math.round(minElementSizePx)}
-                          max={Math.round(maxElementSizePx)}
+                          min={Math.round(mediaMinSliderPx)}
+                          max={Math.round(mediaMaxSliderPx)}
                           step={1}
                           value={Math.round(getElementWidth(element) * cardWidthPx)}
                           onChange={(event) =>
@@ -2922,6 +3935,33 @@ const renderElement = (element: CardElement) => {
                           style={{ width: "100%" }}
                           disabled={element.locked}
                         />
+                        {element.type === "image" && (
+                          <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "#6b7280" }}>
+                            Opacity
+                            <input
+                              type="range"
+                              min={MIN_OPACITY}
+                              max={MAX_OPACITY}
+                              step={0.05}
+                              value={element.opacity ?? 1}
+                              onChange={(event) => {
+                                const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                                setElements((prev) =>
+                                  prev.map((el) =>
+                                    el.id === element.id
+                                      ? {
+                                          ...el,
+                                          opacity: next,
+                                        }
+                                      : el
+                                  )
+                                );
+                              }}
+                              style={{ width: "100%" }}
+                              disabled={element.locked}
+                            />
+                          </label>
+                        )}
                       </div>
                     )}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", alignItems: "center" }}>
@@ -3069,6 +4109,31 @@ const renderElement = (element: CardElement) => {
                     </div>
                     {element.type === "shape" && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Opacity
+                          <input
+                            type="range"
+                            min={MIN_OPACITY}
+                            max={MAX_OPACITY}
+                            step={0.05}
+                            value={element.opacity ?? 1}
+                            onChange={(event) => {
+                              const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        opacity: next,
+                                      }
+                                    : el
+                                )
+                              );
+                            }}
+                            style={{ width: "100%" }}
+                            disabled={element.locked}
+                          />
+                        </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
                           Color
                           <input
@@ -3282,6 +4347,31 @@ const renderElement = (element: CardElement) => {
                     )}
                     {element.type === "border" && (
                       <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <label style={{ fontSize: "12px", color: "#6b7280" }}>
+                          Opacity
+                          <input
+                            type="range"
+                            min={MIN_OPACITY}
+                            max={MAX_OPACITY}
+                            step={0.05}
+                            value={element.opacity ?? 1}
+                            onChange={(event) => {
+                              const next = clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY);
+                              setElements((prev) =>
+                                prev.map((el) =>
+                                  el.id === element.id
+                                    ? {
+                                        ...el,
+                                        opacity: next,
+                                      }
+                                    : el
+                                )
+                              );
+                            }}
+                            style={{ width: "100%" }}
+                            disabled={element.locked}
+                          />
+                        </label>
                         <label style={{ fontSize: "12px", color: "#6b7280" }}>
                           Border colour
                           <input

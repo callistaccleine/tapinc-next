@@ -229,23 +229,8 @@ const handleSignup = async (e: React.FormEvent) => {
       setIsLoading(false);
       return;
     }
-    if (FREE_EMAIL_DOMAINS.includes(emailDomain)) {
-      setMessage("Please use a company email address, not a personal inbox.");
-      setIsLoading(false);
-      return;
-    }
     if (!websiteDomain) {
       setMessage("Please provide a valid company website URL.");
-      setIsLoading(false);
-      return;
-    }
-    const domainsMatch =
-      !websiteDomain ||
-      emailDomain === websiteDomain ||
-      emailDomain.endsWith(`.${websiteDomain}`) ||
-      websiteDomain.endsWith(`.${emailDomain}`);
-    if (websiteDomain && !domainsMatch) {
-      setMessage("Company email must match your company website domain.");
       setIsLoading(false);
       return;
     }
@@ -670,6 +655,12 @@ const handleSignup = async (e: React.FormEvent) => {
             </p>
             <button
               className={styles.btnDark}
+              style={{
+                width: "100%",
+                marginTop: "12px",
+                background: "linear-gradient(135deg, #ff8b37, #ff5700)",
+                border: "none",
+              }}
               onClick={() => {
                 setShowConfirmation(false);
                 router.replace("/auth");
