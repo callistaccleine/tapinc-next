@@ -1262,6 +1262,30 @@ const renderElement = (element: CardElement) => {
     setElements((prev) => prev.filter((element) => element.id !== id));
   };
 
+  const duplicateSelection = () => {
+    const targets = selectedIds.length ? selectedIds : activeElement ? [activeElement.id] : [];
+    if (!targets.length) return;
+    const offset = 0.02;
+    const copies: CardElement[] = [];
+    targets.forEach((id, index) => {
+      const original = cardElements.find((el) => el.id === id);
+      if (!original || original.locked) return;
+      const copy: CardElement = clampElementPosition({
+        ...original,
+        id: `${original.id}-copy-${Date.now()}-${index}`,
+        x: (original.x ?? 0) + offset,
+        y: (original.y ?? 0) + offset,
+        locked: false,
+      });
+      copies.push(copy);
+    });
+    if (!copies.length) return;
+    setElements((prev) => [...prev, ...copies]);
+    setActiveElementIds(copies.map((c) => c.id));
+    setActiveElementId(copies[0].id);
+    setSelectedElementSide(copies[0].side);
+  };
+
   const toggleLockElement = (id: string) => {
     setElements((prev) =>
       prev.map((element) => (element.id === id ? { ...element, locked: !element.locked } : element))
@@ -1687,6 +1711,42 @@ const renderElement = (element: CardElement) => {
                         <path d="M12 15v2" />
                       </>
                     )}
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={duplicateSelection}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#ffffff",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                  }}
+                  aria-label="Duplicate element"
+                  title="Duplicate"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="10" height="10" rx="2" />
+                    <rect x="5" y="5" width="10" height="10" rx="2" />
                   </svg>
                 </button>
                 <button
