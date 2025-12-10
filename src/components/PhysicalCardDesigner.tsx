@@ -141,7 +141,10 @@ export type CardElement = {
   showIcon?: boolean;
   opacity?: number;
   imageUrl?: string | null;
+  frontBackgroundColor?: string;
+  backBackgroundColor?: string;
   backgroundColor?: string;
+  qrColor?: string;
   fontWeight?: FontWeightOption;
   fontStyle?: FontStyleOption;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
@@ -260,6 +263,8 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 const cloneDefaultElements = (): CardElement[] => DEFAULT_CARD_ELEMENTS.map((el) => ({ ...el }));
 
 export type CardDesignSettings = {
+  frontBackgroundColor: string;
+  backBackgroundColor: string;
   backgroundColor: string;
   textColor: string;
   headline: string;
@@ -281,6 +286,8 @@ export type CardExportPayload = {
 
 export const DEFAULT_CARD_DESIGN: CardDesignSettings = {
   backgroundColor: "#0f172a",
+  frontBackgroundColor: "#0f172a",
+  backBackgroundColor: "#0f172a",
   // accentColor: "#ff7a00",
   textColor: "#ffffff",
   headline: "",
@@ -470,10 +477,6 @@ export function PhysicalCardDesigner({
   };
   const orientation = cardDesign.orientation ?? "landscape";
   const isPortrait = orientation === "portrait";
-  const existingStops = parseGradientStops(cardDesign.backgroundColor || "");
-  const backgroundMode: BackgroundFillMode =
-    existingStops.length >= 3 ? "gradient3" : existingStops.length >= 2 ? "gradient2" : "solid";
-  const activeGradientStops = getGradientStopsForMode(backgroundMode, existingStops);
   const dpi = Number(cardDesign.resolution || "300");
   const widthMm = isPortrait ? CARD_MM_HEIGHT : CARD_MM_WIDTH;
   const heightMm = isPortrait ? CARD_MM_WIDTH : CARD_MM_HEIGHT;
@@ -498,7 +501,6 @@ export function PhysicalCardDesigner({
   const cutLineColor = "rgba(255,255,255,0.7)";
   const safeLineColor = "rgba(82, 211, 151, 0.7)";
   const bleedLineColor = "rgba(255, 111, 97, 0.75)";
-  const bleedOverlayColor = "rgba(255, 111, 97, 0.04)";
   const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
   const ptToRatio = (pt: number) => (pt / 72) * (dpi / baseDimensionPx);
   const minFontRatio = Math.max(MIN_FONT_RATIO, ptToRatio(10));
@@ -547,9 +549,25 @@ export function PhysicalCardDesigner({
   const cardElements = cardDesign.elements ?? [];
   const [showGuidesOverlay, setShowGuidesOverlay] = useState(true);
   const [showGuidesHint, setShowGuidesHint] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const headerRowRef = useRef<HTMLDivElement>(null);
+  const backgroundFront = cardDesign.frontBackgroundColor ?? cardDesign.backgroundColor ?? "#0f172a";
+  const backgroundBack = cardDesign.backBackgroundColor ?? cardDesign.backgroundColor ?? "#0f172a";
+  const getBackgroundForSide = (side: CardSide) => (side === "front" ? backgroundFront : backgroundBack);
+  const activeBackground = getBackgroundForSide(selectedElementSide);
+  const setBackgroundForActiveSide = (value: string) => {
+    if (selectedElementSide === "front") {
+      updateCardDesign({ frontBackgroundColor: value });
+    } else {
+      updateCardDesign({ backBackgroundColor: value });
+    }
+  };
+  const existingStops = parseGradientStops(activeBackground || "");
+  const backgroundMode: BackgroundFillMode =
+    existingStops.length >= 3 ? "gradient3" : existingStops.length >= 2 ? "gradient2" : "solid";
+  const activeGradientStops = getGradientStopsForMode(backgroundMode, existingStops);
 
   const qrValue =
     profileUrl || (previewData.email ? `mailto:${previewData.email}` : "https://tapink.com.au");
@@ -580,6 +598,7 @@ export function PhysicalCardDesigner({
       return {
         ...element,
         opacity: 1,
+        qrColor: element.qrColor ?? "#000000",
       };
     }
     const widthRatio = getElementWidth(element);
@@ -1189,7 +1208,7 @@ const renderElement = (element: CardElement) => {
           value={qrValue}
           size={Math.min(widthPx, heightPx)}
           bgColor="transparent"
-          fgColor={cardDesign.textColor}
+          fgColor={element.qrColor || cardDesign.textColor || "#000000"}
           level="H"
           includeMargin={false}
         />
@@ -1296,7 +1315,7 @@ const renderElement = (element: CardElement) => {
     !!activeElement &&
     (isCustomTextElement(activeElement) || isShapeElement(activeElement)) &&
     isOutsideSafeArea(activeElement);
-  const guidesVisible = showGuidesOverlay || showGuidesHint;
+  const guidesVisible = !previewMode && !exporting && (showGuidesOverlay || showGuidesHint);
 
   useEffect(() => {
     if (showPlacementWarning) {
@@ -1829,7 +1848,7 @@ const renderElement = (element: CardElement) => {
         maxWidth: "100%",
         height: displayedHeight + bleedYPx * 2,
         borderRadius: `${cornerRadiusPx + Math.max(bleedXPx, bleedYPx)}px`,
-        background: cardDesign.backgroundColor,
+        background: getBackgroundForSide(side),
         color: cardDesign.textColor,
         boxShadow: "0 22px 50px rgba(15,23,42,0.22)",
         position: "relative",
@@ -1839,51 +1858,6 @@ const renderElement = (element: CardElement) => {
     >
       {guidesVisible && (
         <>
-          {/* Bleed shading to indicate non-final area */}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: displayedWidth + bleedXPx * 2,
-              height: bleedXPx,
-              background: bleedOverlayColor,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: bleedYPx + displayedHeight,
-              width: displayedWidth + bleedXPx * 2,
-              height: bleedYPx,
-              background: bleedOverlayColor,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: bleedYPx,
-              width: bleedXPx,
-              height: displayedHeight,
-              background: bleedOverlayColor,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: bleedXPx + displayedWidth,
-              top: bleedYPx,
-              width: bleedXPx,
-              height: displayedHeight,
-              background: bleedOverlayColor,
-              pointerEvents: "none",
-            }}
-          />
           {/* Bleed outline */}
           <div
             style={{
@@ -1928,7 +1902,7 @@ const renderElement = (element: CardElement) => {
           />
         </>
       )}
-      {showGrid && (
+      {showGrid && !previewMode && !exporting && (
         <div
           style={{
             position: "absolute",
@@ -2847,6 +2821,48 @@ const renderElement = (element: CardElement) => {
                   }
                   disabled={activeElement.locked}
                 />
+                {activeElement.type === "qr" && (
+                  <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", fontSize: "12px", color: "#cbd5e1" }}>
+                    QR colour
+                    <input
+                      type="text"
+                      value={activeElement.qrColor || "#000000"}
+                      onChange={(event) =>
+                        applyToSelection(
+                          (el) => el.type === "qr",
+                          (el) => ({ ...el, qrColor: event.target.value })
+                        )
+                      }
+                      disabled={activeElement.locked}
+                      style={{
+                        width: "100%",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        background: "rgba(255,255,255,0.05)",
+                        color: "#ffffff",
+                        padding: "8px 10px",
+                      }}
+                    />
+                    <input
+                      type="color"
+                      value={activeElement.qrColor || "#000000"}
+                      onChange={(event) =>
+                        applyToSelection(
+                          (el) => el.type === "qr",
+                          (el) => ({ ...el, qrColor: event.target.value })
+                        )
+                      }
+                      disabled={activeElement.locked}
+                      style={{
+                        width: "100%",
+                        height: "32px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        background: "transparent",
+                      }}
+                    />
+                  </label>
+                )}
                 {activeElement.type === "image" && (
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                     Opacity
@@ -3210,6 +3226,38 @@ const renderElement = (element: CardElement) => {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             <span style={{ fontSize: "13px", color: "#475467", fontWeight: 500 }}>Background fill</span>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "6px", fontSize: "12px", color: "#475467" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedElementSide("front")}
+                style={{
+                  border: "1px solid #d0d5dd",
+                  background: selectedElementSide === "front" ? "#0f172a" : "#ffffff",
+                  color: selectedElementSide === "front" ? "#ffffff" : "#0f172a",
+                  borderRadius: "10px",
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Front
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedElementSide("back")}
+                style={{
+                  border: "1px solid #d0d5dd",
+                  background: selectedElementSide === "back" ? "#0f172a" : "#ffffff",
+                  color: selectedElementSide === "back" ? "#ffffff" : "#0f172a",
+                  borderRadius: "10px",
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Back
+              </button>
+            </div>
             <div style={{ display: "inline-flex", border: "1px solid #d0d5dd", borderRadius: "12px", overflow: "hidden" }}>
               {(["solid", "gradient2", "gradient3"] as BackgroundFillMode[]).map((mode) => {
                 const isActive = backgroundMode === mode;
@@ -3219,11 +3267,11 @@ const renderElement = (element: CardElement) => {
                     type="button"
                     onClick={() => {
                       if (mode === "solid") {
-                        updateCardDesign({ backgroundColor: "#0f172a" });
+                        setBackgroundForActiveSide("#0f172a");
                       } else if (mode === "gradient2") {
-                        updateCardDesign({ backgroundColor: buildGradient(DEFAULT_GRADIENT_TWO) });
+                        setBackgroundForActiveSide(buildGradient(DEFAULT_GRADIENT_TWO));
                       } else {
-                        updateCardDesign({ backgroundColor: buildGradient(DEFAULT_GRADIENT_THREE) });
+                        setBackgroundForActiveSide(buildGradient(DEFAULT_GRADIENT_THREE));
                       }
                     }}
                     style={{
@@ -3249,8 +3297,8 @@ const renderElement = (element: CardElement) => {
               <>
                 <input
                   type="text"
-                  value={cardDesign.backgroundColor}
-                  onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                  value={activeBackground}
+                  onChange={(event) => setBackgroundForActiveSide(event.target.value)}
                   style={{
                     width: "100%",
                     borderRadius: "8px",
@@ -3262,8 +3310,8 @@ const renderElement = (element: CardElement) => {
                 />
                 <input
                   type="color"
-                  value={cardDesign.backgroundColor}
-                  onChange={(event) => updateCardDesign({ backgroundColor: event.target.value })}
+                  value={activeBackground}
+                  onChange={(event) => setBackgroundForActiveSide(event.target.value)}
                   style={{
                     width: "100%",
                     height: "36px",
@@ -3276,21 +3324,21 @@ const renderElement = (element: CardElement) => {
             )}
             {backgroundMode !== "solid" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <span style={{ fontSize: "12px", color: "#6b7280" }}>Quick presets</span>
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {Object.entries(gradientCatalog).map(([label, stops]) => {
-                      const gradientCss = buildGradient(stops);
-                      const isActive = cardDesign.backgroundColor === gradientCss;
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => updateCardDesign({ backgroundColor: gradientCss })}
-                          style={{
-                            width: "90px",
-                            height: "32px",
-                            borderRadius: "8px",
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <span style={{ fontSize: "12px", color: "#6b7280" }}>Quick presets</span>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {Object.entries(gradientCatalog).map(([label, stops]) => {
+                        const gradientCss = buildGradient(stops);
+                        const isActive = activeBackground === gradientCss;
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setBackgroundForActiveSide(gradientCss)}
+                            style={{
+                              width: "90px",
+                              height: "32px",
+                              borderRadius: "8px",
                             border: isActive ? "2px solid #0f172a" : "1px solid #d0d5dd",
                             background: gradientCss,
                             color: "#fff",
@@ -3318,7 +3366,7 @@ const renderElement = (element: CardElement) => {
                         backgroundMode === "gradient3"
                           ? updatedStops.slice(0, 3)
                           : updatedStops.slice(0, 2);
-                      updateCardDesign({ backgroundColor: buildGradient(targetStops) });
+                      setBackgroundForActiveSide(buildGradient(targetStops));
                     }}
                     style={{
                       width: "100%",
