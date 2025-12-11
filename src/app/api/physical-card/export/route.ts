@@ -1,10 +1,11 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
 import JSZip from "jszip";
 import { PDFDocument } from "pdf-lib";
 import nodemailer from "nodemailer";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+// Force the Node runtime to allow larger processing workloads (PDF + ZIP).
+export const runtime = "nodejs";
 
 const CARD_MM_WIDTH = 86;
 const CARD_MM_HEIGHT = 54;
