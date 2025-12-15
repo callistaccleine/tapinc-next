@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ChangeEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent,
@@ -112,9 +106,29 @@ const MAX_RESIZABLE_RATIO = 0.6;
 const MIN_FONT_RATIO = 0.01;
 const MAX_FONT_RATIO = 0.2;
 const MIN_IMAGE_PX = 240;
-const MAX_MEDIA_PX = 765;
+const MAX_MEDIA_PX = 1000;
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 1;
+
+const applyOpacityToColor = (color: string, opacity: number) => {
+  if (opacity >= 1) return color;
+  const normalized = color.trim();
+  const hexMatch = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    const expanded = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+    const r = parseInt(expanded.slice(0, 2), 16);
+    const g = parseInt(expanded.slice(2, 4), 16);
+    const b = parseInt(expanded.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  const rgbMatch = normalized.match(/^rgba?\\((\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)(?:\\s*,\\s*([0-9.]+))?\\)$/i);
+  if (rgbMatch) {
+    const [, r, g, b] = rgbMatch;
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  return color;
+};
 
 const isCustomTextElement = (element: CardElement) =>
   element.type === "text" && (!element.contentKey || element.contentKey === "custom");
@@ -154,6 +168,7 @@ export type CardElement = {
   fontFamily?: FontOption;
   locked?: boolean;
   rotation?: number;
+  mediaType?: "logo" | "image";
 };
 
 const DEFAULT_CARD_ELEMENTS: CardElement[] = [
@@ -507,6 +522,7 @@ export function PhysicalCardDesigner({
   const cornerRadiusPx = mmToPx(CARD_BORDER_RADIUS_MM, dpi) * previewScale;
   const minElementSizePx = MIN_RESIZABLE_RATIO * cardWidthPx;
   const maxElementSizePx = MAX_RESIZABLE_RATIO * cardWidthPx;
+  const imageMaxRatio = displayedWidth > 0 ? MAX_MEDIA_PX / displayedWidth : MAX_RESIZABLE_RATIO;
   const mediaMaxSliderRatio = Math.min(
     MAX_RESIZABLE_RATIO,
     Math.max(1 - safeXRatio * 2, 0),
@@ -515,14 +531,47 @@ export function PhysicalCardDesigner({
   );
   const mediaMinSliderPx = Math.max(minElementSizePx, MIN_IMAGE_PX);
   const mediaMaxSliderPx = mediaMaxSliderRatio * cardWidthPx;
+  const mediaMaxSliderPxForElement = (element: CardElement) => {
+    const ratio =
+      element.type === "image" && getMediaType(element) !== "logo"
+        ? imageMaxRatio
+        : mediaMaxSliderRatio;
+    return ratio * cardWidthPx;
+  };
   const mediaMaxRatioForElement = (element: CardElement) => {
     const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
-    const globalMax = mediaMaxSliderRatio;
+    const globalMax =
+      element.type === "image" && getMediaType(element) !== "logo"
+        ? imageMaxRatio
+        : mediaMaxSliderRatio;
     const x = element.x ?? safeXRatio;
     const y = element.y ?? safeYRatio;
-    const posMaxX = Math.max(1 - safeXRatio - x, minRatio);
-    const posMaxY = Math.max(1 - safeYRatio - y, minRatio);
+    const posMaxX =
+      element.type === "image" && getMediaType(element) !== "logo"
+        ? Math.max(1 - x, minRatio)
+        : Math.max(1 - safeXRatio - x, minRatio);
+    const posMaxY =
+      element.type === "image" && getMediaType(element) !== "logo"
+        ? Math.max(1 - y, minRatio)
+        : Math.max(1 - safeYRatio - y, minRatio);
     return Math.max(minRatio, Math.min(globalMax, posMaxX, posMaxY));
+  };
+  const getBoundsForElement = (element: CardElement, widthRatio: number, heightRatio: number) => {
+    const isImageNonLogo = element.type === "image" && getMediaType(element) !== "logo";
+    const allowFull = isCustomTextElement(element) || isShapeElement(element);
+    const minX = isImageNonLogo ? -bleedXRatio : allowFull ? 0 : safeXRatio;
+    const maxX = isImageNonLogo
+      ? Math.max(minX, 1 + bleedXRatio - widthRatio)
+      : allowFull
+      ? Math.max(0, 1 - widthRatio)
+      : Math.max(minX, 1 - safeXRatio - widthRatio);
+    const minY = isImageNonLogo ? -bleedYRatio : allowFull ? 0 : safeYRatio;
+    const maxY = isImageNonLogo
+      ? Math.max(minY, 1 + bleedYRatio - heightRatio)
+      : allowFull
+      ? Math.max(minY, 1 - heightRatio)
+      : Math.max(minY, 1 - safeYRatio - heightRatio);
+    return { minX, maxX, minY, maxY };
   };
   const clampMediaSizeForElement = (sizeRatio: number, element: CardElement) => {
     const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
@@ -553,6 +602,19 @@ export function PhysicalCardDesigner({
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const headerRowRef = useRef<HTMLDivElement>(null);
+  const resolveMediaType = useCallback(
+    (element: CardElement) => {
+      if (element.mediaType) return element.mediaType;
+      const idHint = element.id?.toLowerCase().includes("logo");
+      const logoMatch =
+        element.imageUrl &&
+        (logoAssets.some((asset) => asset.url === element.imageUrl) || cardDesign.logoUrl === element.imageUrl);
+      if (idHint || logoMatch) return "logo";
+      return "image";
+    },
+    [logoAssets, cardDesign.logoUrl]
+  );
+  const getMediaType = resolveMediaType;
   const backgroundFront = cardDesign.frontBackgroundColor ?? cardDesign.backgroundColor ?? "#0f172a";
   const backgroundBack = cardDesign.backBackgroundColor ?? cardDesign.backgroundColor ?? "#0f172a";
   const getBackgroundForSide = (side: CardSide) => (side === "front" ? backgroundFront : backgroundBack);
@@ -583,7 +645,7 @@ export function PhysicalCardDesigner({
     const clamped = cardDesign.elements.map(clampElementPosition);
     const changed = cardDesign.elements.some((element, index) => {
       const target = clamped[index];
-      return element.x !== target.x || element.y !== target.y;
+      return element.x !== target.x || element.y !== target.y || element.mediaType !== target.mediaType;
     });
     if (changed) {
       updateCardDesign({ elements: clamped });
@@ -603,16 +665,14 @@ export function PhysicalCardDesigner({
     }
     const widthRatio = getElementWidth(element);
     const heightRatio = getElementHeight(element);
-    const allowFull = isCustomTextElement(element) || isShapeElement(element);
-    const minX = allowFull ? 0 : safeXRatio;
-    const maxX = allowFull ? Math.max(0, 1 - widthRatio) : Math.max(minX, 1 - safeXRatio - widthRatio);
-    const minY = allowFull ? 0 : safeYRatio;
-    const maxY = allowFull ? Math.max(minY, 1 - heightRatio) : Math.max(minY, 1 - safeYRatio - heightRatio);
+    const bounds = getBoundsForElement(element, widthRatio, heightRatio);
+    const mediaType = getMediaType(element);
 
     return {
       ...element,
-      x: clamp(element.x ?? minX, minX, maxX),
-      y: clamp(element.y ?? minY, minY, maxY),
+      mediaType: element.mediaType ?? (element.type === "image" ? mediaType : undefined),
+      x: clamp(element.x ?? bounds.minX, bounds.minX, bounds.maxX),
+      y: clamp(element.y ?? bounds.minY, bounds.minY, bounds.maxY),
       showIcon: element.showIcon ?? false,
       opacity: clamp(element.opacity ?? 1, MIN_OPACITY, MAX_OPACITY),
     };
@@ -800,18 +860,10 @@ export function PhysicalCardDesigner({
 
           const widthRatio = getElementWidth(item);
           const heightRatio = getElementHeight(item);
-          const allowFull = isCustomTextElement(item) || isShapeElement(item);
-          const minX = allowFull ? 0 : safeXRatio;
-          const maxX = allowFull
-            ? Math.max(0, 1 - widthRatio)
-            : Math.max(minX, 1 - safeXRatio - widthRatio);
-          const minY = allowFull ? 0 : safeYRatio;
-          const maxY = allowFull
-            ? Math.max(minY, 1 - heightRatio)
-            : Math.max(minY, 1 - safeYRatio - heightRatio);
+          const bounds = getBoundsForElement(item, widthRatio, heightRatio);
 
-          const nextX = clamp(trimmedPosX / displayedWidth + delta.dx, minX, maxX);
-          const nextY = clamp(trimmedPosY / displayedHeight + delta.dy, minY, maxY);
+          const nextX = clamp(trimmedPosX / displayedWidth + delta.dx, bounds.minX, bounds.maxX);
+          const nextY = clamp(trimmedPosY / displayedHeight + delta.dy, bounds.minY, bounds.maxY);
           return { ...item, x: nextX, y: nextY };
         })
       );
@@ -1111,12 +1163,14 @@ const renderElement = (element: CardElement) => {
       const thicknessPx = element.borderThickness ?? 2;
       const borderColor = element.borderColor ?? "#0f172a";
       const borderStyle = element.borderStyle ?? "solid";
+      const borderOpacity = clamp(element.opacity ?? 1, MIN_OPACITY, MAX_OPACITY);
+      const colorWithOpacity = applyOpacityToColor(borderColor, borderOpacity);
       const insetXPx = bleedXRatio * displayedWidth;
       const insetYPx = bleedYRatio * displayedHeight;
       const innerWidth = Math.max(displayedWidth - insetXPx * 2, 0);
       const innerHeight = Math.max(displayedHeight - insetYPx * 2, 0);
       return (
-        <>
+        <React.Fragment key={`${element.id}-border-wrapper`}>
           {/* Hit areas for selecting the border without blocking inner elements */}
           <div
             key={`${element.id}-hit-top`}
@@ -1188,13 +1242,14 @@ const renderElement = (element: CardElement) => {
                 top: insetYPx,
                 width: innerWidth,
                 height: innerHeight,
-                border: `${thicknessPx}px ${borderStyle} ${borderColor}`,
+                border: `${thicknessPx}px ${borderStyle} ${colorWithOpacity}`,
                 borderRadius: Math.max(cornerRadiusPx - thicknessPx, 0),
                 boxSizing: "border-box",
+                opacity: borderOpacity,
               }}
             />
           </div>
-        </>
+        </React.Fragment>
       );
     }
 
@@ -1236,6 +1291,9 @@ const renderElement = (element: CardElement) => {
     () => activeElements[0] ?? cardElements.find((element) => element.id === activeElementId) ?? null,
     [activeElements, cardElements, activeElementId]
   );
+  const mixedImageSelection =
+    activeElements.filter((el) => el.type === "image").length > 1 &&
+    new Set(activeElements.filter((el) => el.type === "image").map((el) => getMediaType(el))).size > 1;
 
   useEffect(() => {
     if (activeElementId && !activeElement) {
@@ -1343,6 +1401,32 @@ const renderElement = (element: CardElement) => {
         return isSelected ? updater(element) : element;
       })
     );
+  };
+
+  const moveElementLayer = (id: string, direction: "forward" | "backward") => {
+    setElements((prev) => {
+      const currentIndex = prev.findIndex((el) => el.id === id);
+      if (currentIndex === -1) return prev;
+      const element = prev[currentIndex];
+      if (element.type === "border") return prev;
+      const sameSide = prev
+        .map((el, idx) => ({ el, idx }))
+        .filter(({ el }) => el.side === element.side);
+      const orderPositions = sameSide.map((item) => item.idx);
+      const sorted = [...orderPositions].sort((a, b) => a - b);
+      const positionIndex = sorted.findIndex((pos) => pos === currentIndex);
+      if (positionIndex === -1) return prev;
+
+      const targetPos =
+        direction === "forward" ? sorted[Math.min(positionIndex + 1, sorted.length - 1)] : sorted[Math.max(positionIndex - 1, 0)];
+      if (targetPos === currentIndex) return prev;
+
+      const next = [...prev];
+      const [removed] = next.splice(currentIndex, 1);
+      const adjustedTarget = targetPos > currentIndex ? targetPos - 1 : targetPos;
+      next.splice(adjustedTarget, 0, removed);
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -1599,9 +1683,15 @@ const renderElement = (element: CardElement) => {
 
       const horizontalDelta = (() => {
         if (!options.horizontal) return 0;
-        const allowFullWidth = selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
-        const marginX = allowFullWidth ? 0 : safeXRatio;
-        const availableWidth = Math.max(1 - marginX * 2, 0);
+        const allowBleedWidth = selected.every((el) => el.type === "image" && getMediaType(el) !== "logo");
+        const allowFullWidth =
+          allowBleedWidth || selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const marginX = allowBleedWidth ? -bleedXRatio : allowFullWidth ? 0 : safeXRatio;
+        const availableWidth = allowBleedWidth
+          ? Math.max(1 + bleedXRatio * 2, 0)
+          : allowFullWidth
+          ? 1
+          : Math.max(1 - safeXRatio * 2, 0);
         const targetLeft =
           options.horizontal === "left"
             ? marginX
@@ -1615,11 +1705,9 @@ const renderElement = (element: CardElement) => {
         selected.forEach((el) => {
           const w = widths.get(el.id) ?? 0;
           const x = el.x ?? 0;
-          const allowFull = isCustomTextElement(el) || isShapeElement(el);
-          const minAllowed = allowFull ? 0 : safeXRatio;
-          const maxAllowed = allowFull
-            ? Math.max(0, 1 - w)
-            : Math.max(minAllowed, 1 - safeXRatio - w);
+          const bounds = getBoundsForElement(el, w, heights.get(el.id) ?? 0);
+          const minAllowed = bounds.minX;
+          const maxAllowed = bounds.maxX;
           deltaMin = Math.max(deltaMin, minAllowed - x);
           deltaMax = Math.min(deltaMax, maxAllowed - x);
         });
@@ -1628,9 +1716,15 @@ const renderElement = (element: CardElement) => {
 
       const verticalDelta = (() => {
         if (!options.vertical) return 0;
-        const allowFullHeight = selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
-        const marginY = allowFullHeight ? 0 : safeYRatio;
-        const availableHeight = Math.max(1 - marginY * 2, 0);
+        const allowBleedHeight = selected.every((el) => el.type === "image" && getMediaType(el) !== "logo");
+        const allowFullHeight =
+          allowBleedHeight || selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const marginY = allowBleedHeight ? -bleedYRatio : allowFullHeight ? 0 : safeYRatio;
+        const availableHeight = allowBleedHeight
+          ? Math.max(1 + bleedYRatio * 2, 0)
+          : allowFullHeight
+          ? 1
+          : Math.max(1 - safeYRatio * 2, 0);
         const targetTop =
           options.vertical === "top"
             ? marginY
@@ -1644,9 +1738,9 @@ const renderElement = (element: CardElement) => {
         selected.forEach((el) => {
           const h = heights.get(el.id) ?? 0;
           const y = el.y ?? 0;
-          const allowFull = isCustomTextElement(el) || isShapeElement(el);
-          const minAllowed = allowFull ? 0 : safeYRatio;
-          const maxAllowed = allowFull ? Math.max(minAllowed, 1 - h) : Math.max(minAllowed, 1 - safeYRatio - h);
+          const bounds = getBoundsForElement(el, widths.get(el.id) ?? 0, h);
+          const minAllowed = bounds.minY;
+          const maxAllowed = bounds.maxY;
           deltaMin = Math.max(deltaMin, minAllowed - y);
           deltaMax = Math.min(deltaMax, maxAllowed - y);
         });
@@ -1729,8 +1823,12 @@ const renderElement = (element: CardElement) => {
     );
   };
   const resizeSelection = (ratio: number, predicate: (element: CardElement) => boolean) => {
-    const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
     applyToSelection(predicate, (element) => {
+      const maxRatio =
+        element.type === "image" && getMediaType(element) !== "logo"
+          ? mediaMaxRatioForElement(element)
+          : MAX_RESIZABLE_RATIO;
+      const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, maxRatio);
       if (element.type === "image" || element.type === "qr" || element.type === "shape") {
         return { ...element, width: clamped, height: element.type === "shape" ? element.height : clamped };
       }
@@ -1752,26 +1850,18 @@ const renderElement = (element: CardElement) => {
 
         const widthRatio = getElementWidth(element);
         const heightRatio = getElementHeight(element);
-        const allowFull = isCustomTextElement(element) || isShapeElement(element);
-        const minX = allowFull ? 0 : safeXRatio;
-        const maxX = allowFull
-          ? Math.max(0, 1 - widthRatio)
-          : Math.max(minX, 1 - safeXRatio - widthRatio);
-        const minY = allowFull ? 0 : safeYRatio;
-        const maxY = allowFull
-          ? Math.max(minY, 1 - heightRatio)
-          : Math.max(minY, 1 - safeYRatio - heightRatio);
+        const bounds = getBoundsForElement(element, widthRatio, heightRatio);
 
         const next = { ...element };
         if (options.horizontal) {
-          if (options.horizontal === "left") next.x = minX;
-          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, minX, maxX);
-          if (options.horizontal === "right") next.x = maxX;
+          if (options.horizontal === "left") next.x = bounds.minX;
+          if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, bounds.minX, bounds.maxX);
+          if (options.horizontal === "right") next.x = bounds.maxX;
         }
         if (options.vertical) {
-          if (options.vertical === "top") next.y = minY;
-          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, minY, maxY);
-          if (options.vertical === "bottom") next.y = maxY;
+          if (options.vertical === "top") next.y = bounds.minY;
+          if (options.vertical === "middle") next.y = clamp((1 - heightRatio) / 2, bounds.minY, bounds.maxY);
+          if (options.vertical === "bottom") next.y = bounds.maxY;
         }
         return next;
       })
@@ -1816,7 +1906,11 @@ const renderElement = (element: CardElement) => {
   const handleResizeElement = (id: string, ratio: number) => {
     const target = cardElements.find((el) => el.id === id);
     if (target?.locked) return;
-    const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, MAX_RESIZABLE_RATIO);
+    const maxRatio =
+      target && target.type === "image" && getMediaType(target) !== "logo"
+        ? mediaMaxRatioForElement(target)
+        : MAX_RESIZABLE_RATIO;
+    const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, maxRatio);
     setElements((prev) =>
       prev.map((element) =>
         element.id === id
@@ -2282,6 +2376,45 @@ const renderElement = (element: CardElement) => {
                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
                 </button>
+                {/* Layer controls temporarily hidden
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "12px" }}>
+                  <div style={{ fontSize: "12px", color: "#cbd5e1" }}>Layer</div>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => activeElement && moveElementLayer(activeElement.id, "backward")}
+                      disabled={!activeElement}
+                      style={{
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        background: "rgba(255,255,255,0.06)",
+                        color: "#ffffff",
+                        padding: "6px 10px",
+                        borderRadius: "10px",
+                        cursor: activeElement ? "pointer" : "not-allowed",
+                      }}
+                      title="Move backward"
+                    >
+                      Down
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => activeElement && moveElementLayer(activeElement.id, "forward")}
+                      disabled={!activeElement}
+                      style={{
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        background: "rgba(255,255,255,0.06)",
+                        color: "#ffffff",
+                        padding: "6px 10px",
+                        borderRadius: "10px",
+                        cursor: activeElement ? "pointer" : "not-allowed",
+                      }}
+                      title="Move forward"
+                    >
+                      Up
+                    </button>
+                  </div>
+                </div>
+                */}
               </div>
             </div>
             <div
@@ -2804,22 +2937,45 @@ const renderElement = (element: CardElement) => {
             )}
             {(activeElement.type === "image" || activeElement.type === "qr") && (
               <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px", fontSize: "12px", color: "#cbd5e1" }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Size</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                  <span>
+                    Size{" "}
+                    {activeElement.type === "image" && (
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          fontSize: "11px",
+                        }}
+                      >
+                        {getMediaType(activeElement) === "logo" ? "Logo" : "Image"}
+                      </span>
+                    )}
+                  </span>
                   <span>{Math.round(getElementWidth(activeElement) * cardWidthPx)} px</span>
                 </div>
+                {activeElement.type === "image" && (
+                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                    {getMediaType(activeElement) === "logo" ? "Logo selected (safe area bound)" : "Image selected (full card allowed)"}
+                  </div>
+                )}
                 <input
                   type="range"
                   min={Math.round(mediaMinSliderPx)}
-                  max={Math.round(mediaMaxSliderPx)}
+                  max={Math.round(mediaMaxSliderPxForElement(activeElement))}
                   step={1}
                   value={Math.round(getElementWidth(activeElement) * cardWidthPx)}
                   onChange={(event) =>
                     resizeSelection(parseFloat(event.target.value) / cardWidthPx, (el) =>
-                      el.type === "image" || el.type === "qr"
+                      el.type === "qr" ||
+                      (el.type === "image" &&
+                        (!mixedImageSelection ? true : getMediaType(el) === getMediaType(activeElement)))
                     )
                   }
-                  disabled={activeElement.locked}
+                  disabled={activeElement.locked || (mixedImageSelection && activeElement.type === "image")}
                 />
                 {activeElement.type === "qr" && (
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", fontSize: "12px", color: "#cbd5e1" }}>
@@ -2872,13 +3028,18 @@ const renderElement = (element: CardElement) => {
                       max={MAX_OPACITY}
                       step={0.05}
                       value={activeElement.opacity ?? 1}
-                      disabled={activeElement.locked}
                       onChange={(event) =>
                         applyToSelection(
-                          (el) => el.type === "image",
-                          (el) => ({ ...el, opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY) })
+                          (el) =>
+                            el.type === "image" &&
+                            (!mixedImageSelection ? true : getMediaType(el) === getMediaType(activeElement)),
+                          (el) => ({
+                            ...el,
+                            opacity: clamp(parseFloat(event.target.value) || 1, MIN_OPACITY, MAX_OPACITY),
+                          })
                         )
                       }
+                      disabled={activeElement.locked || (mixedImageSelection && activeElement.type === "image")}
                     />
                   </label>
                 )}

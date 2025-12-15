@@ -222,6 +222,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [virtualActivated, setVirtualActivated] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<string>("template1_blank.svg");
   const [cardLogoUploading, setCardLogoUploading] = useState(false);
+  const [cardImageUploading, setCardImageUploading] = useState(false);
   const [profileUrl, setProfileUrl] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
@@ -297,7 +298,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   // Load profile from Supabase
   useEffect(() => {
-    const loadProfile = async () => {
+  const loadProfile = async () => {
       try {
         setLoading(true);
         const {
@@ -336,41 +337,37 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setPreviewTemplate(loadedTemplate || templateOptions[0].file);
           setCardDesign(parseCardDesign(designData.cardDesign));
           const storedLogos = designData.physical_card_logo;
-          if (Array.isArray(storedLogos)) {
-            setCardLogoItems(
-              storedLogos
+          const storedImages = designData.images;
+          const parseAssetList = (raw: any, fallbackType: "logo" | "image") => {
+            if (Array.isArray(raw)) {
+              return raw
                 .filter((item: string) => Boolean(item))
                 .map((entry: string) => {
                   const [typeRaw, ...urlParts] = entry.split("|");
                   if (urlParts.length) {
-                    return {
-                      type: typeRaw === "image" ? "image" : "logo",
-                      url: urlParts.join("|"),
-                    };
+                    return { type: typeRaw === "logo" || typeRaw === "image" ? (typeRaw as "logo" | "image") : fallbackType, url: urlParts.join("|") };
                   }
-                  return { type: "logo", url: typeRaw };
-                })
-            );
-          } else if (typeof storedLogos === "string") {
-            setCardLogoItems(
-              storedLogos
+                  return { type: fallbackType, url: typeRaw };
+                });
+            }
+            if (typeof raw === "string") {
+              return raw
                 .split(",")
                 .map((item: string) => item.trim())
                 .filter(Boolean)
                 .map((entry: string) => {
                   const [typeRaw, ...urlParts] = entry.split("|");
                   if (urlParts.length) {
-                    return {
-                      type: typeRaw === "image" ? "image" : "logo",
-                      url: urlParts.join("|"),
-                    };
+                    return { type: typeRaw === "logo" || typeRaw === "image" ? (typeRaw as "logo" | "image") : fallbackType, url: urlParts.join("|") };
                   }
-                  return { type: "logo", url: typeRaw };
-                })
-            );
-          } else {
-            setCardLogoItems([]);
-          }
+                  return { type: fallbackType, url: typeRaw };
+                });
+            }
+            return [];
+          };
+          const logoList = parseAssetList(storedLogos, "logo").filter((item) => item.url);
+          const imageList = parseAssetList(storedImages, "image").filter((item) => item.url);
+          setCardLogoItems([...logoList, ...imageList]);
           let loadedLinks: any = designData.links || [];
           if (typeof designData.links === "string") {
             try {
@@ -387,7 +384,37 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setPreviewTemplate(templateOptions[0].file);
           setCardDesign({ ...DEFAULT_CARD_DESIGN });
           setCardLogoUrls([]);
+          const profileFirst = profile?.firstname || profile?.first_name || "";
+          const profileLast = profile?.surname || profile?.last_name || "";
+          const profilePronouns = profile?.pronouns || "";
+          const profilePhone = profile?.phone || "";
+          const profileCompany = profile?.company || "";
+          const profileTitle = profile?.title || "";
+          const profileEmail = profile?.email || user.email || "";
+          if (profileFirst) setFirstName(profileFirst);
+          if (profileLast) setSurname(profileLast);
+          if (profilePronouns) setPronouns(profilePronouns);
+          if (profilePhone) setPhone(profilePhone);
+          if (profileCompany) setCompany(profileCompany);
+          if (profileTitle) setTitle(profileTitle);
+          if (profileEmail) setEmail(profileEmail);
         }
+
+        // Fill any missing fields from the signed-in profile/user (without overwriting saved data)
+        const profileFirst = profile?.firstname || profile?.first_name || "";
+        const profileLast = profile?.surname || profile?.last_name || "";
+        const profilePronouns = profile?.pronouns || "";
+        const profilePhone = profile?.phone || "";
+        const profileCompany = profile?.company || "";
+        const profileTitle = profile?.title || "";
+        const profileEmail = profile?.email || user.email || "";
+        if (!firstname && profileFirst) setFirstName(profileFirst);
+        if (!surname && profileLast) setSurname(profileLast);
+        if (!pronouns && profilePronouns) setPronouns(profilePronouns);
+        if (!phone && profilePhone) setPhone(profilePhone);
+        if (!company && profileCompany) setCompany(profileCompany);
+        if (!title && profileTitle) setTitle(profileTitle);
+        if (!email && profileEmail) setEmail(profileEmail);
 
         // Load activation status from profiles table
         if (profile) {
@@ -577,7 +604,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
     try {
       if (fieldName === "card_logo") {
-        setCardLogoUploading(true);
+        if (assetType === "image") {
+          setCardImageUploading(true);
+        } else {
+          setCardLogoUploading(true);
+        }
       }
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
@@ -597,7 +628,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
 
-      if (fieldName === "card_logo") {
+      if (fieldName === "card_logo" && assetType === "logo") {
         const qualityCheck = await ensureCardLogoQuality(file);
         if (!qualityCheck.ok) {
           showNotification(qualityCheck.reason || "Logo must be exported at 300 DPI.", "error");
@@ -643,11 +674,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         setHeaderBanner(publicUrl);
         await saveToDatabase({ header_banner: publicUrl });
       } else {
-        const updatedLogos = [...cardLogoItems, { url: publicUrl, type: assetType }];
-        setCardLogoItems(updatedLogos);
-        updateCardDesign({ logoUrl: publicUrl });
+        const updatedAssets = [...cardLogoItems, { url: publicUrl, type: assetType }];
+        setCardLogoItems(updatedAssets);
+        if (assetType === "logo") {
+          updateCardDesign({ logoUrl: publicUrl });
+        }
+        const logosOnly = updatedAssets.filter((entry) => entry.type === "logo");
+        const imagesOnly = updatedAssets.filter((entry) => entry.type === "image");
         await saveToDatabase({
-          physical_card_logo: updatedLogos.map((entry) => `${entry.type}|${entry.url}`).join(","),
+          physical_card_logo: logosOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
+          images: imagesOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
         });
         showNotification(
           assetType === "logo"
@@ -664,7 +700,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       showNotification(err.message || "Upload failed", "error");
     } finally {
       if (fieldName === "card_logo") {
-        setCardLogoUploading(false);
+        if (assetType === "image") {
+          setCardImageUploading(false);
+        } else {
+          setCardLogoUploading(false);
+        }
       }
     }
   };
@@ -675,8 +715,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     if (cardDesign.logoUrl === url) {
       updateCardDesign({ logoUrl: null });
     }
+    const logosOnly = filtered.filter((entry) => entry.type === "logo");
+    const imagesOnly = filtered.filter((entry) => entry.type === "image");
     await saveToDatabase({
-      physical_card_logo: filtered.map((entry) => `${entry.type}|${entry.url}`).join(","),
+      physical_card_logo: logosOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
+      images: imagesOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
     });
     showNotification("Image removed from your library.", "success");
   };
