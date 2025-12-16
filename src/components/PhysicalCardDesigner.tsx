@@ -4753,12 +4753,14 @@ const renderElement = (element: CardElement) => {
               padding: "12px 28px",
               borderRadius: "12px",
               border: "none",
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: saving ? "wait" : "pointer",
-              background: physicalActivated ? "#000000" : "#d0d5dd",
+              background: physicalActivated ? "linear-gradient(135deg,#ff8b37,#ff6a00)" : "#d0d5dd",
               color: "#ffffff",
-              boxShadow: "0 12px 24px rgba(15,23,42,0.18)",
+              boxShadow: physicalActivated ? "0 14px 28px rgba(255,106,0,0.25)" : "none",
               minWidth: "160px",
+              transition: "all 0.2s ease",
+              opacity: saving ? 0.85 : 1,
             }}
           >
             {saving ? "Exporting…" : "Export assets"}
