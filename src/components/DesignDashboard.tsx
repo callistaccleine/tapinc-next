@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type CSSProperties, type ChangeEvent } from "react";
+import { useState, useEffect, useRef, type CSSProperties, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import NextImage from "next/image";
@@ -26,7 +26,7 @@ interface Socials {
   [platform: string]: string;
 }
 
-type DesignTab = "profile" | "links" | "socials" | "templates" | "card design";
+type DesignTab = "profile" | "virtual card design" | "physical card design";
 
 const SocialIcon = ({ platform }: { platform: string }) => (
   <NextImage 
@@ -181,10 +181,8 @@ const ensureCardLogoQuality = async (file: File) => {
 
 const NAV_TABS: DesignTab[] = [
   "profile",
-  "links",
-  "socials",
-  "templates",
-  "card design",
+  "virtual card design",
+  "physical card design",
 ];
 
 export default function DesignDashboard({profile}: DesignDashboardProps) {
@@ -222,12 +220,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [virtualActivated, setVirtualActivated] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<string>("template1_blank.svg");
   const [cardLogoUploading, setCardLogoUploading] = useState(false);
+  const [cardImageUploading, setCardImageUploading] = useState(false);
   const [profileUrl, setProfileUrl] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [isSmallScreen, setSmallScreen] = useState(false);
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
   const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
   const sharingDifferentProfile =
     Boolean(
@@ -235,6 +235,15 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         designProfileId &&
         defaultDesignProfileId !== designProfileId
     );
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
+  const [unlockedStep, setUnlockedStep] = useState<1 | 2 | 3>(3);
+  const profileContentRef = useRef<HTMLDivElement>(null);
+  const dismissOnboarding = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tapink_onboarding_seen_v1", "true");
+    }
+    setShowOnboarding(false);
+  };
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
@@ -297,16 +306,15 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   // Load profile from Supabase
   useEffect(() => {
-    const loadProfile = async () => {
+  const loadProfile = async () => {
       try {
         setLoading(true);
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user || !profile) {
-          console.error("User error or no profile:", userError);
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
+        if (sessionError || !user || !profile) {
+          console.error("Session missing or user not found:", sessionError);
+          router.replace("/auth");
+          setLoading(false);
           return;
         }
 
@@ -336,41 +344,37 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setPreviewTemplate(loadedTemplate || templateOptions[0].file);
           setCardDesign(parseCardDesign(designData.cardDesign));
           const storedLogos = designData.physical_card_logo;
-          if (Array.isArray(storedLogos)) {
-            setCardLogoItems(
-              storedLogos
+          const storedImages = designData.images;
+          const parseAssetList = (raw: any, fallbackType: "logo" | "image") => {
+            if (Array.isArray(raw)) {
+              return raw
                 .filter((item: string) => Boolean(item))
                 .map((entry: string) => {
                   const [typeRaw, ...urlParts] = entry.split("|");
                   if (urlParts.length) {
-                    return {
-                      type: typeRaw === "image" ? "image" : "logo",
-                      url: urlParts.join("|"),
-                    };
+                    return { type: typeRaw === "logo" || typeRaw === "image" ? (typeRaw as "logo" | "image") : fallbackType, url: urlParts.join("|") };
                   }
-                  return { type: "logo", url: typeRaw };
-                })
-            );
-          } else if (typeof storedLogos === "string") {
-            setCardLogoItems(
-              storedLogos
+                  return { type: fallbackType, url: typeRaw };
+                });
+            }
+            if (typeof raw === "string") {
+              return raw
                 .split(",")
                 .map((item: string) => item.trim())
                 .filter(Boolean)
                 .map((entry: string) => {
                   const [typeRaw, ...urlParts] = entry.split("|");
                   if (urlParts.length) {
-                    return {
-                      type: typeRaw === "image" ? "image" : "logo",
-                      url: urlParts.join("|"),
-                    };
+                    return { type: typeRaw === "logo" || typeRaw === "image" ? (typeRaw as "logo" | "image") : fallbackType, url: urlParts.join("|") };
                   }
-                  return { type: "logo", url: typeRaw };
-                })
-            );
-          } else {
-            setCardLogoItems([]);
-          }
+                  return { type: fallbackType, url: typeRaw };
+                });
+            }
+            return [];
+          };
+          const logoList = parseAssetList(storedLogos, "logo").filter((item) => item.url);
+          const imageList = parseAssetList(storedImages, "image").filter((item) => item.url);
+          setCardLogoItems([...logoList, ...imageList]);
           let loadedLinks: any = designData.links || [];
           if (typeof designData.links === "string") {
             try {
@@ -387,7 +391,33 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setPreviewTemplate(templateOptions[0].file);
           setCardDesign({ ...DEFAULT_CARD_DESIGN });
           setCardLogoUrls([]);
+          const profileFirst = profile?.firstname || profile?.first_name || "";
+          const profileLast = profile?.surname || profile?.last_name || "";
+          const profilePronouns = profile?.pronouns || "";
+          const profilePhone = profile?.phone || "";
+          const profileCompany = profile?.company || "";
+          const profileEmail = profile?.email || user.email || "";
+          if (profileFirst) setFirstName(profileFirst);
+          if (profileLast) setSurname(profileLast);
+          if (profilePronouns) setPronouns(profilePronouns);
+          if (profilePhone) setPhone(profilePhone);
+          if (profileCompany) setCompany(profileCompany);
+          if (profileEmail) setEmail(profileEmail);
         }
+
+        // Fill any missing fields from the signed-in profile/user (without overwriting saved data)
+        const profileFirst = profile?.firstname || profile?.first_name || "";
+        const profileLast = profile?.surname || profile?.last_name || "";
+        const profilePronouns = profile?.pronouns || "";
+        const profilePhone = profile?.phone || "";
+        const profileCompany = profile?.company || "";
+        const profileEmail = profile?.email || user.email || "";
+        if (!firstname && profileFirst) setFirstName(profileFirst);
+        if (!surname && profileLast) setSurname(profileLast);
+        if (!pronouns && profilePronouns) setPronouns(profilePronouns);
+        if (!phone && profilePhone) setPhone(profilePhone);
+        if (!company && profileCompany) setCompany(profileCompany);
+        if (!email && profileEmail) setEmail(profileEmail);
 
         // Load activation status from profiles table
         if (profile) {
@@ -404,16 +434,25 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   }, [profile]);
 
   useEffect(() => {
+    if (loading) return;
+    if (typeof window === "undefined") return;
+    const seen = localStorage.getItem("tapink_onboarding_seen_v1");
+    if (!seen) {
+      setShowOnboarding(true);
+    }
+  }, [loading]);
+
+  useEffect(() => {
     if (template) {
       setPreviewTemplate(template);
     }
   }, [template]);
 
   useEffect(() => {
-    if (profile?.id && typeof window !== "undefined") {
-      setProfileUrl(`${window.location.origin}/user/${profile.id}`);
+    if (shareDesignProfileId && typeof window !== "undefined") {
+      setProfileUrl(`${window.location.origin}/user/${shareDesignProfileId}`);
     }
-  }, [profile?.id]);
+  }, [shareDesignProfileId]);
 
   useEffect(() => {
     const fetchDefaultProfile = async () => {
@@ -577,7 +616,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
     try {
       if (fieldName === "card_logo") {
-        setCardLogoUploading(true);
+        if (assetType === "image") {
+          setCardImageUploading(true);
+        } else {
+          setCardLogoUploading(true);
+        }
       }
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
@@ -597,7 +640,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
 
-      if (fieldName === "card_logo") {
+      if (fieldName === "card_logo" && assetType === "logo") {
         const qualityCheck = await ensureCardLogoQuality(file);
         if (!qualityCheck.ok) {
           showNotification(qualityCheck.reason || "Logo must be exported at 300 DPI.", "error");
@@ -643,11 +686,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         setHeaderBanner(publicUrl);
         await saveToDatabase({ header_banner: publicUrl });
       } else {
-        const updatedLogos = [...cardLogoItems, { url: publicUrl, type: assetType }];
-        setCardLogoItems(updatedLogos);
-        updateCardDesign({ logoUrl: publicUrl });
+        const updatedAssets = [...cardLogoItems, { url: publicUrl, type: assetType }];
+        setCardLogoItems(updatedAssets);
+        if (assetType === "logo") {
+          updateCardDesign({ logoUrl: publicUrl });
+        }
+        const logosOnly = updatedAssets.filter((entry) => entry.type === "logo");
+        const imagesOnly = updatedAssets.filter((entry) => entry.type === "image");
         await saveToDatabase({
-          physical_card_logo: updatedLogos.map((entry) => `${entry.type}|${entry.url}`).join(","),
+          physical_card_logo: logosOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
+          images: imagesOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
         });
         showNotification(
           assetType === "logo"
@@ -664,7 +712,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       showNotification(err.message || "Upload failed", "error");
     } finally {
       if (fieldName === "card_logo") {
-        setCardLogoUploading(false);
+        if (assetType === "image") {
+          setCardImageUploading(false);
+        } else {
+          setCardLogoUploading(false);
+        }
       }
     }
   };
@@ -675,8 +727,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     if (cardDesign.logoUrl === url) {
       updateCardDesign({ logoUrl: null });
     }
+    const logosOnly = filtered.filter((entry) => entry.type === "logo");
+    const imagesOnly = filtered.filter((entry) => entry.type === "image");
     await saveToDatabase({
-      physical_card_logo: filtered.map((entry) => `${entry.type}|${entry.url}`).join(","),
+      physical_card_logo: logosOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
+      images: imagesOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
     });
     showNotification("Image removed from your library.", "success");
   };
@@ -798,7 +853,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       if (hasTemplate) {
         if (!basicInfoReady) {
           showNotification(
-            "Template saved. Complete Profile, Links, and Socials tabs before activating your virtual card.",
+            "Template saved. Complete Profile, Links, and Socials steps before activating your virtual card.",
             "error"
           );
           return;
@@ -972,6 +1027,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     gap: isSmallScreen ? "10px" : "12px",
     marginBottom: "16px",
   };
+  const guideButtonStyle: CSSProperties = {
+    border: "1px solid #d0d5dd",
+    background: "#ffffff",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    color: "#0f172a",
+  };
 
   const linksListRowStyle = (isLast: boolean): CSSProperties => ({
     display: isSmallScreen ? "grid" : "flex",
@@ -1018,6 +1083,93 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   return (
     <div style={containerStyle}>
+      {showOnboarding && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.45)",
+            zIndex: 5000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "18px",
+              padding: "24px",
+              maxWidth: "520px",
+              width: "100%",
+              boxShadow: "0 28px 80px rgba(15,23,42,0.25)",
+              border: "1px solid #e5e7eb",
+              color: "#0f172a",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>Welcome to TapInk</h2>
+              <button
+                type="button"
+                onClick={dismissOnboarding}
+                style={{ border: "none", background: "transparent", fontSize: "18px", cursor: "pointer", color: "#0f172a" }}
+                aria-label="Close welcome"
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ margin: 0, color: "#475467" }}>
+              Start designing and customising your digital card. Complete your profile, then jump into the designer.
+            </p>
+            <ol style={{ margin: "0 0 8px 16px", padding: 0, color: "#1f2937", lineHeight: 1.6 }}>
+              <li>Go to <strong>Profile</strong> and add your name, phone, company, and title.</li>
+              <li>Hit <strong>Edit card</strong> to customise layouts, colours, and logos.</li>
+            </ol>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", flexWrap: "wrap", marginTop: "4px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("profile");
+                  dismissOnboarding();
+                }}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #d0d5dd",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  minWidth: "120px",
+                  cursor: "pointer",
+                }}
+              >
+                Fill profile
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("physical card design");
+                  dismissOnboarding();
+                }}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #ff8b37, #ff5700)",
+                  color: "#ffffff",
+                  minWidth: "150px",
+                  cursor: "pointer",
+                }}
+              >
+                Start designing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isMobileLayout && (
         <button
           type="button"
@@ -1084,15 +1236,33 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           >
             ☰
           </button>
+          <button
+            type="button"
+            onClick={() => setShowOnboarding(true)}
+            style={guideButtonStyle}
+          >
+            Show guide
+          </button>
         </div>
+        {!isMobileLayout && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+            <button
+              type="button"
+              onClick={() => setShowOnboarding(true)}
+              style={guideButtonStyle}
+            >
+              Show guide
+            </button>
+          </div>
+        )}
         {/* Templates Tab - Virtual Card */}
-        {activeTab === "templates" && (
+        {activeTab === "virtual card design" && (
           <div>
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
               {!virtualActivated && (
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Complete Profile, Links, and Socials tabs before activating your virtual card
+                  Complete Profile, Links, and Socials steps before activating your virtual card
                 </p>
               )}
               {virtualActivated && (
@@ -1124,7 +1294,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   Complete Your Basic Information First
                 </h3>
                 <p style={{ color: '#86868b', fontSize: '15px'}}>
-                  Please fill out Profile, Links, and Socials tabs before choosing a template
+                  Please fill out Profile, Links, and Socials steps before choosing a template
                 </p>
               </div>
             ) : (
@@ -1272,13 +1442,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         )}
 
         {/* Card Design Tab - Physical Card */}
-        {activeTab === "card design" && (
+        {activeTab === "physical card design" && (
           <div>
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
               {!physicalActivated && (
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Complete Profile, Links, and Socials tabs before designing your physical card
+                  Complete Profile, Links, and Socials steps before designing your physical card
                 </p>
               )}
               {physicalActivated && (
@@ -1309,7 +1479,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   Complete Your Basic Information First
                 </h3>
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Please fill out Profile, Links, and Socials tabs before designing your physical card
+                  Please fill out Profile, Links, and Socials steps before designing your physical card
                 </p>
               </div>
             ) : (
@@ -1336,6 +1506,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   template: previewTemplate,
                 }}
                 profileUrl={profileUrl}
+                designProfileId={shareDesignProfileId}
                 logoItems={cardLogoItems}
                 onRemoveAsset={handleRemoveAsset}
                 profileId={profile?.id ?? null}
@@ -1351,502 +1522,574 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
         {/* Profile Tab */}
         {activeTab === "profile" && (
-          <div>
-            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Edit Profile</h3>
-            <h4 style={{ color: '#86868b', fontSize: '15px', marginBottom: '24px' }}>
+          <div ref={profileContentRef}>
+            <h3 style={{ fontSize: "28px", fontWeight: 600, marginBottom: "8px", color: "black" }}>Edit Profile</h3>
+            <h4 style={{ color: "#86868b", fontSize: "15px", marginBottom: "24px" }}>
               This information will be visible on your profile
             </h4>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Header Banner</label>
-              {headerBanner && (
-                <div style={{ marginBottom: '10px' }}>
-                  <img 
-                    src={headerBanner} 
-                    alt="Header preview" 
-                    style={{
-                      maxWidth: '100%', 
-                      maxHeight: '150px',
-                      objectFit: 'cover',
-                      color: "black",
-                      borderRadius: '8px',
-                      border: '1px solid #e5e5e5'
-                    }} 
-                  />
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileUpload(e, "header_banner")}
-                style={{
-                  padding: '12px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Profile Picture</label>
-              {profilePic && (
-                <div style={{ marginBottom: '10px' }}>
-                  <img 
-                    src={profilePic} 
-                    alt="Profile preview" 
-                    style={{
-                      width: '100px',
-                      height: '100px',
-                      objectFit: 'cover',
-                      borderRadius: '50%',
-                      border: '2px solid #e5e5e5'
-                    }} 
-                  />
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileUpload(e, "profile_pic")}
-                style={{
-                  padding: '12px',
-                  border: '1px solid #d2d2d7',
-                  color: "black",
-                  borderRadius: '10px',
-                  width: '100%'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>First Name</label>
-              <input
-                type="text"
-                value={firstname}
-                onChange={(e) => setFirstName(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Surname</label>
-              <input
-                type="text"
-                value={surname}
-                onChange={(e) => setSurname(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Pronouns</label>
-              <Select
-                options={options}
-                value={options.find((option) => option.value === pronouns)}
-                onChange={(selectedOption) => setPronouns(selectedOption?.value || '')}
-                instanceId="pronouns-select"
-                styles={{
-                  control: (base) => ({
-                    ...base,
-                    borderColor: '#d2d2d7',
-                    borderRadius: '10px',
-                    backgroundColor: 'white',
-                    color: 'black',
-                  }),
-                  singleValue: (base) => ({
-                    ...base,
-                    color: 'black',
-                  }),
-                  input: (base) => ({
-                    ...base,
-                    color: 'black',
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    backgroundColor: 'white',
-                    color: 'black',
-                  }),
-                  option: (base, state) => ({
-                    ...base,
-                    color: 'black',
-                    backgroundColor: state.isFocused ? '#f5f5f7' : 'white',
-                  }),
-                  placeholder: (base) => ({
-                    ...base,
-                    color: '#888',
-                  }),
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Email</label>
-              <input
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Mobile Number</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Company</label>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Job Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Address</label>
-              {isLoaded ? (
-                <Autocomplete
-                  onLoad={(autocompleteInstance) => setAutocomplete(autocompleteInstance)}
-                  onPlaceChanged={handlePlaceChanged}
+            {(() => {
+              const steps = [
+                { key: "profile", label: "Profile", done: Boolean(firstname || surname || phone || email) },
+                { key: "links", label: "Links", done: links.length > 0 },
+                { key: "socials", label: "Socials", done: Object.keys(socials || {}).length > 0 },
+              ];
+              return (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "18px",
+                    alignItems: "center",
+                    marginBottom: "20px",
+                    flexWrap: "wrap",
+                    position: "sticky",
+                    top: isMobileLayout ? 10 : 12,
+                    zIndex: 5,
+                    background: "#ffffff",
+                    padding: "6px 0",
+                  }}
                 >
+                  {steps.map((step, idx) => {
+                    const stepNumber = (idx + 1) as 1 | 2 | 3;
+                    const isLocked = stepNumber > unlockedStep;
+                    const isActive = activeStep === stepNumber;
+                    return (
+                      <div key={step.key} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isLocked) return;
+                            setActiveStep(stepNumber);
+                            profileContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }}
+                          disabled={isLocked}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "6px 10px",
+                            border: "none",
+                            background: "transparent",
+                            cursor: isLocked ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: "50%",
+                              background: isActive
+                                ? "linear-gradient(135deg, #ff8b37, #ff6a00)"
+                                : "linear-gradient(135deg, #ffb26f, #ff9c4d)",
+                              border: "1px solid " + (isActive ? "#ff7a1c" : "#ffad66"),
+                              color: "#ffffff",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              fontSize: 16,
+                              boxShadow: isActive ? "0 10px 20px rgba(255,106,0,0.25)" : "none",
+                            }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span
+                            style={{
+                              color: isActive ? "#ff7a1c" : "#334155",
+                              fontWeight: 600,
+                              fontSize: 15,
+                              opacity: isLocked ? 0.6 : 1,
+                            }}
+                          >
+                            {step.label}
+                          </span>
+                        </button>
+                        {idx < steps.length - 1 && (
+                          <div
+                            style={{
+                              width: 50,
+                              height: 2,
+                              background: "#e2e8f0",
+                              borderRadius: 999,
+                              opacity: isLocked ? 0.5 : 1,
+                            }}
+                            aria-hidden
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {activeStep === 1 && (
+              <div>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Header Banner</label>
+                  {headerBanner && (
+                    <div style={{ marginBottom: "10px" }}>
+                      <img
+                        src={headerBanner}
+                        alt="Header preview"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "150px",
+                          objectFit: "cover",
+                          color: "black",
+                          borderRadius: "8px",
+                          border: "1px solid #e5e5e5",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, "header_banner")}
+                    style={{
+                      padding: "12px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Profile Picture</label>
+                  {profilePic && (
+                    <div style={{ marginBottom: "10px" }}>
+                      <img
+                        src={profilePic}
+                        alt="Profile preview"
+                        style={{
+                          width: "100px",
+                          height: "100px",
+                          objectFit: "cover",
+                          borderRadius: "50%",
+                          border: "2px solid #e5e5e5",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, "profile_pic")}
+                    style={{
+                      padding: "12px",
+                      border: "1px solid #d2d2d7",
+                      color: "black",
+                      borderRadius: "10px",
+                      width: "100%",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>First Name</label>
                   <input
                     type="text"
-                    placeholder="Search for an address..."
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    value={firstname}
+                    onChange={(e) => setFirstName(e.target.value)}
                     style={{
-                      padding: '12px 16px',
-                      border: '1px solid #d2d2d7',
-                      borderRadius: '10px',
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
                       color: "black",
-                      width: '100%',
-                      fontSize: '15px'
+                      width: "100%",
+                      fontSize: "15px",
                     }}
                   />
-                </Autocomplete>
-              ) : (
-                <p>Loading Google Places...</p>
-              )}
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Bio</label>
-              <textarea 
-                value={bio} 
-                onChange={(e) => setBio(e.target.value)}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  width: '100%',
-                  minHeight: '100px',
-                  fontSize: '15px',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
-                }}
-              />
-            </div>
-
-            <button 
-              onClick={saveProfileTab}
-              style={{
-                background: '#000000',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-            >
-              Save Profile
-            </button>
-          </div>
-        )}
-
-        {/* Links Tab */}
-        {activeTab === "links" && (
-          <div>
-            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black"}}>Add Links</h3>
-            
-            <div style={linkInputRowStyle}>
-              <input
-                type="text"
-                placeholder="Link title"
-                value={newLink.title}
-                onChange={(e) =>
-                  setNewLink({ ...newLink, title: e.target.value })
-                }
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  flex: 1,
-                  color: "black",
-                  fontSize: '15px'
-                }}
-              />
-              <input
-                type="url"
-                placeholder="https://example.com"
-                value={newLink.url}
-                onChange={(e) =>
-                  setNewLink({ ...newLink, url: e.target.value })
-                }
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
-                  borderRadius: '10px',
-                  color: "black",
-                  flex: 1,
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-
-            <button 
-              onClick={addLink}
-              style={{
-                background: '#f5f5f7',
-                color: '#000000',
-                border: '1px solid #d2d2d7',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                marginBottom: '24px',
-                fontSize: '15px'
-              }}
-            >
-              + Add Link
-            </button>
-
-            <div style={{ marginBottom: '24px' }}>
-              {links.length === 0 && (
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '16px',
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: "black",
-                }}>
-                  <p>No links added yet</p>
                 </div>
-              )}
-              {links.map((l, i) => (
-                <div 
-                  key={i} 
-                  style={linksListRowStyle(i === links.length - 1)}
-                >
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>
-                      {l.title}
-                    </p>
-                    <p style={{ margin: 0, fontSize: "13px", color: "#86868b" }}>
-                      {l.url}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const updatedLinks = links.filter((_, index) => index !== i);
-                      setLinks(updatedLinks);
-                    }}
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Surname</label>
+                  <input
+                    type="text"
+                    value={surname}
+                    onChange={(e) => setSurname(e.target.value)}
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#ef4444",
-                      cursor: "pointer",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                      fontWeight: 500
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                      fontSize: "15px",
                     }}
-                  >
-                    Remove
-                  </button>
+                  />
                 </div>
-              ))}
-            </div>
 
-            <button 
-              onClick={saveLinksTab}
-              style={{
-                background: '#000000',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-            >
-              Save Links
-            </button>
-          </div>
-        )}
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Pronouns</label>
+                  <Select
+                    options={options}
+                    value={options.find((option) => option.value === pronouns)}
+                    onChange={(selectedOption) => setPronouns(selectedOption?.value || "")}
+                    instanceId="pronouns-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        borderColor: "#d2d2d7",
+                        borderRadius: "10px",
+                        backgroundColor: "white",
+                        color: "black",
+                      }),
+                      singleValue: (base) => ({
+                        ...base,
+                        color: "black",
+                      }),
+                      input: (base) => ({
+                        ...base,
+                        color: "black",
+                      }),
+                      menu: (base) => ({
+                        ...base,
+                        backgroundColor: "white",
+                        color: "black",
+                      }),
+                      option: (base, state) => ({
+                        ...base,
+                        color: "black",
+                        backgroundColor: state.isFocused ? "#f5f5f7" : "white",
+                      }),
+                      placeholder: (base) => ({
+                        ...base,
+                        color: "#888",
+                      }),
+                    }}
+                  />
+                </div>
 
-        {/* Socials Tab */}
-        {activeTab === "socials" && (
-          <div>
-            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black" }}>Social Links</h3>
-            
-            <div style={{ ...socialGridStyle, color: "black" }}>
-              {[
-                "X",
-                "Instagram",
-                "Linkedin",
-                "Facebook",
-                "Youtube",
-                "Discord",
-                "Twitch",
-                "Whatsapp",
-                "Github",
-              ].map((platform) => (
-                <div
-                  key={platform}
-                  onClick={() => {
-                    if (socials[platform] === undefined) {
-                      setSocials({ ...socials, [platform]: "" });
-                    } else {
-                      const updated = { ...socials };
-                      delete updated[platform];
-                      setSocials(updated);
-                    }
-                  }}
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Email</label>
+                  <input
+                    type="text"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                      fontSize: "15px",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Mobile Number</label>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    style={{
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                      fontSize: "15px",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Company</label>
+                  <input
+                    type="text"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    style={{
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                      fontSize: "15px",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Job Title</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    style={{
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                      fontSize: "15px",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Address</label>
+                  {isLoaded ? (
+                    <Autocomplete onLoad={(autocompleteInstance) => setAutocomplete(autocompleteInstance)} onPlaceChanged={handlePlaceChanged}>
+                      <input
+                        type="text"
+                        placeholder="Search for an address..."
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        style={{
+                          padding: "12px 16px",
+                          border: "1px solid #d2d2d7",
+                          borderRadius: "10px",
+                          color: "black",
+                          width: "100%",
+                          fontSize: "15px",
+                        }}
+                      />
+                    </Autocomplete>
+                  ) : (
+                    <p>Loading Google Places...</p>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>Bio</label>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    style={{
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      color: "black",
+                      width: "100%",
+                      minHeight: "100px",
+                      fontSize: "15px",
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={saveProfileTab}
                   style={{
-                    background: socials[platform] !== undefined ? '#f0f0f0' : '#ffffff',
-                    border: '1px solid #e5e5e5',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: "black",
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease'
+                    background: "#000000",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "12px 24px",
+                    borderRadius: "10px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: "15px",
                   }}
                 >
-                  <SocialIcon platform={platform.toLowerCase()} />
-                </div>
-              ))}
-            </div>
+                  Save Profile
+                </button>
+              </div>
+            )}
 
-            <div style={{ marginBottom: '24px' }}>
-              {Object.entries(socials).map(([platform, url]) => (
-                <div key={platform} style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>
-                    {platform} URL
-                  </label>
+            {activeStep === 2 && unlockedStep >= 2 && (
+              <div style={{ marginTop: "12px" }}>
+                <h3 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "16px", color: "black" }}>Step 2: Add Links</h3>
+
+                <div style={linkInputRowStyle}>
+                  <input
+                    type="text"
+                    placeholder="Link title"
+                    value={newLink.title}
+                    onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
+                    style={{
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
+                      flex: 1,
+                      color: "black",
+                      fontSize: "15px",
+                    }}
+                  />
                   <input
                     type="url"
-                    placeholder={`Enter your ${platform} URL`}
-                    value={url}
-                    onChange={(e) => {
-                      const inputUrl = e.target.value.trim();
-                      let normalizedUrl = inputUrl;
-
-                      if (
-                        inputUrl &&
-                        !inputUrl.startsWith("http://") &&
-                        !inputUrl.startsWith("https://")
-                      ) {
-                        normalizedUrl = `https://www.${inputUrl}`;
-                      }
-
-                      setSocials({ ...socials, [platform]: normalizedUrl });
-                    }}
+                    placeholder="https://example.com"
+                    value={newLink.url}
+                    onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                     style={{
-                      padding: '12px 16px',
-                      border: '1px solid #d2d2d7',
-                      borderRadius: '10px',
-                      width: '100%',
+                      padding: "12px 16px",
+                      border: "1px solid #d2d2d7",
+                      borderRadius: "10px",
                       color: "black",
-                      fontSize: '15px'
+                      flex: 1,
+                      fontSize: "15px",
                     }}
                   />
                 </div>
-              ))}
-            </div>
 
-            <button 
-              onClick={saveSocialsTab}
-              style={{
-                background: '#000000',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-            >
-              Save Socials
-            </button>
+                <button
+                  onClick={addLink}
+                  style={{
+                    background: "#f5f5f7",
+                    color: "#000000",
+                    border: "1px solid #d2d2d7",
+                    padding: "12px 24px",
+                    borderRadius: "10px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    marginBottom: "24px",
+                    fontSize: "15px",
+                  }}
+                >
+                  + Add Link
+                </button>
+
+                <div style={{ marginBottom: "24px" }}>
+                  {links.length === 0 && (
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #e5e5e5",
+                        borderRadius: "16px",
+                        padding: "48px 24px",
+                        textAlign: "center",
+                        color: "black",
+                      }}
+                    >
+                      <p>No links added yet</p>
+                    </div>
+                  )}
+                  {links.map((l, i) => (
+                    <div key={i} style={linksListRowStyle(i === links.length - 1)}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>{l.title}</p>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#86868b" }}>{l.url}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const updatedLinks = links.filter((_, index) => index !== i);
+                          setLinks(updatedLinks);
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                          padding: "8px 12px",
+                          borderRadius: "6px",
+                          fontSize: "14px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={saveLinksTab}
+                  style={{
+                    background: "#000000",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "12px 24px",
+                    borderRadius: "10px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: "15px",
+                  }}
+                >
+                  Save Links
+                </button>
+              </div>
+            )}
+
+            {activeStep === 3 && unlockedStep >= 3 && (
+              <div style={{ marginTop: "12px" }}>
+                <h3 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "16px", color: "black" }}>Step 3: Social Links</h3>
+
+                <div style={{ ...socialGridStyle, color: "black" }}>
+                  {["X", "Instagram", "Linkedin", "Facebook", "Youtube", "Discord", "Twitch", "Whatsapp", "Github"].map((platform) => (
+                    <div
+                      key={platform}
+                      onClick={() => {
+                        if (socials[platform] === undefined) {
+                          setSocials({ ...socials, [platform]: "" });
+                        } else {
+                          const updated = { ...socials };
+                          delete updated[platform];
+                          setSocials(updated);
+                        }
+                      }}
+                      style={{
+                        background:
+                          socials[platform] !== undefined
+                            ? "linear-gradient(135deg, #ff9f4d, #ff7a1c)"
+                            : "#ffffff",
+                        border: socials[platform] !== undefined ? "1px solid #ff8b37" : "1px solid #e5e5e5",
+                        color: socials[platform] !== undefined ? "#ffffff" : "#000000",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s ease",
+                        boxShadow: socials[platform] !== undefined ? "0 10px 20px rgba(255, 122, 28, 0.25)" : "none",
+                      }}
+                    >
+                      <SocialIcon platform={platform.toLowerCase()} />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom: "24px" }}>
+                  {Object.entries(socials).map(([platform, url]) => (
+                    <div key={platform} style={{ marginBottom: "20px" }}>
+                      <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "black" }}>{platform} URL</label>
+                      <input
+                        type="url"
+                        placeholder={`Enter your ${platform} URL`}
+                        value={url}
+                        onChange={(e) => {
+                          const inputUrl = e.target.value.trim();
+                          let normalizedUrl = inputUrl;
+
+                          if (inputUrl && !inputUrl.startsWith("http://") && !inputUrl.startsWith("https://")) {
+                            normalizedUrl = `https://www.${inputUrl}`;
+                          }
+
+                          setSocials({ ...socials, [platform]: normalizedUrl });
+                        }}
+                        style={{
+                          padding: "12px 16px",
+                          border: "1px solid #d2d2d7",
+                          borderRadius: "10px",
+                          width: "100%",
+                          color: "black",
+                          fontSize: "15px",
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={saveSocialsTab}
+                  style={{
+                    background: "#000000",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "12px 24px",
+                    borderRadius: "10px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: "15px",
+                  }}
+                >
+                  Save Socials
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -2022,7 +2265,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   overflow: 'hidden',
                 }}
               >
-                <ProfileQRCode profileId={shareDesignProfileId} displaySize={232} />
+                <ProfileQRCode designProfileId={shareDesignProfileId} displaySize={232} />
               </div>
 
               <p

@@ -26,7 +26,9 @@ export default function Signup() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [agree, setAgree] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsMidChecked, setTermsMidChecked] = useState(false);
+  const [termsEndChecked, setTermsEndChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -236,7 +238,7 @@ const handleSignup = async (e: React.FormEvent) => {
     }
   }
 
-  if (!agree) {
+  if (!termsAccepted) {
     setMessage("You must agree to the Terms and Privacy Policy.");
     setIsLoading(false);
     return;
@@ -332,9 +334,10 @@ const handleSignup = async (e: React.FormEvent) => {
 };
 
   const trimmedCompanyEmail = companyEmail.trim();
+  const termsAccepted = termsMidChecked && termsEndChecked;
   const baseInvalid =
     isLoading ||
-    !agree ||
+    !termsAccepted ||
     !password ||
     !accountType;
   const individualInvalid =
@@ -585,17 +588,31 @@ const handleSignup = async (e: React.FormEvent) => {
                   </ul>
                 )}
 
-                <label className={styles.agreeRow}>
-                  <input
-                    type="checkbox"
-                    checked={agree}
-                    onChange={(e) => setAgree(e.target.checked)}
-                  />
+                <label
+                  className={styles.agreeRow}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowTermsModal(true);
+                    setTermsMidChecked(false);
+                    setTermsEndChecked(false);
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <input type="checkbox" checked={termsAccepted} readOnly />
                   <span style={{ color: "#475467" }}>
                     I agree to all{" "}
-                    <Link href="/policies/terms-of-service" style={{ color: "#ff7a00", fontWeight: 600, textDecoration: "none" }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowTermsModal(true);
+                        setTermsMidChecked(false);
+                        setTermsEndChecked(false);
+                      }}
+                      style={{ color: "#ff7a00", fontWeight: 600, textDecoration: "none", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                    >
                       Terms, Privacy Policy and Fees
-                    </Link>
+                    </button>
                   </span>
                 </label>
 
@@ -668,6 +685,87 @@ const handleSignup = async (e: React.FormEvent) => {
             >
               Got it
             </button>
+          </div>
+        </div>
+      )}
+
+      {showTermsModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: "700px", maxHeight: "80vh", overflow: "hidden" }}>
+            <h2 style={{ marginBottom: 12 }}>Terms, Privacy & Fees</h2>
+            <div style={{ maxHeight: "55vh", overflowY: "auto", paddingRight: "8px" }}>
+              <p style={{ color: "#475467" }}>
+                Please review our terms of service, privacy policy, and applicable fees. By continuing, you confirm you understand how your data is used,
+                your obligations, and any costs that may apply.
+              </p>
+              <div style={{ padding: "12px", background: "#f5f7fb", borderRadius: "12px", border: "1px solid #e5e7eb", color: "#1f2937" }}>
+                <p>
+                  <strong>Summary:</strong> You retain ownership of your content. We process your data to provide the service. You must comply with
+                  acceptable use and respect third-party rights. Fees (if any) will be disclosed before purchase. See the full policies for details.
+                </p>
+                <p>
+                  <Link href="/policies/terms-of-service" target="_blank" style={{ color: "#ff7a00", fontWeight: 600 }}>
+                    View full Terms of Service
+                  </Link>{" "}
+                </p>
+              </div>
+              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: "10px", border: "1px solid #e5e7eb", background: "#ffffff" }}>
+                <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", color: "#1f2937", fontSize: "14px" }}>
+                  <input
+                    type="checkbox"
+                    checked={termsMidChecked}
+                    onChange={(e) => setTermsMidChecked(e.target.checked)}
+                    style={{ marginTop: "2px" }}
+                  />
+                  <span>I have read and agree to the terms above.</span>
+                </label>
+              </div>
+              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: "10px", border: "1px solid #e5e7eb", background: "#ffffff" }}>
+                <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", color: "#1f2937", fontSize: "14px" }}>
+                  <input
+                    type="checkbox"
+                    checked={termsEndChecked}
+                    onChange={(e) => setTermsEndChecked(e.target.checked)}
+                    style={{ marginTop: "2px" }}
+                  />
+                  <span>I understand and accept all Terms, Privacy Policy, and Fees.</span>
+                </label>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "14px" }}>
+              <button
+                type="button"
+                className={styles.btnLight}
+                onClick={() => setShowTermsModal(false)}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #d0d5dd",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  minWidth: "110px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.btnDark}
+                disabled={!(termsMidChecked && termsEndChecked)}
+                onClick={() => setShowTermsModal(false)}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #ff8b37, #ff5700)",
+                  color: "#ffffff",
+                  minWidth: "140px",
+                  opacity: termsMidChecked && termsEndChecked ? 1 : 0.6,
+                }}
+              >
+                Accept & Continue
+              </button>
+            </div>
           </div>
         </div>
       )}

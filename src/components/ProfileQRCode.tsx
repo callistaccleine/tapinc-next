@@ -3,14 +3,14 @@
 import { QRCodeCanvas } from "qrcode.react";
 
 type ProfileQRCodeProps = {
-  profileId: string;
+  designProfileId: string;
   displaySize?: number;
 };
 
-export default function ProfileQRCode({ profileId, displaySize = 220 }: ProfileQRCodeProps) {
-  if (!profileId) return null;
+export default function ProfileQRCode({ designProfileId, displaySize = 220 }: ProfileQRCodeProps) {
+  if (!designProfileId) return null;
 
-  const profileUrl = `${window.location.origin}/user/${profileId}`;
+  const profileUrl = `${window.location.origin}/user/${designProfileId}`;
 
   return (
     <div
