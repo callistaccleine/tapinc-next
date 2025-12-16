@@ -26,7 +26,7 @@ interface Socials {
   [platform: string]: string;
 }
 
-type DesignTab = "profile" | "links" | "socials" | "templates" | "card design";
+type DesignTab = "profile" | "templates" | "card design";
 
 const SocialIcon = ({ platform }: { platform: string }) => (
   <NextImage 
@@ -181,8 +181,6 @@ const ensureCardLogoQuality = async (file: File) => {
 
 const NAV_TABS: DesignTab[] = [
   "profile",
-  "links",
-  "socials",
   "templates",
   "card design",
 ];
@@ -229,6 +227,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [isSmallScreen, setSmallScreen] = useState(false);
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
   const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
   const sharingDifferentProfile =
     Boolean(
@@ -236,6 +235,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         designProfileId &&
         defaultDesignProfileId !== designProfileId
     );
+  const dismissOnboarding = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tapink_onboarding_seen_v1", "true");
+    }
+    setShowOnboarding(false);
+  };
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
@@ -301,13 +306,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const loadProfile = async () => {
       try {
         setLoading(true);
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user || !profile) {
-          console.error("User error or no profile:", userError);
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
+        if (sessionError || !user || !profile) {
+          console.error("Session missing or user not found:", sessionError);
+          router.replace("/auth");
+          setLoading(false);
           return;
         }
 
@@ -389,14 +393,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           const profilePronouns = profile?.pronouns || "";
           const profilePhone = profile?.phone || "";
           const profileCompany = profile?.company || "";
-          const profileTitle = profile?.title || "";
           const profileEmail = profile?.email || user.email || "";
           if (profileFirst) setFirstName(profileFirst);
           if (profileLast) setSurname(profileLast);
           if (profilePronouns) setPronouns(profilePronouns);
           if (profilePhone) setPhone(profilePhone);
           if (profileCompany) setCompany(profileCompany);
-          if (profileTitle) setTitle(profileTitle);
           if (profileEmail) setEmail(profileEmail);
         }
 
@@ -406,14 +408,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         const profilePronouns = profile?.pronouns || "";
         const profilePhone = profile?.phone || "";
         const profileCompany = profile?.company || "";
-        const profileTitle = profile?.title || "";
         const profileEmail = profile?.email || user.email || "";
         if (!firstname && profileFirst) setFirstName(profileFirst);
         if (!surname && profileLast) setSurname(profileLast);
         if (!pronouns && profilePronouns) setPronouns(profilePronouns);
         if (!phone && profilePhone) setPhone(profilePhone);
         if (!company && profileCompany) setCompany(profileCompany);
-        if (!title && profileTitle) setTitle(profileTitle);
         if (!email && profileEmail) setEmail(profileEmail);
 
         // Load activation status from profiles table
@@ -431,16 +431,25 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   }, [profile]);
 
   useEffect(() => {
+    if (loading) return;
+    if (typeof window === "undefined") return;
+    const seen = localStorage.getItem("tapink_onboarding_seen_v1");
+    if (!seen) {
+      setShowOnboarding(true);
+    }
+  }, [loading]);
+
+  useEffect(() => {
     if (template) {
       setPreviewTemplate(template);
     }
   }, [template]);
 
   useEffect(() => {
-    if (profile?.id && typeof window !== "undefined") {
-      setProfileUrl(`${window.location.origin}/user/${profile.id}`);
+    if (shareDesignProfileId && typeof window !== "undefined") {
+      setProfileUrl(`${window.location.origin}/user/${shareDesignProfileId}`);
     }
-  }, [profile?.id]);
+  }, [shareDesignProfileId]);
 
   useEffect(() => {
     const fetchDefaultProfile = async () => {
@@ -841,7 +850,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       if (hasTemplate) {
         if (!basicInfoReady) {
           showNotification(
-            "Template saved. Complete Profile, Links, and Socials tabs before activating your virtual card.",
+            "Template saved. Complete Profile, Links, and Socials steps before activating your virtual card.",
             "error"
           );
           return;
@@ -1015,6 +1024,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     gap: isSmallScreen ? "10px" : "12px",
     marginBottom: "16px",
   };
+  const guideButtonStyle: CSSProperties = {
+    border: "1px solid #d0d5dd",
+    background: "#ffffff",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    color: "#0f172a",
+  };
 
   const linksListRowStyle = (isLast: boolean): CSSProperties => ({
     display: isSmallScreen ? "grid" : "flex",
@@ -1061,6 +1080,93 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   return (
     <div style={containerStyle}>
+      {showOnboarding && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.45)",
+            zIndex: 5000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "18px",
+              padding: "24px",
+              maxWidth: "520px",
+              width: "100%",
+              boxShadow: "0 28px 80px rgba(15,23,42,0.25)",
+              border: "1px solid #e5e7eb",
+              color: "#0f172a",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>Welcome to TapInk</h2>
+              <button
+                type="button"
+                onClick={dismissOnboarding}
+                style={{ border: "none", background: "transparent", fontSize: "18px", cursor: "pointer", color: "#0f172a" }}
+                aria-label="Close welcome"
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ margin: 0, color: "#475467" }}>
+              Start designing and customising your digital card. Complete your profile, then jump into the designer.
+            </p>
+            <ol style={{ margin: "0 0 8px 16px", padding: 0, color: "#1f2937", lineHeight: 1.6 }}>
+              <li>Go to <strong>Profile</strong> and add your name, phone, company, and title.</li>
+              <li>Hit <strong>Edit card</strong> to customise layouts, colours, and logos.</li>
+            </ol>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", flexWrap: "wrap", marginTop: "4px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("profile");
+                  dismissOnboarding();
+                }}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #d0d5dd",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  minWidth: "120px",
+                  cursor: "pointer",
+                }}
+              >
+                Fill profile
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("card design");
+                  dismissOnboarding();
+                }}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #ff8b37, #ff5700)",
+                  color: "#ffffff",
+                  minWidth: "150px",
+                  cursor: "pointer",
+                }}
+              >
+                Start designing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isMobileLayout && (
         <button
           type="button"
@@ -1127,7 +1233,25 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           >
             ☰
           </button>
+          <button
+            type="button"
+            onClick={() => setShowOnboarding(true)}
+            style={guideButtonStyle}
+          >
+            Show guide
+          </button>
         </div>
+        {!isMobileLayout && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+            <button
+              type="button"
+              onClick={() => setShowOnboarding(true)}
+              style={guideButtonStyle}
+            >
+              Show guide
+            </button>
+          </div>
+        )}
         {/* Templates Tab - Virtual Card */}
         {activeTab === "templates" && (
           <div>
@@ -1135,7 +1259,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
               {!virtualActivated && (
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Complete Profile, Links, and Socials tabs before activating your virtual card
+                  Complete Profile, Links, and Socials steps before activating your virtual card
                 </p>
               )}
               {virtualActivated && (
@@ -1167,7 +1291,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   Complete Your Basic Information First
                 </h3>
                 <p style={{ color: '#86868b', fontSize: '15px'}}>
-                  Please fill out Profile, Links, and Socials tabs before choosing a template
+                  Please fill out Profile, Links, and Socials steps before choosing a template
                 </p>
               </div>
             ) : (
@@ -1321,7 +1445,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
               {!physicalActivated && (
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Complete Profile, Links, and Socials tabs before designing your physical card
+                  Complete Profile, Links, and Socials steps before designing your physical card
                 </p>
               )}
               {physicalActivated && (
@@ -1352,7 +1476,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   Complete Your Basic Information First
                 </h3>
                 <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Please fill out Profile, Links, and Socials tabs before designing your physical card
+                  Please fill out Profile, Links, and Socials steps before designing your physical card
                 </p>
               </div>
             ) : (
@@ -1379,6 +1503,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   template: previewTemplate,
                 }}
                 profileUrl={profileUrl}
+                designProfileId={shareDesignProfileId}
                 logoItems={cardLogoItems}
                 onRemoveAsset={handleRemoveAsset}
                 profileId={profile?.id ?? null}
@@ -1399,6 +1524,44 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             <h4 style={{ color: '#86868b', fontSize: '15px', marginBottom: '24px' }}>
               This information will be visible on your profile
             </h4>
+            {(() => {
+              const steps = [
+                { key: "profile", label: "Profile", done: Boolean(firstname || surname || phone || email) },
+                { key: "links", label: "Links", done: links.length > 0 },
+                { key: "socials", label: "Socials", done: Object.keys(socials || {}).length > 0 },
+              ];
+              return (
+                <div style={{ display: "flex", gap: "14px", alignItems: "center", marginBottom: "20px", flexWrap: "wrap" }}>
+                  {steps.map((step, idx) => (
+                    <div key={step.key} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          background: step.done ? "#ff8b37" : "#f2f4f7",
+                          border: step.done ? "none" : "1px solid #e5e7eb",
+                          color: step.done ? "#ffffff" : "#475467",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                          fontSize: 15,
+                        }}
+                      >
+                        {idx + 1}
+                      </div>
+                      <div style={{ color: step.done ? "#ff8b37" : "#475467", fontWeight: 600, fontSize: 14 }}>
+                        {step.label}
+                      </div>
+                      {idx < steps.length - 1 && (
+                        <div style={{ width: 36, height: 1, background: "#e5e7eb" }} aria-hidden />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>Header Banner</label>
@@ -1666,230 +1829,226 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             >
               Save Profile
             </button>
-          </div>
-        )}
 
-        {/* Links Tab */}
-        {activeTab === "links" && (
-          <div>
-            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black"}}>Add Links</h3>
-            
-            <div style={linkInputRowStyle}>
-              <input
-                type="text"
-                placeholder="Link title"
-                value={newLink.title}
-                onChange={(e) =>
-                  setNewLink({ ...newLink, title: e.target.value })
-                }
+            {/* Step 2: Links */}
+            <div style={{ marginTop: '32px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: "black"}}>Step 2: Add Links</h3>
+              
+              <div style={linkInputRowStyle}>
+                <input
+                  type="text"
+                  placeholder="Link title"
+                  value={newLink.title}
+                  onChange={(e) =>
+                    setNewLink({ ...newLink, title: e.target.value })
+                  }
+                  style={{
+                    padding: '12px 16px',
+                    border: '1px solid #d2d2d7',
+                    borderRadius: '10px',
+                    flex: 1,
+                    color: "black",
+                    fontSize: '15px'
+                  }}
+                />
+                <input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={newLink.url}
+                  onChange={(e) =>
+                    setNewLink({ ...newLink, url: e.target.value })
+                  }
+                  style={{
+                    padding: '12px 16px',
+                    border: '1px solid #d2d2d7',
+                    borderRadius: '10px',
+                    color: "black",
+                    flex: 1,
+                    fontSize: '15px'
+                  }}
+                />
+              </div>
+
+              <button 
+                onClick={addLink}
                 style={{
-                  padding: '12px 16px',
+                  background: '#f5f5f7',
+                  color: '#000000',
                   border: '1px solid #d2d2d7',
+                  padding: '12px 24px',
                   borderRadius: '10px',
-                  flex: 1,
-                  color: "black",
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  marginBottom: '24px',
                   fontSize: '15px'
                 }}
-              />
-              <input
-                type="url"
-                placeholder="https://example.com"
-                value={newLink.url}
-                onChange={(e) =>
-                  setNewLink({ ...newLink, url: e.target.value })
-                }
+              >
+                + Add Link
+              </button>
+
+              <div style={{ marginBottom: '24px' }}>
+                {links.length === 0 && (
+                  <div style={{
+                    background: '#ffffff',
+                    border: '1px solid #e5e5e5',
+                    borderRadius: '16px',
+                    padding: '48px 24px',
+                    textAlign: 'center',
+                    color: "black",
+                  }}>
+                    <p>No links added yet</p>
+                  </div>
+                )}
+                {links.map((l, i) => (
+                  <div 
+                    key={i} 
+                    style={linksListRowStyle(i === links.length - 1)}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>
+                        {l.title}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "13px", color: "#86868b" }}>
+                        {l.url}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const updatedLinks = links.filter((_, index) => index !== i);
+                        setLinks(updatedLinks);
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        fontSize: "14px",
+                        fontWeight: 500
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={saveLinksTab}
                 style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d2d2d7',
+                  background: '#000000',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
                   borderRadius: '10px',
-                  color: "black",
-                  flex: 1,
+                  fontWeight: 500,
+                  cursor: 'pointer',
                   fontSize: '15px'
                 }}
-              />
+              >
+                Save Links
+              </button>
             </div>
 
-            <button 
-              onClick={addLink}
-              style={{
-                background: '#f5f5f7',
-                color: '#000000',
-                border: '1px solid #d2d2d7',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                marginBottom: '24px',
-                fontSize: '15px'
-              }}
-            >
-              + Add Link
-            </button>
-
-            <div style={{ marginBottom: '24px' }}>
-              {links.length === 0 && (
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '16px',
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: "black",
-                }}>
-                  <p>No links added yet</p>
-                </div>
-              )}
-              {links.map((l, i) => (
-                <div 
-                  key={i} 
-                  style={linksListRowStyle(i === links.length - 1)}
-                >
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>
-                      {l.title}
-                    </p>
-                    <p style={{ margin: 0, fontSize: "13px", color: "#86868b" }}>
-                      {l.url}
-                    </p>
-                  </div>
-                  <button
+            {/* Step 3: Socials */}
+            <div style={{ marginTop: '32px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: "black" }}>Step 3: Social Links</h3>
+              
+              <div style={{ ...socialGridStyle, color: "black" }}>
+                {[
+                  "X",
+                  "Instagram",
+                  "Linkedin",
+                  "Facebook",
+                  "Youtube",
+                  "Discord",
+                  "Twitch",
+                  "Whatsapp",
+                  "Github",
+                ].map((platform) => (
+                  <div
+                    key={platform}
                     onClick={() => {
-                      const updatedLinks = links.filter((_, index) => index !== i);
-                      setLinks(updatedLinks);
+                      if (socials[platform] === undefined) {
+                        setSocials({ ...socials, [platform]: "" });
+                      } else {
+                        const updated = { ...socials };
+                        delete updated[platform];
+                        setSocials(updated);
+                      }
                     }}
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#ef4444",
-                      cursor: "pointer",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                      fontWeight: 500
+                      background: socials[platform] !== undefined ? '#f0f0f0' : '#ffffff',
+                      border: '1px solid #e5e5e5',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: "black",
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease'
                     }}
                   >
-                    Remove
-                  </button>
-                </div>
-              ))}
+                    <SocialIcon platform={platform.toLowerCase()} />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                {Object.entries(socials).map(([platform, url]) => (
+                  <div key={platform} style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>
+                      {platform} URL
+                    </label>
+                    <input
+                      type="url"
+                      placeholder={`Enter your ${platform} URL`}
+                      value={url}
+                      onChange={(e) => {
+                        const inputUrl = e.target.value.trim();
+                        let normalizedUrl = inputUrl;
+
+                        if (
+                          inputUrl &&
+                          !inputUrl.startsWith("http://") &&
+                          !inputUrl.startsWith("https://")
+                        ) {
+                          normalizedUrl = `https://www.${inputUrl}`;
+                        }
+
+                        setSocials({ ...socials, [platform]: normalizedUrl });
+                      }}
+                      style={{
+                        padding: '12px 16px',
+                        border: '1px solid #d2d2d7',
+                        borderRadius: '10px',
+                        width: '100%',
+                        color: "black",
+                        fontSize: '15px'
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={saveSocialsTab}
+                style={{
+                  background: '#000000',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '10px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontSize: '15px'
+                }}
+              >
+                Save Socials
+              </button>
             </div>
-
-            <button 
-              onClick={saveLinksTab}
-              style={{
-                background: '#000000',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-            >
-              Save Links
-            </button>
-          </div>
-        )}
-
-        {/* Socials Tab */}
-        {activeTab === "socials" && (
-          <div>
-            <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '24px', color: "black" }}>Social Links</h3>
-            
-            <div style={{ ...socialGridStyle, color: "black" }}>
-              {[
-                "X",
-                "Instagram",
-                "Linkedin",
-                "Facebook",
-                "Youtube",
-                "Discord",
-                "Twitch",
-                "Whatsapp",
-                "Github",
-              ].map((platform) => (
-                <div
-                  key={platform}
-                  onClick={() => {
-                    if (socials[platform] === undefined) {
-                      setSocials({ ...socials, [platform]: "" });
-                    } else {
-                      const updated = { ...socials };
-                      delete updated[platform];
-                      setSocials(updated);
-                    }
-                  }}
-                  style={{
-                    background: socials[platform] !== undefined ? '#f0f0f0' : '#ffffff',
-                    border: '1px solid #e5e5e5',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: "black",
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <SocialIcon platform={platform.toLowerCase()} />
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              {Object.entries(socials).map(([platform, url]) => (
-                <div key={platform} style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: "black" }}>
-                    {platform} URL
-                  </label>
-                  <input
-                    type="url"
-                    placeholder={`Enter your ${platform} URL`}
-                    value={url}
-                    onChange={(e) => {
-                      const inputUrl = e.target.value.trim();
-                      let normalizedUrl = inputUrl;
-
-                      if (
-                        inputUrl &&
-                        !inputUrl.startsWith("http://") &&
-                        !inputUrl.startsWith("https://")
-                      ) {
-                        normalizedUrl = `https://www.${inputUrl}`;
-                      }
-
-                      setSocials({ ...socials, [platform]: normalizedUrl });
-                    }}
-                    style={{
-                      padding: '12px 16px',
-                      border: '1px solid #d2d2d7',
-                      borderRadius: '10px',
-                      width: '100%',
-                      color: "black",
-                      fontSize: '15px'
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <button 
-              onClick={saveSocialsTab}
-              style={{
-                background: '#000000',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '10px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-            >
-              Save Socials
-            </button>
           </div>
         )}
       </main>
@@ -2065,7 +2224,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   overflow: 'hidden',
                 }}
               >
-                <ProfileQRCode profileId={shareDesignProfileId} displaySize={232} />
+                <ProfileQRCode designProfileId={shareDesignProfileId} displaySize={232} />
               </div>
 
               <p

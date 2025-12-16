@@ -331,6 +331,7 @@ type PhysicalCardDesignerProps = {
   previewData: CardData;
   profileUrl?: string;
   logoItems?: { url: string; type: "logo" | "image" }[];
+  designProfileId?: string | null;
   profileId?: string | null;
   onRemoveAsset?: (url: string) => Promise<void> | void;
   physicalActivated: boolean;
@@ -394,6 +395,7 @@ export function PhysicalCardDesigner({
   previewData,
   profileUrl,
   logoItems = [],
+  designProfileId,
   profileId,
   onRemoveAsset,
   physicalActivated,
@@ -632,7 +634,8 @@ export function PhysicalCardDesigner({
   const activeGradientStops = getGradientStopsForMode(backgroundMode, existingStops);
 
   const qrValue =
-    profileUrl || (previewData.email ? `mailto:${previewData.email}` : "https://tapink.com.au");
+    profileUrl ||
+    (typeof window !== "undefined" && designProfileId ? `${window.location.origin}/user/${designProfileId}` : "https://tapink.com.au");
 
   useEffect(() => {
     if (!cardElements.length) {
