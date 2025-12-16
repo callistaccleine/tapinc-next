@@ -26,7 +26,7 @@ interface Socials {
   [platform: string]: string;
 }
 
-type DesignTab = "profile" | "virtual card design" | "physical card design";
+type DesignTab = "profile" | "design";
 
 const SocialIcon = ({ platform }: { platform: string }) => (
   <NextImage 
@@ -179,11 +179,7 @@ const ensureCardLogoQuality = async (file: File) => {
   }
 };
 
-const NAV_TABS: DesignTab[] = [
-  "profile",
-  "virtual card design",
-  "physical card design",
-];
+const NAV_TABS: DesignTab[] = ["profile", "design"];
 
 export default function DesignDashboard({profile}: DesignDashboardProps) {
   const router = useRouter();
@@ -1127,7 +1123,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             </p>
             <ol style={{ margin: "0 0 8px 16px", padding: 0, color: "#1f2937", lineHeight: 1.6 }}>
               <li>Go to <strong>Profile</strong> and add your name, phone, company, and title.</li>
-              <li>Hit <strong>Edit card</strong> to customise layouts, colours, and logos.</li>
+              <li>Hit <strong>Design</strong> to customise layouts, colours, and logos.</li>
             </ol>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", flexWrap: "wrap", marginTop: "4px" }}>
               <button
@@ -1151,7 +1147,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("physical card design");
+                  setActiveTab("design");
                   dismissOnboarding();
                 }}
                 style={{
@@ -1255,51 +1251,52 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             </button>
           </div>
         )}
-        {/* Templates Tab - Virtual Card */}
-        {activeTab === "virtual card design" && (
-          <div>
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
-              {!virtualActivated && (
-                <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Complete Profile, Links, and Socials steps before activating your virtual card
-                </p>
-              )}
-              {virtualActivated && (
-                <div style={{
-                  display: 'inline-block',
-                  background: '#000000',
-                  color: '#ffffff',
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 500
-                }}>
-                  Virtual Card Active
-                </div>
-              )}
-            </div>
-
-            {!isBasicInfoComplete() ? (
-              <div style={{
-                background: '#ffffff',
-                border: '1px solid #e5e5e5',
-                color: "black",
-                borderRadius: '16px',
-                padding: '48px 24px',
-                textAlign: 'center',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
-              }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black" }}>
-                  Complete Your Basic Information First
-                </h3>
-                <p style={{ color: '#86868b', fontSize: '15px'}}>
-                  Please fill out Profile, Links, and Socials steps before choosing a template
-                </p>
+        {/* Design Tab - Virtual & Physical */}
+        {activeTab === "design" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+            {/* Virtual Card Section */}
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
+                {!virtualActivated && (
+                  <p style={{ color: '#86868b', fontSize: '15px' }}>
+                    Complete Profile, Links, and Socials steps before activating your virtual card
+                  </p>
+                )}
+                {virtualActivated && (
+                  <div style={{
+                    display: 'inline-block',
+                    background: '#000000',
+                    color: '#ffffff',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 500
+                  }}>
+                    Virtual Card Active
+                  </div>
+                )}
               </div>
-            ) : (
-              <>
-                {(() => {
+
+              {!isBasicInfoComplete() ? (
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #e5e5e5',
+                  color: "black",
+                  borderRadius: '16px',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black" }}>
+                    Complete Your Basic Information First
+                  </h3>
+                  <p style={{ color: '#86868b', fontSize: '15px'}}>
+                    Please fill out Profile, Links, and Socials steps before choosing a template
+                  </p>
+                </div>
+              ) : (
+                (() => {
                   const socialArray = Object.entries(socials || {})
                     .filter(([_, url]) => Boolean(url))
                     .map(([platform, url]) => ({
@@ -1435,88 +1432,86 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                       </div>
                     </div>
                   );
-                })()}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Card Design Tab - Physical Card */}
-        {activeTab === "physical card design" && (
-          <div>
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
-              {!physicalActivated && (
-                <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Complete Profile, Links, and Socials steps before designing your physical card
-                </p>
-              )}
-              {physicalActivated && (
-                <div style={{
-                  display: 'inline-block',
-                  background: '#000000',
-                  color: '#ffffff',
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 500
-                }}>
-                  Physical Card Active
-                </div>
+                })()
               )}
             </div>
 
-            {!isBasicInfoComplete() ? (
-              <div style={{
-                background: '#ffffff',
-                border: '1px solid #e5e5e5',
-                borderRadius: '16px',
-                padding: '48px 24px',
-                textAlign: 'center',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
-              }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>
-                  Complete Your Basic Information First
-                </h3>
-                <p style={{ color: '#86868b', fontSize: '15px' }}>
-                  Please fill out Profile, Links, and Socials steps before designing your physical card
-                </p>
+            {/* Physical Card Section */}
+            <div>
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
+                {!physicalActivated && (
+                  <p style={{ color: '#86868b', fontSize: '15px' }}>
+                    Complete Profile, Links, and Socials steps before designing your physical card
+                  </p>
+                )}
+                {physicalActivated && (
+                  <div style={{
+                    display: 'inline-block',
+                    background: '#000000',
+                    color: '#ffffff',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 500
+                  }}>
+                    Physical Card Active
+                  </div>
+                )}
               </div>
-            ) : (
-              <PhysicalCardDesigner
-                cardDesign={cardDesign}
-                updateCardDesign={updateCardDesign}
-                previewData={{
-                  name: `${firstname} ${surname}`.trim() || 'Your Name',
-                  title: title || '',
-                  company: company || '',
-                  phone: phone || '000 000 000',
-                  email: email || 'hello@tapink.com',
-                  bio,
-                  address,
-                  socials: Object.entries(socials || {})
-                    .filter(([_, url]) => Boolean(url))
-                    .map(([platform, url]) => ({
-                      platform,
-                      url: typeof url === 'string' ? url : String(url),
-                    })),
-                  links: links || [],
-                  headerBanner: headerBanner || undefined,
-                  profilePic: profilePic ?? undefined,
-                  template: previewTemplate,
-                }}
-                profileUrl={profileUrl}
-                designProfileId={shareDesignProfileId}
-                logoItems={cardLogoItems}
-                onRemoveAsset={handleRemoveAsset}
-                profileId={profile?.id ?? null}
-                physicalActivated={physicalActivated}
-                onSave={saveCardDesignTab}
-                onSaveDesign={() => saveCardDesignTab()}
-                onUploadLogo={(e, type) => handleFileUpload(e, 'card_logo', type ?? 'logo')}
-                uploadingLogo={cardLogoUploading}
-              />
-            )}
+
+              {!isBasicInfoComplete() ? (
+                <div style={{
+                  background: '#ffffff',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '16px',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>
+                    Complete Your Basic Information First
+                  </h3>
+                  <p style={{ color: '#86868b', fontSize: '15px' }}>
+                    Please fill out Profile, Links, and Socials steps before designing your physical card
+                  </p>
+                </div>
+              ) : (
+                <PhysicalCardDesigner
+                  cardDesign={cardDesign}
+                  updateCardDesign={updateCardDesign}
+                  previewData={{
+                    name: `${firstname} ${surname}`.trim() || 'Your Name',
+                    title: title || '',
+                    company: company || '',
+                    phone: phone || '000 000 000',
+                    email: email || 'hello@tapink.com',
+                    bio,
+                    address,
+                    socials: Object.entries(socials || {})
+                      .filter(([_, url]) => Boolean(url))
+                      .map(([platform, url]) => ({
+                        platform,
+                        url: typeof url === 'string' ? url : String(url),
+                      })),
+                    links: links || [],
+                    headerBanner: headerBanner || undefined,
+                    profilePic: profilePic ?? undefined,
+                    template: previewTemplate,
+                  }}
+                  profileUrl={profileUrl}
+                  designProfileId={shareDesignProfileId}
+                  logoItems={cardLogoItems}
+                  onRemoveAsset={handleRemoveAsset}
+                  profileId={profile?.id ?? null}
+                  physicalActivated={physicalActivated}
+                  onSave={saveCardDesignTab}
+                  onSaveDesign={() => saveCardDesignTab()}
+                  onUploadLogo={(e, type) => handleFileUpload(e, 'card_logo', type ?? 'logo')}
+                  uploadingLogo={cardLogoUploading}
+                />
+              )}
+            </div>
           </div>
         )}
 

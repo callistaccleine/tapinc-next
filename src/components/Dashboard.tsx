@@ -461,7 +461,7 @@ export default function Dashboard() {
                   🤖
                 </div>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: "#fff" }}>Tapink Pal</div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "#fff" }}>TapINK Pal</div>
                   <div style={{ fontSize: 12, color: "#94a3b8" }}>Fast answers, with a wink.</div>
                 </div>
               </div>
@@ -519,6 +519,8 @@ export default function Dashboard() {
                         style={{
                           marginLeft: 6,
                           marginRight: 6,
+                          display: "grid",
+                          gap: 10,
                           padding: "10px 12px",
                           borderRadius: 12,
                           background: "rgba(255,255,255,0.04)",
@@ -528,7 +530,19 @@ export default function Dashboard() {
                           lineHeight: 1.5,
                         }}
                       >
-                        {item.a}
+                        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#ff8b37,#ff6a00)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#0b1220" }}>
+                            🤖
+                          </div>
+                          <div style={{ background: "rgba(15,23,42,0.6)", padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)", boxShadow: "0 8px 18px rgba(0,0,0,0.25)" }}>
+                            <div style={{ fontWeight: 700, color: "#ffb26f", marginBottom: 4 }}>Bot</div>
+                            <div>{item.a}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center", color: "#94a3b8", fontSize: 12 }}>
+                          <span>💡</span>
+                          <span>These replies are canned FAQs — if you need more, email hello@tapink.com.au.</span>
+                        </div>
                       </div>
                     )}
                   </div>
