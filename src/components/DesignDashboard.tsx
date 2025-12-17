@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useState, useEffect, useRef, type CSSProperties, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
@@ -16,6 +17,8 @@ import {
   CardExportPayload,
 } from "@/components/PhysicalCardDesigner";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
+import HomeStudioHub from "@/components/HomeStudioHub";
+import MoodboardWorkspace from "@/components/MoodboardWorkspace";
 
 interface Link {
   title: string;
@@ -26,7 +29,8 @@ interface Socials {
   [platform: string]: string;
 }
 
-type DesignTab = "profile" | "design";
+type DesignTab = "home" | "design" | "moodboard" | "profile";
+
 
 const SocialIcon = ({ platform }: { platform: string }) => (
   <NextImage 
@@ -179,13 +183,13 @@ const ensureCardLogoQuality = async (file: File) => {
   }
 };
 
-const NAV_TABS: DesignTab[] = ["profile", "design"];
+const NAV_TABS: DesignTab[] = ["home", "design", "moodboard", "profile"];
 
 export default function DesignDashboard({profile}: DesignDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     DesignTab
-  >("profile");
+  >("home");
   
   // Profile state
   const [firstname, setFirstName] = useState("");
@@ -217,6 +221,8 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [previewTemplate, setPreviewTemplate] = useState<string>("template1_blank.svg");
   const [cardLogoUploading, setCardLogoUploading] = useState(false);
   const [cardImageUploading, setCardImageUploading] = useState(false);
+  const [selectedDesignCategory, setSelectedDesignCategory] = useState<"virtual" | "physical" | null>(null);
+  const [physicalCardType, setPhysicalCardType] = useState<"plastic" | "paper">("plastic");
   const [profileUrl, setProfileUrl] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
@@ -1201,10 +1207,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             <li
               key={tab}
               onClick={() => {
-                setActiveTab(tab);
-                if (isMobileLayout) {
-                  setSidebarOpen(false);
+                if (tab === "moodboard") {
+                  router.push("/moodboard");
+                  return;
                 }
+                setActiveTab(tab);
+                if (isMobileLayout) setSidebarOpen(false);
               }}
               style={{
                 padding: '12px 16px',
@@ -1252,6 +1260,24 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             </button>
           </div>
         )}
+        {/* Home Tab - Studio Hub */}
+        {activeTab === "home" && (
+          <HomeStudioHub
+            onSelectVirtual={() => {
+              setSelectedDesignCategory("virtual");
+              setActiveTab("design");
+            }}
+            onSelectPhysical={(type) => {
+              setPhysicalCardType(type);
+              setSelectedDesignCategory("physical");
+              setActiveTab("design");
+            }}
+          />
+        )}
+
+        {/* Moodboard Tab */}
+        {activeTab === "moodboard" && <MoodboardWorkspace />}
+
         {/* Design Tab - Virtual & Physical */}
         {activeTab === "design" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
