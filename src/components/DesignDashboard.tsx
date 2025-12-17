@@ -224,6 +224,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
   const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [designStep, setDesignStep] = useState<1 | 2>(1);
   const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
   const sharingDifferentProfile =
     Boolean(
@@ -1254,264 +1255,343 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         {/* Design Tab - Virtual & Physical */}
         {activeTab === "design" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-            {/* Virtual Card Section */}
-            <div>
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
-                {!virtualActivated && (
-                  <p style={{ color: '#86868b', fontSize: '15px' }}>
-                    Complete Profile, Links, and Socials steps before activating your virtual card
-                  </p>
-                )}
-                {virtualActivated && (
-                  <div style={{
-                    display: 'inline-block',
-                    background: '#000000',
-                    color: '#ffffff',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500
-                  }}>
-                    Virtual Card Active
-                  </div>
-                )}
-              </div>
-
-              {!isBasicInfoComplete() ? (
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #e5e5e5',
-                  color: "black",
-                  borderRadius: '16px',
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
-                }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black" }}>
-                    Complete Your Basic Information First
-                  </h3>
-                  <p style={{ color: '#86868b', fontSize: '15px'}}>
-                    Please fill out Profile, Links, and Socials steps before choosing a template
-                  </p>
-                </div>
-              ) : (
-                (() => {
-                  const socialArray = Object.entries(socials || {})
-                    .filter(([_, url]) => Boolean(url))
-                    .map(([platform, url]) => ({
-                      platform,
-                      url: typeof url === 'string' ? url : String(url),
-                    }));
-                  const filteredLinks = (links || []).filter((link) => link.title && link.url);
-                  const selectedPreviewTemplate = previewTemplate || template || templateOptions[0].file;
-                  const previewData: CardData = {
-                    name: `${firstname} ${surname}`.trim() || 'Your Name',
-                    title: title || '',
-                    company,
-                    phone: phone || '',
-                    email: email || '',
-                    bio,
-                    address,
-                    socials: socialArray,
-                    links: filteredLinks,
-                    headerBanner: headerBanner || undefined,
-                    profilePic: profilePic ?? undefined,
-                    template: selectedPreviewTemplate,
-                  };
-
-                  return (
-                    <div style={templatePreviewGridStyle}>
-                      <div
+            <div
+              style={{
+                display: "flex",
+                gap: "14px",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "16px",
+                flexWrap: "wrap",
+                position: "sticky",
+                top: isMobileLayout ? 10 : 12,
+                zIndex: 5,
+                background: "#ffffff",
+                padding: "6px 0",
+              }}
+            >
+              {[{ key: "virtual", label: "Virtual card" }, { key: "physical", label: "Physical card" }].map((step, idx) => {
+                const stepNumber = (idx + 1) as 1 | 2;
+                const isActive = designStep === stepNumber;
+                return (
+                  <div key={step.key} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDesignStep(stepNumber);
+                        if (typeof window !== "undefined") {
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: "6px 10px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span
                         style={{
-                          background: '#ffffff',
-                          border: '1px solid #e5e5e5',
-                          borderRadius: '18px',
-                          padding: '20px',
-                          boxShadow: '0 20px 45px rgba(15,23,42,0.08)',
+                          width: 48,
+                          height: 48,
+                          borderRadius: "50%",
+                          background: isActive
+                            ? "linear-gradient(135deg, #ff8b37, #ff6a00)"
+                            : "linear-gradient(135deg, #ffb26f, #ff9c4d)",
+                          border: "1px solid " + (isActive ? "#ff7a1c" : "#ffad66"),
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                          fontSize: 16,
+                          boxShadow: isActive ? "0 10px 20px rgba(255,106,0,0.25)" : "none",
                         }}
                       >
-                        <div style={{ marginBottom: '16px' }}>
-                          <span style={{ fontSize: '12px', letterSpacing: '0.14em', color: '#667085' }}>
-                            LIVE PREVIEW
-                          </span>
-                          <h4 style={{ margin: '8px 0 0', fontSize: '18px', fontWeight: 500, color: '#0f172a' }}>
-                            {templateOptions.find((opt) => opt.file === selectedPreviewTemplate)?.name}
-                          </h4>
-                        </div>
-                        <div
-                          style={{
-                            background: 'transparent',
-                            borderRadius: '0',
-                            padding: '0',
-                            display: 'flex',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: isSmallScreen ? '100%' : 'auto',
-                              maxWidth: isSmallScreen ? '100%' : 'inherit',
-                            }}
-                          >
-                            <VirtualPreview data={previewData} showSplash={false} />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={templateListStyle}>
-                        {templateOptions.map((option) => {
-                          const isSelected = template === option.file;
-                          return (
-                            <button
-                              key={option.file}
-                              type="button"
-                              onClick={() => {
-                                setTemplate(option.file);
-                                setPreviewTemplate(option.file);
-                              }}
-                              style={{
-                                textAlign: 'left',
-                                border: isSelected ? '2px solid #111827' : '1px solid #d0d5dd',
-                                borderRadius: '16px',
-                                background: '#ffffff',
-                                boxShadow: isSelected
-                                  ? '0 18px 40px rgba(17,24,39,0.12)'
-                                  : '0 10px 24px rgba(17,24,39,0.05)',
-                                padding: '20px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>
-                                  {option.name}
-                                </h5>
-                                {isSelected && (
-                                  <span style={{
-                                    fontSize: '11px',
-                                    letterSpacing: '0.14em',
-                                    color: '#111827',
-                                  }}>
-                                    SELECTED
-                                  </span>
-                                )}
-                              </div>
-                              <p style={{ margin: 0, fontSize: '12px', letterSpacing: '0.12em', color: '#667085' }}>
-                                {option.persona.toUpperCase()}
-                              </p>
-                              <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#475467', lineHeight: 1.5 }}>
-                                {option.description}
-                              </p>
-                            </button>
-                          );
-                        })}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                          <div style={{ fontSize: '13px', color: '#475467', textAlign: 'center' }}>
-                            {template
-                              ? `Current selection: ${
-                                  templateOptions.find((opt) => opt.file === template)?.name || 'Template'
-                                }`
-                              : 'Choose a template to activate your virtual card.'}
-                          </div>
-                          <button
-                            onClick={saveTemplateTab}
-                            style={{
-                              background: '#000000',
-                              color: '#ffffff',
-                              border: 'none',
-                              padding: '12px 24px',
-                              borderRadius: '10px',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {virtualActivated ? 'Update Template' : 'Save & Activate Virtual Card'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()
-              )}
+                        {idx + 1}
+                      </span>
+                      <span
+                        style={{
+                          color: isActive ? "#ff7a1c" : "#334155",
+                          fontWeight: 600,
+                          fontSize: 15,
+                        }}
+                      >
+                        {step.label}
+                      </span>
+                    </button>
+                    {idx < 1 && (
+                      <div style={{ width: 50, height: 2, background: "#e2e8f0", borderRadius: 999 }} aria-hidden />
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Physical Card Section */}
-            <div>
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
-                {!physicalActivated && (
-                  <p style={{ color: '#86868b', fontSize: '15px' }}>
-                    Complete Profile, Links, and Socials steps before designing your physical card
-                  </p>
-                )}
-                {physicalActivated && (
-                  <div style={{
-                    display: 'inline-block',
-                    background: '#000000',
-                    color: '#ffffff',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 500
-                  }}>
-                    Physical Card Active
-                  </div>
-                )}
-              </div>
-
-              {!isBasicInfoComplete() ? (
-                <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '16px',
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
-                }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>
-                    Complete Your Basic Information First
-                  </h3>
-                  <p style={{ color: '#86868b', fontSize: '15px' }}>
-                    Please fill out Profile, Links, and Socials steps before designing your physical card
-                  </p>
+            {designStep === 1 && (
+              <div>
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black" }}>Choose Your Virtual Card Style</h3>
+                  {!virtualActivated && (
+                    <p style={{ color: '#86868b', fontSize: '15px' }}>
+                      Complete Profile, Links, and Socials steps before activating your virtual card
+                    </p>
+                  )}
+                  {virtualActivated && (
+                    <div style={{
+                      display: 'inline-block',
+                      background: '#000000',
+                      color: '#ffffff',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 500
+                    }}>
+                      Virtual Card Active
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <PhysicalCardDesigner
-                  cardDesign={cardDesign}
-                  updateCardDesign={updateCardDesign}
-                  previewData={{
-                    name: `${firstname} ${surname}`.trim() || 'Your Name',
-                    title: title || '',
-                    company: company || '',
-                    phone: phone || '000 000 000',
-                    email: email || 'hello@tapink.com',
-                    bio,
-                    address,
-                    socials: Object.entries(socials || {})
+
+                {!isBasicInfoComplete() ? (
+                  <div style={{
+                    background: '#ffffff',
+                    border: '1px solid #e5e5e5',
+                    color: "black",
+                    borderRadius: '16px',
+                    padding: '48px 24px',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                  }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black" }}>
+                      Complete Your Basic Information First
+                    </h3>
+                    <p style={{ color: '#86868b', fontSize: '15px'}}>
+                      Please fill out Profile, Links, and Socials steps before choosing a template
+                    </p>
+                  </div>
+                ) : (
+                  (() => {
+                    const socialArray = Object.entries(socials || {})
                       .filter(([_, url]) => Boolean(url))
                       .map(([platform, url]) => ({
                         platform,
                         url: typeof url === 'string' ? url : String(url),
-                      })),
-                    links: links || [],
-                    headerBanner: headerBanner || undefined,
-                    profilePic: profilePic ?? undefined,
-                    template: previewTemplate,
-                  }}
-                  profileUrl={profileUrl}
-                  designProfileId={shareDesignProfileId}
-                  logoItems={cardLogoItems}
-                  onRemoveAsset={handleRemoveAsset}
-                  profileId={profile?.id ?? null}
-                  physicalActivated={physicalActivated}
-                  onSave={saveCardDesignTab}
-                  onSaveDesign={() => saveCardDesignTab()}
-                  onUploadLogo={(e, type) => handleFileUpload(e, 'card_logo', type ?? 'logo')}
-                  uploadingLogo={cardLogoUploading}
-                />
-              )}
-            </div>
+                      }));
+                    const filteredLinks = (links || []).filter((link) => link.title && link.url);
+                    const selectedPreviewTemplate = previewTemplate || template || templateOptions[0].file;
+                    const previewData: CardData = {
+                      name: `${firstname} ${surname}`.trim() || 'Your Name',
+                      title: title || '',
+                      company,
+                      phone: phone || '',
+                      email: email || '',
+                      bio,
+                      address,
+                      socials: socialArray,
+                      links: filteredLinks,
+                      headerBanner: headerBanner || undefined,
+                      profilePic: profilePic ?? undefined,
+                      template: selectedPreviewTemplate,
+                    };
+
+                    return (
+                      <div style={templatePreviewGridStyle}>
+                        <div
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #e5e5e5',
+                            borderRadius: '18px',
+                            padding: '20px',
+                            boxShadow: '0 20px 45px rgba(15,23,42,0.08)',
+                          }}
+                        >
+                          <div style={{ marginBottom: '16px' }}>
+                            <span style={{ fontSize: '12px', letterSpacing: '0.14em', color: '#667085' }}>
+                              LIVE PREVIEW
+                            </span>
+                            <h4 style={{ margin: '8px 0 0', fontSize: '18px', fontWeight: 500, color: '#0f172a' }}>
+                              {templateOptions.find((opt) => opt.file === selectedPreviewTemplate)?.name}
+                            </h4>
+                          </div>
+                          <div
+                            style={{
+                              background: 'transparent',
+                              borderRadius: '0',
+                              padding: '0',
+                              display: 'flex',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: isSmallScreen ? '100%' : 'auto',
+                                maxWidth: isSmallScreen ? '100%' : 'inherit',
+                              }}
+                            >
+                              <VirtualPreview data={previewData} showSplash={false} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={templateListStyle}>
+                          {templateOptions.map((option) => {
+                            const isSelected = template === option.file;
+                            return (
+                              <button
+                                key={option.file}
+                                type="button"
+                                onClick={() => {
+                                  setTemplate(option.file);
+                                  setPreviewTemplate(option.file);
+                                }}
+                                style={{
+                                  textAlign: 'left',
+                                  border: isSelected ? '2px solid #111827' : '1px solid #d0d5dd',
+                                  borderRadius: '16px',
+                                  background: '#ffffff',
+                                  boxShadow: isSelected
+                                    ? '0 18px 40px rgba(17,24,39,0.12)'
+                                    : '0 10px 24px rgba(17,24,39,0.05)',
+                                  padding: '20px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                    {option.name}
+                                  </h5>
+                                  {isSelected && (
+                                    <span style={{
+                                      fontSize: '11px',
+                                      letterSpacing: '0.14em',
+                                      color: '#111827',
+                                    }}>
+                                      SELECTED
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{ margin: 0, fontSize: '12px', letterSpacing: '0.12em', color: '#667085' }}>
+                                  {option.persona.toUpperCase()}
+                                </p>
+                                <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#475467', lineHeight: 1.5 }}>
+                                  {option.description}
+                                </p>
+                              </button>
+                            );
+                          })}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                            <div style={{ fontSize: '13px', color: '#475467', textAlign: 'center' }}>
+                              {template
+                                ? `Current selection: ${
+                                    templateOptions.find((opt) => opt.file === template)?.name || 'Template'
+                                  }`
+                                : 'Choose a template to activate your virtual card.'}
+                            </div>
+                            <button
+                              onClick={saveTemplateTab}
+                              style={{
+                                background: 'linear-gradient(135deg,#ff8b37,#ff6a00)',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '12px 24px',
+                                borderRadius: '10px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                boxShadow: '0 12px 24px rgba(255,106,0,0.25)',
+                              }}
+                            >
+                              {virtualActivated ? 'Update Template' : 'Save & Activate Virtual Card'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+            )}
+
+            {designStep === 2 && (
+              <div>
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>Design Your Physical Card</h3>
+                  {!physicalActivated && (
+                    <p style={{ color: '#86868b', fontSize: '15px' }}>
+                      Complete Profile, Links, and Socials steps before designing your physical card
+                    </p>
+                  )}
+                  {physicalActivated && (
+                    <div style={{
+                      display: 'inline-block',
+                      background: '#000000',
+                      color: '#ffffff',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 500
+                    }}>
+                      Physical Card Active
+                    </div>
+                  )}
+                </div>
+
+                {!isBasicInfoComplete() ? (
+                  <div style={{
+                    background: '#ffffff',
+                    border: '1px solid #e5e5e5',
+                    borderRadius: '16px',
+                    padding: '48px 24px',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                  }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: "black"  }}>
+                      Complete Your Basic Information First
+                    </h3>
+                    <p style={{ color: '#86868b', fontSize: '15px' }}>
+                      Please fill out Profile, Links, and Socials steps before designing your physical card
+                    </p>
+                  </div>
+                ) : (
+                  <PhysicalCardDesigner
+                    cardDesign={cardDesign}
+                    updateCardDesign={updateCardDesign}
+                    previewData={{
+                      name: `${firstname} ${surname}`.trim() || 'Your Name',
+                      title: title || '',
+                      company: company || '',
+                      phone: phone || '000 000 000',
+                      email: email || 'hello@tapink.com',
+                      bio,
+                      address,
+                      socials: Object.entries(socials || {})
+                        .filter(([_, url]) => Boolean(url))
+                        .map(([platform, url]) => ({
+                          platform,
+                          url: typeof url === 'string' ? url : String(url),
+                        })),
+                      links: links || [],
+                      headerBanner: headerBanner || undefined,
+                      profilePic: profilePic ?? undefined,
+                      template: previewTemplate,
+                    }}
+                    profileUrl={profileUrl}
+                    designProfileId={shareDesignProfileId}
+                    logoItems={cardLogoItems}
+                    onRemoveAsset={handleRemoveAsset}
+                    profileId={profile?.id ?? null}
+                    physicalActivated={physicalActivated}
+                    onSave={saveCardDesignTab}
+                    onSaveDesign={() => saveCardDesignTab()}
+                    onUploadLogo={(e, type) => handleFileUpload(e, 'card_logo', type ?? 'logo')}
+                    uploadingLogo={cardLogoUploading}
+                  />
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1870,14 +1950,15 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 <button
                   onClick={saveProfileTab}
                   style={{
-                    background: "#000000",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "12px 24px",
-                    borderRadius: "10px",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontSize: "15px",
+                    background: 'linear-gradient(135deg,#ff8b37,#ff6a00)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '15px',
+                    boxShadow: '0 12px 24px rgba(255,106,0,0.25)',
                   }}
                 >
                   Save Profile
@@ -1887,118 +1968,154 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
             {activeStep === 2 && unlockedStep >= 2 && (
               <div style={{ marginTop: "12px" }}>
-                <h3 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "16px", color: "black" }}>Step 2: Add Links</h3>
+                <h3 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "8px", color: "black" }}>Step 2: Add Links</h3>
+                <p style={{ color: "#667085", marginTop: 0, marginBottom: "16px" }}>
+                  Curate quick actions to your website, LinkedIn, booking page, or any URL.
+                </p>
 
-                <div style={linkInputRowStyle}>
-                  <input
-                    type="text"
-                    placeholder="Link title"
-                    value={newLink.title}
-                    onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
-                    style={{
-                      padding: "12px 16px",
-                      border: "1px solid #d2d2d7",
-                      borderRadius: "10px",
-                      flex: 1,
-                      color: "black",
-                      fontSize: "15px",
-                    }}
-                  />
-                  <input
-                    type="url"
-                    placeholder="https://example.com"
-                    value={newLink.url}
-                    onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
-                    style={{
-                      padding: "12px 16px",
-                      border: "1px solid #d2d2d7",
-                      borderRadius: "10px",
-                      color: "black",
-                      flex: 1,
-                      fontSize: "15px",
-                    }}
-                  />
-                </div>
-
-                <button
-                  onClick={addLink}
+                <div
                   style={{
-                    background: "#f5f5f7",
-                    color: "#000000",
-                    border: "1px solid #d2d2d7",
-                    padding: "12px 24px",
-                    borderRadius: "10px",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    marginBottom: "24px",
-                    fontSize: "15px",
+                    background: "#ffffff",
+                    border: "1px solid #e5e5e5",
+                    borderRadius: "16px",
+                    padding: "16px",
+                    boxShadow: "0 10px 24px rgba(15,23,42,0.05)",
+                    marginBottom: "16px",
+                    display: "grid",
+                    gap: "12px",
                   }}
                 >
-                  + Add Link
-                </button>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <label style={{ fontWeight: 600, color: "#0f172a", fontSize: 14 }}>Link title</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Portfolio, Book a call, LinkedIn"
+                      value={newLink.title}
+                      onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
+                      style={{
+                        padding: "12px 14px",
+                        border: "1px solid #d2d2d7",
+                        borderRadius: "10px",
+                        color: "black",
+                        fontSize: "15px",
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <label style={{ fontWeight: 600, color: "#0f172a", fontSize: 14 }}>URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/your-link"
+                      value={newLink.url}
+                      onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
+                      style={{
+                        padding: "12px 14px",
+                        border: "1px solid #d2d2d7",
+                        borderRadius: "10px",
+                        color: "black",
+                        fontSize: "15px",
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={addLink}
+                    style={{
+                      background: "linear-gradient(135deg,#ff8b37,#ff6a00)",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "12px 18px",
+                      borderRadius: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontSize: "15px",
+                      boxShadow: "0 12px 24px rgba(255,106,0,0.25)",
+                      justifySelf: "flex-start",
+                    }}
+                  >
+                    + Add link
+                  </button>
+                </div>
 
-                <div style={{ marginBottom: "24px" }}>
+                <div style={{ display: "grid", gap: 12, marginBottom: "16px" }}>
                   {links.length === 0 && (
                     <div
                       style={{
                         background: "#ffffff",
-                        border: "1px solid #e5e5e5",
-                        borderRadius: "16px",
-                        padding: "48px 24px",
+                        border: "1px dashed #d0d5dd",
+                        borderRadius: "14px",
+                        padding: "28px 18px",
                         textAlign: "center",
-                        color: "black",
+                        color: "#475467",
                       }}
                     >
-                      <p>No links added yet</p>
+                      No links yet. Add your first link above.
                     </div>
                   )}
                   {links.map((l, i) => (
-                    <div key={i} style={linksListRowStyle(i === links.length - 1)}>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontWeight: 500, color: "#000000" }}>{l.title}</p>
-                        <p style={{ margin: 0, fontSize: "13px", color: "#86868b" }}>{l.url}</p>
+                    <div
+                      key={`${l.title}-${i}`}
+                      style={{
+                        border: "1px solid #e5e5e5",
+                        borderRadius: "14px",
+                        padding: "14px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        background: "#ffffff",
+                        boxShadow: "0 6px 14px rgba(15,23,42,0.05)",
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <p style={{ margin: 0, fontWeight: 700, color: "#0f172a", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {l.title}
+                          </p>
+                          <button
+                            onClick={() => {
+                              const updatedLinks = links.filter((_, index) => index !== i);
+                              setLinks(updatedLinks);
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                              padding: "6px",
+                              fontWeight: 600,
+                            }}
+                            aria-label={`Remove ${l.title}`}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#64748b", wordBreak: "break-all" }}>{l.url}</p>
                       </div>
-                      <button
-                        onClick={() => {
-                          const updatedLinks = links.filter((_, index) => index !== i);
-                          setLinks(updatedLinks);
-                        }}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          padding: "8px 12px",
-                          borderRadius: "6px",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Remove
-                      </button>
                     </div>
                   ))}
                 </div>
 
-                <button
-                  onClick={saveLinksTab}
-                  style={{
-                    background: "#000000",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "12px 24px",
-                    borderRadius: "10px",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontSize: "15px",
-                  }}
-                >
-                  Save Links
-                </button>
+                <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
+                  <button
+                    onClick={saveLinksTab}
+                    style={{
+                      background: "linear-gradient(135deg,#ff8b37,#ff6a00)",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "10px 18px",
+                      borderRadius: "10px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      boxShadow: "0 10px 20px rgba(255,106,0,0.25)",
+                    }}
+                  >
+                    Save links
+                  </button>
+                </div>
               </div>
             )}
 
-            {activeStep === 3 && unlockedStep >= 3 && (
+{activeStep === 3 && unlockedStep >= 3 && (
               <div style={{ marginTop: "12px" }}>
                 <h3 style={{ fontSize: "24px", fontWeight: 600, marginBottom: "16px", color: "black" }}>Step 3: Social Links</h3>
 
