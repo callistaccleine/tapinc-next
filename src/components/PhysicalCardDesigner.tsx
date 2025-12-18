@@ -368,6 +368,59 @@ const parseGradientStops = (background: string): string[] => {
   return parts.slice(1).map((part) => part.replace(/\s?(0|100)%/g, "").trim());
 };
 
+const hexToRgb = (color: string): [number, number, number] | null => {
+  const match = color.trim().match(/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
+  if (!match) return null;
+  const value = match[1];
+  const expand = (str: string) => (str.length === 1 ? str + str : str);
+  if (value.length <= 4) {
+    const [r, g, b] = value
+      .slice(0, 3)
+      .split("")
+      .map((v) => parseInt(expand(v), 16));
+    return [r, g, b];
+  }
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return [r, g, b];
+};
+
+const rgbStringToRgb = (color: string): [number, number, number] | null => {
+  const match = color.trim().match(/^rgba?\\((.+)\\)$/i);
+  if (!match) return null;
+  const parts = match[1]
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  if (parts.length < 3) return null;
+  const [r, g, b] = parts.map((value) => Number.parseFloat(value));
+  if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+  return [r, g, b];
+};
+
+const colorToLuminance = (color: string): number | null => {
+  const rgb = hexToRgb(color) ?? rgbStringToRgb(color);
+  if (!rgb) return null;
+  const [r, g, b] = rgb.map((value) => Math.min(Math.max(value, 0), 255));
+  const srgb = [r, g, b].map((value) => {
+    const normalized = value / 255;
+    return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+};
+
+const getBackgroundLuminance = (background: string): number | null => {
+  const stops = parseGradientStops(background);
+  const palette = stops.length ? stops : [background];
+  const luminances = palette
+    .map((entry) => colorToLuminance(entry))
+    .filter((value): value is number => value !== null);
+  if (!luminances.length) return null;
+  return luminances.reduce((total, value) => total + value, 0) / luminances.length;
+};
+
 const gradientCatalog: Record<string, string[]> = {
   Sunset: ["#ff8b37", "#ff5700"],
   Ocean: ["#2BC0E4", "#EAECC6"],
@@ -515,7 +568,8 @@ export function PhysicalCardDesigner({
   const bleedYPx = bleedPx * previewScale;
   const safeXPx = safeMarginPx * previewScale;
   const safeYPx = safeMarginPx * previewScale;
-  const cutLineColor = "rgba(255,255,255,0.7)";
+  const selectionHighlightColor = "rgba(255, 180, 71, 0.95)";
+  const selectionIdleColor = "rgba(255, 184, 94, 0.45)";
   const safeLineColor = "rgba(82, 211, 151, 0.7)";
   const bleedLineColor = "rgba(255, 111, 97, 0.75)";
   const ratioToPt = (ratio: number) => Math.round(((ratio || 0) * baseDimensionPx * 72) / dpi);
@@ -559,6 +613,14 @@ export function PhysicalCardDesigner({
     return Math.max(minRatio, Math.min(globalMax, posMaxX, posMaxY));
   };
   const getBoundsForElement = (element: CardElement, widthRatio: number, heightRatio: number) => {
+    if (element.type === "qr") {
+      const epsilon = 0.0005;
+      const minX = safeXRatio;
+      const minY = safeYRatio;
+      const maxX = Math.max(minX, 1 - safeXRatio - widthRatio + epsilon);
+      const maxY = Math.max(minY, 1 - safeYRatio - heightRatio + epsilon);
+      return { minX, minY, maxX, maxY };
+    }
     const isImageNonLogo = element.type === "image" && getMediaType(element) !== "logo";
     const allowFull = isCustomTextElement(element) || isShapeElement(element);
     const minX = isImageNonLogo ? -bleedXRatio : allowFull ? 0 : safeXRatio;
@@ -621,6 +683,14 @@ export function PhysicalCardDesigner({
   const backgroundBack = cardDesign.backBackgroundColor ?? cardDesign.backgroundColor ?? "#0f172a";
   const getBackgroundForSide = (side: CardSide) => (side === "front" ? backgroundFront : backgroundBack);
   const activeBackground = getBackgroundForSide(selectedElementSide);
+  const getCutLineColor = useCallback(
+    (side: CardSide) => {
+      const luminance = getBackgroundLuminance(getBackgroundForSide(side));
+      if (luminance === null) return "rgba(255, 255, 255, 0.88)";
+      return luminance > 0.65 ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.9)";
+    },
+    [backgroundFront, backgroundBack]
+  );
   const setBackgroundForActiveSide = (value: string) => {
     if (selectedElementSide === "front") {
       updateCardDesign({ frontBackgroundColor: value });
@@ -909,6 +979,16 @@ const renderElement = (element: CardElement) => {
     const left = contentOffsetX + (element.x ?? 0) * displayedWidth;
     const top = contentOffsetY + (element.y ?? 0) * displayedHeight;
     const showGuides = !exporting && isOnActiveSide;
+    const selectionBorder = showGuides
+      ? isSelected
+        ? `1px solid ${selectionHighlightColor}`
+        : `1px dotted ${selectionIdleColor}`
+      : "none";
+    const selectionDashedBorder = showGuides
+      ? isSelected
+        ? `1px solid ${selectionHighlightColor}`
+        : `1px dashed ${selectionIdleColor}`
+      : "none";
 
   const baseStyle: CSSProperties = {
       position: "absolute",
@@ -920,12 +1000,8 @@ const renderElement = (element: CardElement) => {
       alignItems: element.type === "image" ? "center" : undefined,
       justifyContent: element.type === "image" ? "center" : undefined,
       cursor: showGuides ? (element.locked? "not-allowed": "grab") : "default",
-      border: showGuides
-        ? isSelected
-          ? "1px solid rgba(255,255,255,0.9)"
-          : "1px dotted rgba(255,255,255,0.35)"
-        : "none",
-      borderRadius: element.type === "text" ? 8 : 10,
+      border: selectionBorder,
+      borderRadius: element.type === "text" ? 8 : element.type === "image" ? 0 : 10,
       boxSizing: "border-box",
       userSelect: "none",
       touchAction: "none",
@@ -1073,24 +1149,43 @@ const renderElement = (element: CardElement) => {
 
     if (element.type === "image") {
       const src = element.imageUrl ?? cardDesign.logoUrl;
+      const defaultImageRatio = 0.22;
+      const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+        const img = event.currentTarget as HTMLImageElement;
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        const aspect = img.naturalHeight / img.naturalWidth;
+        const url = src || "";
+        setImageAspectByUrl((prev) => (prev[url] === aspect ? prev : { ...prev, [url]: aspect }));
+
+        const widthRatio = typeof element.width === "number" ? element.width : defaultImageRatio;
+        const heightRatio = typeof element.height === "number" ? element.height : defaultImageRatio;
+        const targetHeight = widthRatio * aspect;
+        const shouldAutoSetHeight =
+          element.height === undefined ||
+          Math.abs(heightRatio - defaultImageRatio) < 0.0001 ||
+          Math.abs(heightRatio - widthRatio) < 0.0001;
+        if (shouldAutoSetHeight && Math.abs(heightRatio - targetHeight) > 0.0001) {
+          setElements((prev) =>
+            prev.map((el) => (el.id === element.id ? { ...el, height: targetHeight } : el))
+          );
+        }
+      };
       return (
-        <div
-          key={element.id}
-          style={{
-            ...baseStyle,
-            border: showGuides
-              ? isSelected
-                ? "1px solid rgba(255,255,255,0.7)"
-                : "1px dashed rgba(255,255,255,0.35)"
-              : "none",
-          }}
-          onPointerDown={(event) => handleElementPointerDown(event, element)}
-        >
+            <div
+              key={element.id}
+              style={{
+                ...baseStyle,
+                border: selectionDashedBorder,
+                borderRadius: 0,
+              }}
+              onPointerDown={(event) => handleElementPointerDown(event, element)}
+            >
           {src ? (
             <img
               src={src}
               alt="Card image"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+              onLoad={handleImageLoad}
             />
           ) : (
             <span style={{ fontSize: 12, color: cardDesign.textColor, opacity: 0.6 }}>
@@ -1140,7 +1235,7 @@ const renderElement = (element: CardElement) => {
             ...baseStyle,
             background: element.backgroundColor || cardDesign.textColor,
             borderRadius: radius,
-            border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
+            border: selectionDashedBorder,
           }}
           onPointerDown={(event) => handleElementPointerDown(event, element)}
         />
@@ -1155,7 +1250,7 @@ const renderElement = (element: CardElement) => {
             ...baseStyle,
             background: element.backgroundColor || cardDesign.textColor,
             borderRadius: "999px",
-            border: showGuides ? "1px dashed rgba(255,255,255,0.35)" : "none",
+            border: selectionDashedBorder,
           }}
           onPointerDown={(event) => handleElementPointerDown(event, element)}
         />
@@ -1256,19 +1351,35 @@ const renderElement = (element: CardElement) => {
       );
     }
 
+    const qrVisualSize = Math.min(widthPx, heightPx);
+    const qrPadding = 0;
+    const qrResolutionBoost = Math.max(2, pixelRatio, 1 / Math.max(previewScale, 0.1));
+    const qrRenderSize = qrVisualSize * qrResolutionBoost;
+
     return (
       <div
         key={element.id}
-        style={{ ...baseStyle, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{
+          ...baseStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: qrVisualSize,
+          height: qrVisualSize,
+          padding: qrPadding,
+          borderRadius: 0,
+          boxSizing: "border-box",
+        }}
         onPointerDown={(event) => handleElementPointerDown(event, element)}
       >
         <QRCodeCanvas
           value={qrValue}
-          size={Math.min(widthPx, heightPx)}
+          size={qrRenderSize}
           bgColor="transparent"
           fgColor={element.qrColor || cardDesign.textColor || "#000000"}
           level="H"
           includeMargin={false}
+          style={{ width: qrVisualSize, height: qrVisualSize }}
         />
       </div>
     );
@@ -1377,6 +1488,8 @@ const renderElement = (element: CardElement) => {
     (isCustomTextElement(activeElement) || isShapeElement(activeElement)) &&
     isOutsideSafeArea(activeElement);
   const guidesVisible = !previewMode && !exporting && (showGuidesOverlay || showGuidesHint);
+  const cutLineVisible = guidesVisible || exporting;
+  const [imageAspectByUrl, setImageAspectByUrl] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (showPlacementWarning) {
@@ -1938,7 +2051,9 @@ const renderElement = (element: CardElement) => {
     side: CardSide,
     ref: RefObject<HTMLDivElement | null>,
     elements: CardElement[]
-  ) => (
+  ) => {
+    const cutLineColor = getCutLineColor(side);
+    return (
     <div
       style={{
         width: displayedWidth + bleedXPx * 2,
@@ -1953,22 +2068,23 @@ const renderElement = (element: CardElement) => {
       }}
       ref={ref}
     >
-      {guidesVisible && (
+      {cutLineVisible && (
         <>
-          {/* Bleed outline */}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: displayedWidth + bleedXPx * 2,
-              height: displayedHeight + bleedXPx * 2,
-              border: `1px solid ${bleedLineColor}`,
-              borderRadius: cornerRadiusPx + Math.max(bleedXPx, bleedYPx),
-              boxSizing: "border-box",
-              pointerEvents: "none",
-            }}
-          />
+          {guidesVisible && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: displayedWidth + bleedXPx * 2,
+                height: displayedHeight + bleedYPx * 2,
+                border: `1px solid ${bleedLineColor}`,
+                borderRadius: cornerRadiusPx + Math.max(bleedXPx, bleedYPx),
+                boxSizing: "border-box",
+                pointerEvents: "none",
+              }}
+            />
+          )}
           {/* Cut line (trim) */}
           <div
             style={{
@@ -1983,20 +2099,21 @@ const renderElement = (element: CardElement) => {
               pointerEvents: "none",
             }}
           />
-          {/* Safe area */}
-          <div
-            style={{
-              position: "absolute",
-              left: contentOffsetX + safeXPx,
-              top: contentOffsetY + safeYPx,
-              width: Math.max(displayedWidth - safeXPx * 2, 0),
-              height: Math.max(displayedHeight - safeYPx * 2, 0),
-              border: `1px dashed ${safeLineColor}`,
-              borderRadius: Math.max(cornerRadiusPx - safeXPx, 0),
-              boxSizing: "border-box",
-              pointerEvents: "none",
-            }}
-          />
+          {guidesVisible && (
+            <div
+              style={{
+                position: "absolute",
+                left: contentOffsetX + safeXPx,
+                top: contentOffsetY + safeYPx,
+                width: Math.max(displayedWidth - safeXPx * 2, 0),
+                height: Math.max(displayedHeight - safeYPx * 2, 0),
+                border: `1px dashed ${safeLineColor}`,
+                borderRadius: Math.max(cornerRadiusPx - safeXPx, 0),
+                boxSizing: "border-box",
+                pointerEvents: "none",
+              }}
+            />
+          )}
         </>
       )}
       {showGrid && !previewMode && !exporting && (
@@ -2020,6 +2137,7 @@ const renderElement = (element: CardElement) => {
       {elements.map((element) => renderElement(element))}
     </div>
   );
+  };
 
   return (
     <>

@@ -15,6 +15,7 @@ import {
   parseCardDesign,
   CardExportPayload,
 } from "@/components/PhysicalCardDesigner";
+import ImageCropperModal from "@/components/ImageCropperModal";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 
 interface Link {
@@ -225,6 +226,11 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [designStep, setDesignStep] = useState<1 | 2>(1);
+  const [pendingCrop, setPendingCrop] = useState<{
+    file: File;
+    fieldName: "profile_pic" | "header_banner" | "card_logo";
+    assetType: "logo" | "image";
+  } | null>(null);
   const shareDesignProfileId = defaultDesignProfileId ?? designProfileId;
   const sharingDifferentProfile =
     Boolean(
@@ -603,14 +609,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
 
-  const handleFileUpload = async (
-    e: ChangeEvent<HTMLInputElement>,
+  const getCropAspectRatio = (_fieldName: "profile_pic" | "header_banner" | "card_logo") => undefined;
+
+  const processUpload = async (
+    file: File,
     fieldName: "profile_pic" | "header_banner" | "card_logo",
     assetType: "logo" | "image" = "logo"
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
     try {
       if (fieldName === "card_logo") {
         if (assetType === "image") {
@@ -619,21 +624,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setCardLogoUploading(true);
         }
       }
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
       if (userError || !user || !profile?.id) {
         showNotification("Not logged in or profile not found!", "error");
-        return;
-      }
-
-      if (!file.type.startsWith('image/')) {
-        showNotification("Please upload an image file", "error");
-        return;
-      }
-
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        showNotification("File size must be less than 5MB", "error");
         return;
       }
 
@@ -653,16 +650,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           : fieldName === "header_banner"
           ? "header-banner"
           : "card-logo";
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      const { error: uploadError } = await supabase.storage.from(bucketName).upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
@@ -670,9 +665,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
+      const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
       const publicUrl = publicUrlData.publicUrl;
 
@@ -716,6 +709,43 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         }
       }
     }
+  };
+
+  const handleFileUpload = async (
+    e: ChangeEvent<HTMLInputElement>,
+    fieldName: "profile_pic" | "header_banner" | "card_logo",
+    assetType: "logo" | "image" = "logo"
+  ): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    if (!file.type.startsWith("image/")) {
+      showNotification("Please upload an image file", "error");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      showNotification("File size must be less than 5MB", "error");
+      return;
+    }
+
+    setPendingCrop({ file, fieldName, assetType });
+  };
+
+  const handleCropCancel = () => setPendingCrop(null);
+
+  const handleCropComplete = async (blob: Blob) => {
+    if (!pendingCrop) return;
+    const ext = blob.type.includes("png") ? "png" : "jpg";
+    const nameWithoutExt = pendingCrop.file.name.replace(/\.[^.]+$/, "");
+    const croppedFile = new File([blob], `${nameWithoutExt}-cropped.${ext}`, {
+      type: blob.type || pendingCrop.file.type,
+      lastModified: Date.now(),
+    });
+    await processUpload(croppedFile, pendingCrop.fieldName, pendingCrop.assetType);
+    setPendingCrop(null);
   };
 
   const handleRemoveAsset = async (url: string) => {
@@ -1586,7 +1616,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                     physicalActivated={physicalActivated}
                     onSave={saveCardDesignTab}
                     onSaveDesign={() => saveCardDesignTab()}
-                    onUploadLogo={(e, type) => handleFileUpload(e, 'card_logo', type ?? 'logo')}
+                    onUploadLogo={(e, type) => Promise.resolve(handleFileUpload(e, 'card_logo', type ?? 'logo'))}
                     uploadingLogo={cardLogoUploading}
                   />
                 )}
@@ -2463,8 +2493,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 Close
               </button>
             </div>
-          </div>
         </div>
+      </div>
+    )}
+      {pendingCrop && (
+        <ImageCropperModal
+          file={pendingCrop.file}
+          aspectRatio={getCropAspectRatio(pendingCrop.fieldName)}
+          onCancel={handleCropCancel}
+          onComplete={handleCropComplete}
+        />
       )}
     </div>
   );
