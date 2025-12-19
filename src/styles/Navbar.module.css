@@ -336,10 +336,16 @@
 /* Mobile breakpoint */
 @media (max-width: 768px) {
   .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     padding: 0 1.5rem;
     height: 70px;
     background: #f2843d;
     border-bottom: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    z-index: 30;
   }
 
   .navbar.navbarDark {
