@@ -79,6 +79,7 @@ export default function Navbar() {
           className={styles.logoImg}
           width={70}
           height={70}
+          priority
         />
       </div>
 

@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
+import path from "path";
 
 type WalletPayload = {
   name: string;
@@ -9,6 +10,34 @@ type WalletPayload = {
   barcodeMessage: string;
   serialNumber: string;
   logoUrl?: string;
+  stripImageUrl?: string;
+  colors?: {
+    background?: string;
+    label?: string;
+    text?: string;
+  };
+};
+
+const TEMPLATE_PATH = path.join(process.cwd(), "passkit", "template.pass");
+
+const hexToRgb = (hex: string, fallback: string) => {
+  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!match) return fallback;
+  const [, r, g, b] = match;
+  return `rgb(${parseInt(r, 16)},${parseInt(g, 16)},${parseInt(b, 16)})`;
+};
+
+const fetchBuffer = async (url?: string) => {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const ab = await res.arrayBuffer();
+    return Buffer.from(ab);
+  } catch (e) {
+    console.warn("Fetch buffer failed", e);
+    return null;
+  }
 };
 
 export async function POST(req: Request) {
@@ -58,45 +87,68 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { name, company, title, barcodeMessage, serialNumber, logoUrl } = body;
+  const {
+    name,
+    company,
+    title,
+    barcodeMessage,
+    serialNumber,
+    logoUrl,
+    stripImageUrl,
+    colors,
+  } = body;
+
+  const backgroundColor = hexToRgb(colors?.background ?? "#0c0d11", "rgb(12,13,17)");
+  const labelColor = hexToRgb(colors?.label ?? "#d1b89b", "rgb(209,184,155)");
+  const textColor = hexToRgb(colors?.text ?? "#f8fafc", "rgb(248,250,252)");
 
   try {
     const { PKPass } = passkit;
 
-    const pass = await PKPass.from({
-      model: "eventTicket", // generic style; you can switch to "generic" if preferred
-      certificates: {
-        wwdr: wwdrPath,
-        signerCert: certPath,
-        signerKey: certPath,
-        signerKeyPassphrase: certPassword,
+    const pass = await PKPass.from(
+      {
+        model: TEMPLATE_PATH,
+        certificates: {
+          wwdr: wwdrPath,
+          signerCert: certPath,
+          signerKey: certPath,
+          signerKeyPassphrase: certPassword,
+        },
       },
-      teamIdentifier,
-      passTypeIdentifier,
-      organizationName: orgName,
-      serialNumber,
-      description: "TapInk Apple Wallet",
-      foregroundColor: "rgb(255,255,255)",
-      backgroundColor: "rgb(0,0,0)",
-      barcode: {
-        message: barcodeMessage,
-        format: "PKBarcodeFormatQR",
-        messageEncoding: "iso-8859-1",
-      },
-      logoText: company,
-      generic: {
-        primaryFields: [{ key: "name", label: "NAME", value: name }],
-        secondaryFields: [{ key: "company", label: "COMPANY", value: company }],
-        auxiliaryFields: [{ key: "title", label: "TITLE", value: title }],
-      },
-    });
-
-    if (logoUrl) {
-      try {
-        await pass.addBuffer("logo.png", await fetch(logoUrl).then((r) => r.arrayBuffer()));
-      } catch (e) {
-        console.warn("Failed to attach logo", e);
+      {
+        teamIdentifier,
+        passTypeIdentifier,
+        organizationName: orgName,
+        serialNumber,
+        description: "TapInk Apple Wallet",
+        logoText: company,
+        barcode: {
+          message: barcodeMessage,
+          format: "PKBarcodeFormatQR",
+          messageEncoding: "iso-8859-1",
+          altText: company,
+        },
+        backgroundColor,
+        foregroundColor: textColor,
+        labelColor,
+        generic: {
+          primaryFields: [{ key: "name", label: "NAME", value: name }],
+          secondaryFields: [{ key: "company", label: "COMPANY", value: company }],
+          auxiliaryFields: [{ key: "title", label: "TITLE", value: title }],
+        },
       }
+    );
+
+    const [logoBuffer, stripBuffer] = await Promise.all([
+      fetchBuffer(logoUrl),
+      fetchBuffer(stripImageUrl),
+    ]);
+
+    if (logoBuffer) {
+      await pass.addBuffer("logo.png", logoBuffer);
+    }
+    if (stripBuffer) {
+      await pass.addBuffer("strip.png", stripBuffer);
     }
 
     const stream = pass.getAsStream();
@@ -115,6 +167,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("Wallet generation failed", err);
-    return NextResponse.json({ error: "Failed to generate wallet pass." }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to generate wallet pass.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -29,6 +29,8 @@ interface Socials {
 
 type DesignTab = "profile" | "design";
 
+const GOOGLE_LIBRARIES: ("places")[] = ["places"];
+
 const SocialIcon = ({ platform }: { platform: string }) => (
   <NextImage 
     src={`/icons/${platform}.svg`} 
@@ -255,24 +257,47 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }, 5000);
   };
 
+  const selectedPassLogo =
+    cardDesign.logoUrl ||
+    cardLogoItems.find((entry) => entry.type === "logo")?.url ||
+    profilePic ||
+    "/images/TAPINK_ICON_WHITE.png";
+
+  const walletPassPayload = {
+    name: `${firstname} ${surname}`.trim() || "Your Name",
+    company: company || "TapInk",
+    title: title || "Title",
+    barcodeMessage: profileUrl || "https://tapink.com",
+    serialNumber: (profile?.id as string) || "0000 1111 2222",
+    logoUrl: selectedPassLogo,
+    stripImageUrl: headerBanner || undefined,
+    colors: {
+      background: walletBgColor,
+      label: walletAccentColor,
+      text: walletTextColor,
+    },
+  };
+
   const handleWalletDownload = async () => {
     try {
       setWalletDownloading(true);
       const response = await fetch("/api/wallet-pass", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${firstname} ${surname}`.trim() || "Your Name",
-          company: company || "TapInk",
-          title: title || "Title",
-          barcodeMessage: profileUrl || "https://tapink.com",
-          serialNumber: (profile?.id as string) || "0000 1111 2222",
-          logoUrl: "/images/TAPINK_ICON_WHITE.png",
-        }),
+        body: JSON.stringify(walletPassPayload),
       });
 
       if (!response.ok) {
-        const text = await response.text();
+        let text = "";
+        try {
+          text = await response.clone().text();
+          if (!text) {
+            const json = await response.clone().json();
+            text = json?.error || "";
+          }
+        } catch {
+          // ignore parse errors
+        }
         showNotification(text || "Failed to generate wallet pass.", "error");
         return;
       }
@@ -295,11 +320,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     }
   };
   
-  const libraries: ("places")[] = ["places"];
-
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "", 
-    libraries,
+    libraries: GOOGLE_LIBRARIES,
   });
 
   const handlePlaceChanged = () => {
@@ -1368,7 +1391,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         {step.label}
                       </span>
                     </button>
-                    {idx < 1 && (
+                    {idx < 2 && (
                       <div style={{ width: 50, height: 2, background: "#e2e8f0", borderRadius: 999 }} aria-hidden />
                     )}
                   </div>
@@ -1643,7 +1666,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 <div style={{ marginBottom: "20px" }}>
                   <h3 style={{ fontSize: "28px", fontWeight: 600, marginBottom: "8px", color: "black" }}>Apple Wallet Pass</h3>
                   <p style={{ color: "#475467", fontSize: "14px" }}>
-                    Preview a lightweight wallet pass using your profile details. This is a visual placeholder; hook into your generator when ready.
+                    Preview the exact data we send to your Apple Wallet generator. Colours, fields, and assets below are the same ones shipped in the .pkpass.
                   </p>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start", maxWidth: 940 }}>
@@ -1691,21 +1714,22 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <AppleWalletPass
-                      organizationName={company || "TapInk"}
-                      primaryField={{ label: "NAME", value: `${firstname} ${surname}`.trim() || "Your Name" }}
+                      organizationName={walletPassPayload.company}
+                      primaryField={{ label: "NAME", value: walletPassPayload.name }}
                       secondaryFields={[
-                        { label: "COMPANY", value: company || "TapInk" },
+                        { label: "COMPANY", value: walletPassPayload.company },
                       ]}
                       auxiliaryFields={[
-                        { label: "TITLE", value: title || "Title" },
+                        { label: "TITLE", value: walletPassPayload.title },
                       ]}
-                      barcodeMessage={profileUrl || "https://tapink.com"}
-                      serialNumber={(profile?.id as string) || "0000 1111 2222"}
-                      stripImageUrl={headerBanner || undefined}
-                      logoUrl={"/images/TAPINK_ICON_WHITE.png"}
-                      accentColor={walletAccentColor}
-                      backgroundColor={walletBgColor}
-                      textColor={walletTextColor}
+                      barcodeMessage={walletPassPayload.barcodeMessage}
+                      serialNumber={walletPassPayload.serialNumber}
+                      stripImageUrl={walletPassPayload.stripImageUrl}
+                      logoUrl={walletPassPayload.logoUrl}
+                      accentColor={walletPassPayload.colors.label}
+                      labelColor={walletPassPayload.colors.label}
+                      backgroundColor={walletPassPayload.colors.background}
+                      textColor={walletPassPayload.colors.text}
                       cornerRadius={20}
                       showShadow
                     qrContent={
@@ -1719,12 +1743,12 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   />
                     <div style={{ maxWidth: 340, color: "#475467", fontSize: 14, lineHeight: 1.5 }}>
                       <p style={{ marginTop: 0 }}>
-                        Want this pass to export? Wire this preview into your pass generator and reuse the data above.
+                        When you tap “Add to Apple Wallet” we call the pass API with this same data and assets.
                       </p>
                       <ul style={{ paddingLeft: 18, marginTop: 8 }}>
-                        <li>Uses your profile name, email, phone, banner, and logo.</li>
-                        <li>Barcode text points to the profile URL.</li>
-                        <li>Adjust colors and fields in <code>AppleWalletPass</code> as needed.</li>
+                        <li>Uses your profile name, company, title, banner, and logo.</li>
+                        <li>QR text points to your profile URL; serial uses your profile ID.</li>
+                        <li>Colours flow through to both the preview and the pass payload.</li>
                       </ul>
                     </div>
                   </div>

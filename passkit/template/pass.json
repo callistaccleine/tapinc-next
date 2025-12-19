@@ -1,0 +1,40 @@
+{
+  "formatVersion": 1,
+  "description": "TapInk Wallet Pass",
+  "organizationName": "TapInk",
+  "passTypeIdentifier": "PASS_TYPE_PLACEHOLDER",
+  "serialNumber": "TAPINK-SERIAL-PLACEHOLDER",
+  "teamIdentifier": "TEAM_PLACEHOLDER",
+  "logoText": "TapInk",
+  "backgroundColor": "rgb(12,13,17)",
+  "foregroundColor": "rgb(248,250,252)",
+  "labelColor": "rgb(209,184,155)",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "message": "https://tapink.com",
+    "messageEncoding": "iso-8859-1"
+  },
+  "generic": {
+    "primaryFields": [
+      {
+        "key": "name",
+        "label": "NAME",
+        "value": "Your Name"
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "company",
+        "label": "COMPANY",
+        "value": "TapInk"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "title",
+        "label": "TITLE",
+        "value": "Title"
+      }
+    ]
+  }
+}
