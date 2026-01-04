@@ -585,9 +585,12 @@ export function PhysicalCardDesigner({
     Math.max(1 - safeYRatio * 2, 0),
     displayedWidth > 0 ? MAX_MEDIA_PX / displayedWidth : MAX_RESIZABLE_RATIO
   );
+  const qrMinSizeRatio = Math.max(MIN_RESIZABLE_RATIO, MIN_IMAGE_PX / cardWidthPx);
+  const qrMaxSizeRatio = Math.max(MIN_RESIZABLE_RATIO, Math.min(1 - safeXRatio * 2, 1 - safeYRatio * 2));
   const mediaMinSliderPx = Math.max(minElementSizePx, MIN_IMAGE_PX);
   const mediaMaxSliderPx = mediaMaxSliderRatio * cardWidthPx;
   const mediaMaxSliderPxForElement = (element: CardElement) => {
+    if (element.type === "qr") return qrMaxSizeRatio * cardWidthPx;
     const ratio =
       element.type === "image" && getMediaType(element) !== "logo"
         ? imageMaxRatio
@@ -597,7 +600,9 @@ export function PhysicalCardDesigner({
   const mediaMaxRatioForElement = (element: CardElement) => {
     const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
     const globalMax =
-      element.type === "image" && getMediaType(element) !== "logo"
+      element.type === "qr"
+        ? qrMaxSizeRatio
+        : element.type === "image" && getMediaType(element) !== "logo"
         ? imageMaxRatio
         : mediaMaxSliderRatio;
     const x = element.x ?? safeXRatio;
@@ -614,12 +619,16 @@ export function PhysicalCardDesigner({
   };
   const getBoundsForElement = (element: CardElement, widthRatio: number, heightRatio: number) => {
     if (element.type === "qr") {
-      const epsilon = 0.0005;
       const minX = safeXRatio;
       const minY = safeYRatio;
-      const maxX = Math.max(minX, 1 - safeXRatio - widthRatio + epsilon);
-      const maxY = Math.max(minY, 1 - safeYRatio - heightRatio + epsilon);
-      return { minX, minY, maxX, maxY };
+      const maxX = 1 - safeXRatio - widthRatio;
+      const maxY = 1 - safeYRatio - heightRatio;
+      return { 
+        minX, 
+        minY, 
+        maxX: Math.max(minX, maxX),  // Prevent negative/invalid bounds
+        maxY: Math.max(minY, maxY) 
+      };
     }
     const isImageNonLogo = element.type === "image" && getMediaType(element) !== "logo";
     const allowFull = isCustomTextElement(element) || isShapeElement(element);
@@ -638,8 +647,13 @@ export function PhysicalCardDesigner({
     return { minX, maxX, minY, maxY };
   };
   const clampMediaSizeForElement = (sizeRatio: number, element: CardElement) => {
-    const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
-    const maxRatio = mediaMaxRatioForElement(element);
+    const minRatio =
+      element.type === "qr"
+        ? qrMinSizeRatio
+        : displayedWidth > 0
+        ? MIN_IMAGE_PX / displayedWidth
+        : MIN_RESIZABLE_RATIO;
+    const maxRatio = element.type === "qr" ? qrMaxSizeRatio : mediaMaxRatioForElement(element);
     return clamp(sizeRatio, minRatio, maxRatio);
   };
   const frontRef = useRef<HTMLDivElement>(null);
@@ -730,8 +744,15 @@ export function PhysicalCardDesigner({
       return { ...element, x: 0, y: 0, width: 1, height: 1, borderStyle: element.borderStyle ?? "solid" };
     }
     if (element.type === "qr") {
+      const widthRatio = getQrWidthRatio(element);
+      const heightRatio = getQrHeightRatio(element);
+      const bounds = getBoundsForElement(element, widthRatio, heightRatio);
       return {
         ...element,
+        width: widthRatio,
+        height: widthRatio,
+        x: clamp(element.x ?? bounds.minX, bounds.minX, bounds.maxX),
+        y: clamp(element.y ?? bounds.minY, bounds.minY, bounds.maxY),
         opacity: 1,
         qrColor: element.qrColor ?? "#000000",
       };
@@ -774,6 +795,18 @@ export function PhysicalCardDesigner({
     return metrics.width || 0;
   };
 
+  const getQrWidthRatio = (element: CardElement) => {
+    const baseRatio = element.width ?? 0.28;
+    return clamp(baseRatio, qrMinSizeRatio, qrMaxSizeRatio);
+  };
+
+  const getQrHeightRatio = (element: CardElement) => {
+    const widthRatio = getQrWidthRatio(element);
+    if (displayedWidth <= 0 || displayedHeight <= 0) return widthRatio;
+    const squarePx = widthRatio * displayedWidth;
+    return squarePx / displayedHeight;
+  };
+
   const getElementWidth = (element: CardElement) => {
     if (element.type === "text") {
       const fontSizePx = (element.fontSize ?? 0.05) * displayedWidth;
@@ -790,11 +823,8 @@ export function PhysicalCardDesigner({
       const measuredRatio = textWidthPx / displayedWidth;
       return Math.max(measuredRatio, 0.02);
     }
+    if (element.type === "qr") return getQrWidthRatio(element);
     if (typeof element.width === "number") return element.width;
-    if (element.type === "qr") {
-      const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
-      return Math.max(element.width ?? 0.28, minRatio);
-    }
     if (element.type === "image") {
       const minRatio = displayedWidth > 0 ? MIN_IMAGE_PX / displayedWidth : MIN_RESIZABLE_RATIO;
       return Math.max(element.width ?? 0.22, minRatio);
@@ -811,8 +841,8 @@ export function PhysicalCardDesigner({
       const lineHeightPx = fontSizePx * 1.15;
       return lineHeightPx / displayedHeight;
     }
+    if (element.type === "qr") return getQrHeightRatio(element);
     if (typeof element.height === "number") return element.height;
-    if (element.type === "qr") return getElementWidth(element);
     if (element.type === "image") return 0.22;
     if (element.type === "shape") return 0.12;
     if (element.type === "line") return 0.01;
@@ -1941,7 +1971,9 @@ const renderElement = (element: CardElement) => {
   const resizeSelection = (ratio: number, predicate: (element: CardElement) => boolean) => {
     applyToSelection(predicate, (element) => {
       const maxRatio =
-        element.type === "image" && getMediaType(element) !== "logo"
+        element.type === "qr"
+          ? qrMaxSizeRatio
+          : element.type === "image" && getMediaType(element) !== "logo"
           ? mediaMaxRatioForElement(element)
           : MAX_RESIZABLE_RATIO;
       const clamped = clamp(ratio, MIN_RESIZABLE_RATIO, maxRatio);
