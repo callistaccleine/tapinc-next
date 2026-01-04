@@ -112,9 +112,9 @@
 }
 
 .navItem.active {
-  background: #000000;
-  color: #ffffff;
-  font-weight: 500;
+  background: rgba(255, 122, 28, 0.14);
+  color: #ff7a1c;
+  font-weight: 600;
 }
 
 .navIcon {

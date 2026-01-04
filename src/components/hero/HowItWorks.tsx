@@ -12,7 +12,7 @@ export default function HowItWorks() {
       name: "Share",
       icon: "🔗",
       title: "Share instantly",
-      description: "Tap your TapInk card to any smartphone. No app required. Your digital profile appears instantly, making connections effortless.",
+      description: "Tap your TapINK card to any smartphone. No app required. Your digital profile appears instantly, making connections effortless.",
       video:
         "https://cizagqdvmcdhqbkxpopx.supabase.co/storage/v1/object/public/videos/tapink-share.mp4",
     },

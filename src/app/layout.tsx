@@ -3,9 +3,9 @@ import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
-  title: "TapInk — Smart Digital Business Cards",
+  title: "TapINK — Smart Digital Business Cards",
   description:
-    "TapInk makes sharing your contact info seamless with NFC-powered digital cards.",
+    "TapINK makes sharing your contact info seamless with NFC-powered digital cards.",
   metadataBase: new URL("https://tapink.com.au"),
   icons: {
     icon: "/favicon.png",
@@ -13,26 +13,26 @@ export const metadata: Metadata = {
     apple: "/favicon.png",
   },
   openGraph: {
-    title: "TapInk — Smart Digital Business Cards",
+    title: "TapINK — Smart Digital Business Cards",
     description:
-      "Create instant, meaningful connections with TapInk.",
+      "Create instant, meaningful connections with TapINK.",
     url: "https://tapink.com.au",
-    siteName: "TapInk",
+    siteName: "TapINK",
     images: [
       {
         url: "https://tapink.com.au/images/Tapink-opengraph.png", 
         width: 1200,
         height: 630,
-        alt: "TapInk logo",
+        alt: "TapINK logo",
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TapInk — Smart Digital Business Cards",
+    title: "TapINK — Smart Digital Business Cards",
     description:
-      "Create instant, meaningful connections with TapInk digital business cards.",
+      "Create instant, meaningful connections with TapINK digital business cards.",
     images: ["https://tapink.com.au/images/Tapink-opengraph.png"],
   },
 };

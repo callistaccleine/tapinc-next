@@ -181,7 +181,7 @@ export default function ProductDetails({ productId }: ProductDetailsProps) {
     },
     {
       question: "Can I customise my card design?",
-      answer: "Yes, your TapInk card can be personalised with your logo, name, and colour scheme after purchase.",
+      answer: "Yes, your TapINK card can be personalised with your logo, name, and colour scheme after purchase.",
     },
     {
       question: "Do you offer design services?",

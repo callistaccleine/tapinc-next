@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Analytics from "./Analytics";
 import Orders from "./Orders";
 import styles from "@/styles/Dashboard.module.css";
 import DashboardSideBar from "@/components/DashboardSideBar";
 import { supabase } from "@/lib/supabaseClient";
+import DashboardFaqChat from "@/components/DashboardFaqChat";
 
 type TabKey = "profiles" | "analytics" | "orders";
 
@@ -47,8 +48,11 @@ export default function Dashboard() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
-  const [isChatOpen, setChatOpen] = useState(false);
-  const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [highlightAddProfiles, setHighlightAddProfiles] = useState(false);
+  const [highlightEditProfile, setHighlightEditProfile] = useState(false);
+  const addProfilesButtonRef = useRef<HTMLButtonElement | null>(null);
+  const editProfileButtonRef = useRef<HTMLButtonElement | null>(null);
+  const highlightTimeoutRef = useRef<number | null>(null);
   const normalizeStatus = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
   // ✅ Load profiles from Supabase
@@ -143,12 +147,11 @@ export default function Dashboard() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const seen = localStorage.getItem("tapink_dashboard_chat_seen_v1");
-    if (!seen) {
-      setChatOpen(true);
-      localStorage.setItem("tapink_dashboard_chat_seen_v1", "true");
-    }
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
   }, []);
 
   const setActiveTab = (tab: TabKey) => {
@@ -157,6 +160,38 @@ export default function Dashboard() {
 
   const handleCloseSidebar = () => setSidebarOpen(false);
   const handleOpenSidebar = () => setSidebarOpen(true);
+
+  const triggerAddProfilesSpotlight = () => {
+    setActiveTabState("profiles");
+    setHighlightEditProfile(false);
+    setHighlightAddProfiles(true);
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    window.setTimeout(() => {
+      addProfilesButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightAddProfiles(false);
+      setHighlightEditProfile(false);
+    }, 1800);
+  };
+
+  const triggerEditProfileSpotlight = () => {
+    setActiveTabState("profiles");
+    setHighlightAddProfiles(false);
+    setHighlightEditProfile(true);
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    window.setTimeout(() => {
+      editProfileButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightAddProfiles(false);
+      setHighlightEditProfile(false);
+    }, 1800);
+  };
 
   const handleUpdateProfileStatus = async (profileId: string, makeActive: boolean) => {
     if (updatingStatusId === profileId) return;
@@ -251,6 +286,7 @@ export default function Dashboard() {
 
   return (
     <div className={styles.dashboard}>
+      {(highlightAddProfiles || highlightEditProfile) && <div className={styles.spotlightOverlay} aria-hidden />}
       {/* ✅ Sidebar */}
       <DashboardSideBar
         activeTab={activeTab}
@@ -275,7 +311,8 @@ export default function Dashboard() {
             {renderHeader(
               "My Profiles",
               <button
-                className={styles.btnPrimary}
+                ref={addProfilesButtonRef}
+                className={`${styles.btnPrimary} ${highlightAddProfiles ? styles.spotlight : ""}`}
                 onClick={() => router.push("/add-profiles")}
               >
                 + Add profiles
@@ -327,7 +364,7 @@ export default function Dashboard() {
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredProfiles.map((p) => (
+                    {filteredProfiles.map((p, index) => (
                     <tr key={p.id}>
                         {/* Name + avatar */}
                         <td data-label="Profile ID">
@@ -385,7 +422,8 @@ export default function Dashboard() {
                         {/* Edit */}
                         <td data-label="Edit">
                         <button
-                          className={styles.iconBtn}
+                          ref={index === 0 ? editProfileButtonRef : undefined}
+                          className={`${styles.iconBtn} ${highlightEditProfile && index === 0 ? styles.spotlightIcon : ""}`}
                           onClick={() => router.push(`/design/${p.id}`)}
                         >
                           ✎
@@ -415,173 +453,10 @@ export default function Dashboard() {
           </>
         )}
       </main>
-      {/* Fun FAQ Chatbox */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-          zIndex: 1200,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: "10px",
-        }}
-      >
-        {isChatOpen && (
-          <div
-            style={{
-              width: 340,
-              maxWidth: "92vw",
-              background: "radial-gradient(circle at 15% 20%, rgba(255,138,55,0.14), transparent 35%), #0b1220",
-              color: "#e5e7eb",
-              borderRadius: 18,
-              boxShadow: "0 24px 60px rgba(0,0,0,0.45)",
-              padding: "16px 16px 12px",
-              border: "1px solid #1f2937",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg,#ff8b37,#ff6a00)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    color: "#0b1220",
-                    boxShadow: "0 10px 24px rgba(255,106,0,0.35)",
-                  }}
-                >
-                  🤖
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: "#fff" }}>TapINK Pal</div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>Fast answers, with a wink.</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setChatOpen(false)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#94a3b8",
-                  fontSize: 18,
-                  cursor: "pointer",
-                }}
-                aria-label="Close chat"
-              >
-                ×
-              </button>
-            </div>
-            <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-              {[
-                { q: "How do I share my card?", a: "Open your profile, tap Share Profile, and let friends scan the QR or copy the link." },
-                { q: "Where do I edit my card design?", a: "Hop into Edit Profile → Physical card design to swap colours, logos, and layouts." },
-                { q: "Can I add more profiles?", a: "Absolutely. Tap + Add profiles in the Profiles tab to spin up a new one." },
-                { q: "Why can't I see analytics?", a: "We show analytics after your card has a few views/scans. Share it once or twice!" },
-                { q: "Need a human?", a: "Email hello@tapink.com.au and we’ll jump in right away." },
-              ].map((item) => {
-                const active = activePrompt === item.q;
-                return (
-                  <div key={item.q} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => setActivePrompt(active ? null : item.q)}
-                      style={{
-                        textAlign: "left",
-                        padding: "12px 14px",
-                        borderRadius: 14,
-                        border: "1px solid " + (active ? "#fb923c" : "#1f2937"),
-                        background: active
-                          ? "linear-gradient(135deg,#fb923c,#f97316)"
-                          : "linear-gradient(145deg,#0f172a,#0b1220)",
-                        color: active ? "#0f172a" : "#e5e7eb",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        boxShadow: active ? "0 12px 26px rgba(249,115,22,0.25)" : "none",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 15, flex: 1 }}>{item.q}</span>
-                        <span aria-hidden style={{ opacity: 0.8 }}>{active ? "▼" : "▶"}</span>
-                      </div>
-                    </button>
-                    {active && (
-                      <div
-                        style={{
-                          marginLeft: 6,
-                          marginRight: 6,
-                          display: "grid",
-                          gap: 10,
-                          padding: "10px 12px",
-                          borderRadius: 12,
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1px solid rgba(255,255,255,0.05)",
-                          color: "#e5e7eb",
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#ff8b37,#ff6a00)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#0b1220" }}>
-                            🤖
-                          </div>
-                          <div style={{ background: "rgba(15,23,42,0.6)", padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)", boxShadow: "0 8px 18px rgba(0,0,0,0.25)" }}>
-                            <div style={{ fontWeight: 700, color: "#ffb26f", marginBottom: 4 }}>Bot</div>
-                            <div>{item.a}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center", color: "#94a3b8", fontSize: 12 }}>
-                          <span>💡</span>
-                          <span>These replies are canned FAQs — if you need more, email hello@tapink.com.au.</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 6 }}>
-              <span>✨</span>
-              <span>Friendly FAQ vibes — humans are a click away if you need them.</span>
-            </div>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => setChatOpen((v) => !v)}
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: "50%",
-            border: "none",
-            background: isChatOpen
-              ? "linear-gradient(135deg, #111827, #0b1220)"
-              : "linear-gradient(135deg, #ff8b37, #ff6a00)",
-            color: isChatOpen ? "#ff9a4d" : "#ffffff",
-            boxShadow: isChatOpen
-              ? "0 8px 18px rgba(0,0,0,0.35)"
-              : "0 12px 28px rgba(255,106,0,0.35)",
-            cursor: "pointer",
-            fontSize: 22,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.2s ease",
-          }}
-          aria-label="Open Tapink FAQ chat"
-        >
-          {isChatOpen ? "✖" : "💬"}
-        </button>
-      </div>
+      <DashboardFaqChat
+        onSpotlightAddProfiles={triggerAddProfilesSpotlight}
+        onSpotlightEditProfile={triggerEditProfileSpotlight}
+      />
     </div>
   );
 }

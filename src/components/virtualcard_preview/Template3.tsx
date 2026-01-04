@@ -9,7 +9,7 @@ type Template3Props = {
 };
 
 const normalizeName = (name?: string) => {
-  const formattedName = name?.trim() || "TapInk Contact";
+  const formattedName = name?.trim() || "TapINK Contact";
   const [firstName = "", ...rest] = formattedName.split(/\s+/);
   const lastName = rest.join(" ");
   const structuredName = `${lastName};${firstName};;;`;
@@ -438,7 +438,7 @@ END:VCARD`;
           background: "#ffffff",
         }}
       >
-        © TapInk 2025 — All rights reserved.
+        © TapINK 2025 — All rights reserved.
       </footer>
     </div>
   );

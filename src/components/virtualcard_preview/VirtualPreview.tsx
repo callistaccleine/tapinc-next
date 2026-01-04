@@ -119,7 +119,7 @@ export default function VirtualPreview({
   if (showSplashScreen) {
     return (
       <div className={styles.splash} role="status" aria-live="polite">
-        <span className={styles.logo}>TapInk</span>
+        <span className={styles.logo}>TapINK</span>
         <span className={styles.tagline}>Loading your digital card…</span>
         <span className={styles.loader} />
       </div>

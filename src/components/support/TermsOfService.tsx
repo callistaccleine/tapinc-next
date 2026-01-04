@@ -5,7 +5,7 @@ export default function TermsOfService() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>TapInk Pty Ltd — Terms of Service</h1>
+        <h1 className={styles.title}>TapINK Pty Ltd — Terms of Service</h1>
         <p className={styles.updated}>Last updated: October 2025</p>
       </header>
 
@@ -18,15 +18,15 @@ export default function TermsOfService() {
         <Link href="/policies/refund-policy" className={styles.link}>
           [Refund Policy]
         </Link>
-        , govern your use of TapInk&apos;s website, products, and services. Please read them carefully
-        before using or purchasing from TapInk.
+        , govern your use of TapINK&apos;s website, products, and services. Please read them carefully
+        before using or purchasing from TapINK.
       </p>
 
       <section className={styles.section}>
         <h2>1. Introduction</h2>
         <p className={styles.paragraph}>
-          These Terms apply to your use of TapInk&apos;s websites located at https://tapink.com.au
-          (“Sites”), your purchase of TapInk products, and access to TapInk&apos;s associated services
+          These Terms apply to your use of TapINK&apos;s websites located at https://tapink.com.au
+          (“Sites”), your purchase of TapINK products, and access to TapINK&apos;s associated services
           and platform (“Platform”).
         </p>
         <p className={styles.paragraph}>
@@ -35,7 +35,7 @@ export default function TermsOfService() {
           or our products and services.
         </p>
         <p className={styles.paragraph}>
-          “TapInk”, “we”, “us” or “our” refers to TAP INK Pty Ltd (ACN 673 414 634), an Australian
+          “TapINK”, “we”, “us” or “our” refers to TAP INK Pty Ltd (ACN 673 414 634), an Australian
           company registered in Victoria. “You” or “your” refers to the individual, organisation, or
           entity using our Sites, Products, or Services.
         </p>
@@ -51,7 +51,7 @@ export default function TermsOfService() {
         <ul className={styles.list}>
           <li>
             “Account” means a registered user account created manually or automatically for access to
-            TapInk&apos;s Platform or Services.
+            TapINK&apos;s Platform or Services.
           </li>
           <li>
             “Agreement” refers collectively to these Terms, the Privacy Policy, and any other related
@@ -65,22 +65,22 @@ export default function TermsOfService() {
             not) in intellectual property including copyright, trademarks, trade names, logos, software,
             designs, and confidential information.
           </li>
-          <li>“NFC Technology” means Near Field Communication technology embedded in our TapInk Cards.</li>
-          <li>“Order” means a purchase request placed for TapInk products or services through our Sites.</li>
+          <li>“NFC Technology” means Near Field Communication technology embedded in our TapINK Cards.</li>
+          <li>“Order” means a purchase request placed for TapINK products or services through our Sites.</li>
           <li>
-            “Platform” means the TapInk web dashboard that allows management of digital profiles and
+            “Platform” means the TapINK web dashboard that allows management of digital profiles and
             cards.
           </li>
           <li>
-            “Products” refers to our NFC-enabled TapInk Cards, digital business cards, or related
+            “Products” refers to our NFC-enabled TapINK Cards, digital business cards, or related
             accessories.
           </li>
           <li>
-            “Profile” refers to the digital profile created via the TapInk Platform that contains your
+            “Profile” refers to the digital profile created via the TapINK Platform that contains your
             contact, business, or social information.
           </li>
           <li>
-            “Services” refers to TapInk&apos;s online and physical services provided through the Platform,
+            “Services” refers to TapINK&apos;s online and physical services provided through the Platform,
             including customer support, hosting, and ongoing profile functionality.
           </li>
           <li>
@@ -103,7 +103,7 @@ export default function TermsOfService() {
           <li>Infringe the rights or privacy of others.</li>
         </ul>
         <p className={styles.paragraph}>
-          TapInk reserves the right to suspend or terminate access to your Account or Platform where
+          TapINK reserves the right to suspend or terminate access to your Account or Platform where
           misuse, violation of these Terms, or unlawful activity is detected.
         </p>
         <p className={styles.paragraph}>
@@ -115,8 +115,8 @@ export default function TermsOfService() {
       <section className={styles.section}>
         <h2>4. Orders and Payments</h2>
         <p className={styles.paragraph}>
-          Orders for Tapink products or services may be placed through our Sites. An Order is not binding
-          until confirmed by Tapink in writing.
+          Orders for TapINK products or services may be placed through our Sites. An Order is not binding
+          until confirmed by TapINK in writing.
         </p>
         <p className={styles.paragraph}>
           Payment must be made in full at the time of purchase using accepted payment methods displayed on
@@ -136,11 +136,11 @@ export default function TermsOfService() {
         <h2>5. Account and Profile Information</h2>
         <p className={styles.paragraph}>
           You are responsible for ensuring that your account details and profile information are accurate
-          and up to date. Tapink accepts no liability for delays, errors, or losses arising from incorrect
+          and up to date. TapINK accepts no liability for delays, errors, or losses arising from incorrect
           or incomplete information provided by you.
         </p>
         <p className={styles.paragraph}>
-          You must keep your login credentials secure and notify Tapink immediately if you suspect
+          You must keep your login credentials secure and notify TapINK immediately if you suspect
           unauthorised access. You are responsible for all actions performed through your account.
         </p>
       </section>
@@ -152,7 +152,7 @@ export default function TermsOfService() {
           delivery times are provided as a guide only.
         </p>
         <p className={styles.paragraph}>
-          Ownership and risk in Tapink physical products transfer to you upon delivery. Tapink is not
+          Ownership and risk in TapINK physical products transfer to you upon delivery. TapINK is not
           responsible for delays, damages, or losses caused by courier services once products have been
           dispatched.
         </p>
@@ -161,8 +161,8 @@ export default function TermsOfService() {
       <section className={styles.section}>
         <h2>7. Platform Access and Renewal</h2>
         <p className={styles.paragraph}>
-          Where you hold multiple Tapink Cards under one account (e.g., business plans), you may be
-          charged an annual platform utilisation fee for continued access to Tapink&apos;s dashboard
+          Where you hold multiple TapINK Cards under one account (e.g., business plans), you may be
+          charged an annual platform utilisation fee for continued access to TapINK&apos;s dashboard
           services.
         </p>
         <p className={styles.paragraph}>
@@ -192,11 +192,11 @@ export default function TermsOfService() {
         <h2>9. Intellectual Property</h2>
         <p className={styles.paragraph}>
           All content on the Sites and Platform, including design, code, logos, and graphics, is owned by
-          Tapink or its licensors. You may not reproduce, distribute, or adapt any part without prior
+          TapINK or its licensors. You may not reproduce, distribute, or adapt any part without prior
           written consent.
         </p>
         <p className={styles.paragraph}>
-          By uploading content to your Tapink profile, you grant Tapink a non-exclusive, royalty-free
+          By uploading content to your TapINK profile, you grant TapINK a non-exclusive, royalty-free
           licence to host and display that content for the purpose of providing our services.
         </p>
       </section>
@@ -204,7 +204,7 @@ export default function TermsOfService() {
       <section className={styles.section}>
         <h2>10. Indemnity</h2>
         <p className={styles.paragraph}>
-          You agree to indemnify and hold Tapink and its employees, directors, and contractors harmless
+          You agree to indemnify and hold TapINK and its employees, directors, and contractors harmless
           from any loss, damage, liability, or expense (including legal fees) arising from your breach of
           these Terms or unlawful use of the Sites, Products, or Platform.
         </p>
@@ -213,12 +213,12 @@ export default function TermsOfService() {
       <section className={styles.section}>
         <h2>11. Limitation of Liability</h2>
         <p className={styles.paragraph}>
-          To the fullest extent permitted by law, Tapink excludes all implied warranties and is not liable
+          To the fullest extent permitted by law, TapINK excludes all implied warranties and is not liable
           for any indirect, consequential, or special loss (including loss of profits, data, or goodwill)
           arising out of your use of the Sites or Services.
         </p>
         <p className={styles.paragraph}>
-          Where liability cannot be excluded, Tapink&apos;s maximum liability is limited to the cost of the
+          Where liability cannot be excluded, TapINK&apos;s maximum liability is limited to the cost of the
           product or service supplied.
         </p>
       </section>
@@ -226,7 +226,7 @@ export default function TermsOfService() {
       <section className={styles.section}>
         <h2>12. Privacy</h2>
         <p className={styles.paragraph}>
-          Tapink respects your privacy and handles your personal information in accordance with the Privacy
+          TapINK respects your privacy and handles your personal information in accordance with the Privacy
           Act 1988 (Cth) and our{" "}
           <Link href="https://tapink.com.au/privacy-policy" className={styles.link}>
             [Privacy Policy]
@@ -239,8 +239,8 @@ export default function TermsOfService() {
         <h2>13. Termination</h2>
         <p className={styles.paragraph}>Either party may terminate these Terms at any time:</p>
         <ul className={styles.list}>
-          <li>You may terminate by written notice to Tapink at hello@tapink.com.au.</li>
-          <li>Tapink may terminate or suspend access if you breach these Terms or engage in unlawful conduct.</li>
+          <li>You may terminate by written notice to TapINK at hello@tapink.com.au.</li>
+          <li>TapINK may terminate or suspend access if you breach these Terms or engage in unlawful conduct.</li>
         </ul>
         <p className={styles.paragraph}>Outstanding fees remain payable up to the date of termination.</p>
       </section>
@@ -258,7 +258,7 @@ export default function TermsOfService() {
         <p className={styles.paragraph}>For questions, concerns, or support:</p>
         <ul className={styles.contactList}>
           <li>📧 hello@tapink.com.au</li>
-          <li>📍 Tapink Pty Ltd, Melbourne, VIC, Australia</li>
+          <li>📍 TapINK Pty Ltd, Melbourne, VIC, Australia</li>
         </ul>
       </section>
     </div>

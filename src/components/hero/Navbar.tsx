@@ -75,7 +75,7 @@ export default function Navbar() {
       >
         <Image
           src={logoSrc}
-          alt="TapInk"
+          alt="TapINK"
           className={styles.logoImg}
           width={70}
           height={70}

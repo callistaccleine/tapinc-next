@@ -19,7 +19,7 @@ const reviews: Review[] = [
     title: "Startup Founder",
     avatar: "/images/avatars/sophie.JPG",
     quote:
-      "TapInk made connecting with clients effortless. My digital card looks stunning and professional.",
+      "TapINK made connecting with clients effortless. My digital card looks stunning and professional.",
     rating: 5,
   },
   {
@@ -35,7 +35,7 @@ const reviews: Review[] = [
     title: "Freelance Photographer",
     avatar: "/images/avatars/ava.jpg",
     quote:
-      "I handed my TapInk card at an event, and people literally said 'wow'. It's the future of personal branding.",
+      "I handed my TapINK card at an event, and people literally said 'wow'. It's the future of personal branding.",
     rating: 5,
   },
 ];
@@ -99,7 +99,7 @@ export default function CustomerReview() {
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
-          See what creators and professionals are saying about TapInk.
+          See what creators and professionals are saying about TapINK.
         </motion.p>
       </motion.div>
 

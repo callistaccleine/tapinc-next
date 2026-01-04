@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Select from "react-select";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
+import { ChevronDown, Palette, User } from "lucide-react";
 import ProfileQRCode from "@/components/ProfileQRCode";
 import VirtualPreview from "@/components/virtualcard_preview/VirtualPreview";
 import { CardData } from "@/types/CardData";
@@ -181,12 +182,21 @@ const ensureCardLogoQuality = async (file: File) => {
 };
 
 const NAV_TABS: DesignTab[] = ["profile", "design"];
+const TAB_ICONS: Record<DesignTab, typeof User> = {
+  profile: User,
+  design: Palette,
+};
+const DESIGN_STEP_TABS = [
+  { key: "virtual", label: "Virtual", step: 1 as const },
+  { key: "physical", label: "Physical", step: 2 as const },
+];
 
 export default function DesignDashboard({profile}: DesignDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     DesignTab
   >("profile");
+  const [isDesignNavOpen, setDesignNavOpen] = useState(false);
   
   // Profile state
   const [firstname, setFirstName] = useState("");
@@ -982,7 +992,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
 
   const containerStyle: CSSProperties = {
     display: isMobileLayout ? "block" : "grid",
-    gridTemplateColumns: isMobileLayout ? undefined : "260px 1fr",
+    gridTemplateColumns: isMobileLayout ? undefined : "120px 1fr",
     minHeight: "100vh",
     background: "#ffffff",
     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
@@ -992,16 +1002,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const sidebarStyle: CSSProperties = {
     background: "#ffffff",
     borderRight: isMobileLayout ? "none" : "1px solid #e5e5e5",
-    padding: "24px",
+    padding: "12px 8px",
     position: isMobileLayout ? "fixed" : "relative",
     top: 0,
     left: 0,
     height: isMobileLayout ? "100vh" : "auto",
     minHeight: isMobileLayout ? undefined : "100%",
     alignSelf: "stretch",
-    width: isMobileLayout ? "80vw" : "auto",
-    minWidth: isMobileLayout ? "auto" : "260px",
-    maxWidth: isMobileLayout ? "320px" : "320px",
+    width: isMobileLayout ? "64vw" : "auto",
+    minWidth: isMobileLayout ? "auto" : "120px",
+    maxWidth: isMobileLayout ? "240px" : "160px",
     transform: isMobileLayout ? (isSidebarOpen ? "translateX(0)" : "translateX(-100%)") : "none",
     transition: "transform 0.3s ease",
     zIndex: 1200,
@@ -1139,7 +1149,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>Welcome to TapInk</h2>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 700 }}>Welcome to TapINK</h2>
               <button
                 type="button"
                 onClick={dismissOnboarding}
@@ -1215,41 +1225,133 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             background: '#f5f5f7',
             border: 'none',
             borderRadius: '8px',
-            padding: '8px 12px',
+            padding: '6px 10px',
             cursor: 'pointer',
             color: "black",
-            marginBottom: '24px',
-            fontSize: '18px'
+            marginBottom: '16px',
+            fontSize: '16px',
+            display: "block",
+            marginLeft: "auto",
+            marginRight: "auto"
           }}
         >
           ←
         </button>
 
-        <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px', color: "black" }}>Editor</h3>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {NAV_TABS.map((tab) => (
-            <li
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                if (isMobileLayout) {
-                  setSidebarOpen(false);
-                }
-              }}
-              style={{
-                padding: '12px 16px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                marginBottom: '4px',
-                color: "black",
-                background: activeTab === tab ? '#f5f5f7' : 'transparent',
-                fontWeight: activeTab === tab ? 500 : 400,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </li>
-          ))}
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", alignItems: "stretch" }}>
+          {NAV_TABS.map((tab) => {
+            const isDesign = tab === "design";
+            const isActive = activeTab === tab;
+            return (
+              <li key={tab} style={{ width: "100%" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (tab === "design") {
+                      if (activeTab !== "design") {
+                        setActiveTab("design");
+                        setDesignNavOpen(true);
+                      } else {
+                        setDesignNavOpen((prev) => !prev);
+                      }
+                    } else {
+                      setActiveTab(tab);
+                      if (isMobileLayout) {
+                        setSidebarOpen(false);
+                      }
+                    }
+                  }}
+                  aria-label={tab === "profile" ? "Profile" : "Design"}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    borderRadius: "10px",
+                    border: "none",
+                    cursor: "pointer",
+                    color: isActive ? "#ff7a1c" : "#111827",
+                    background: isActive ? "rgba(255, 122, 28, 0.14)" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 12px",
+                    transition: "all 0.2s ease",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    {(() => {
+                      const Icon = TAB_ICONS[tab];
+                      return <Icon size={18} strokeWidth={2} />;
+                    })()}
+                    <span>{tab === "profile" ? "Profile" : "Design"}</span>
+                  </span>
+                  {isDesign && (
+                    <ChevronDown
+                      size={16}
+                      strokeWidth={2}
+                      style={{
+                        transform: isDesignNavOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s ease",
+                        marginLeft: "12px",
+                      }}
+                    />
+                  )}
+                </button>
+                {isDesign && isDesignNavOpen && (
+                  <ul
+                    style={{
+                      listStyle: "none",
+                      padding: 0,
+                      margin: "6px 0 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                    }}
+                  >
+                    {DESIGN_STEP_TABS.map(({ key, label, step }) => (
+                      <li key={key} style={{ width: "100%" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab("design");
+                            setDesignNavOpen(true);
+                            setDesignStep(step);
+                            if (typeof window !== "undefined") {
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }
+                            if (isMobileLayout) {
+                              setSidebarOpen(false);
+                            }
+                          }}
+                          aria-label={label}
+                          style={{
+                            width: "100%",
+                            height: "36px",
+                            borderRadius: "10px",
+                            border: "none",
+                            cursor: "pointer",
+                            color: designStep === step ? "#ff7a1c" : "#111827",
+                            background: designStep === step ? "rgba(255, 122, 28, 0.14)" : "transparent",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                            padding: "0 12px 0 24px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <span>{label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </aside>
 

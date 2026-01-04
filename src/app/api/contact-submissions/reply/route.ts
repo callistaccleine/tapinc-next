@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     });
 
     const cleanReply = (replyMessage || "").trim();
-    const signature = "Best regards,\nThe TapInk Team";
+    const signature = "Best regards,\nThe TapINK Team";
     const replyWithSignature = `${cleanReply}\n\n${signature}`;
     const replyWithSignatureHtml = replyWithSignature.replace(/\n/g, "<br>");
 
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       to,
       cc: "tapinc.io.au@gmail.com",
       replyTo: "tapinc.io.au@gmail.com",
-      subject: `Re: Your TapInk enquiry (#${id})`,
+      subject: `Re: Your TapINK enquiry (#${id})`,
       html: `
         <p>Hi ${name || "there"},</p>
         <p>${replyWithSignatureHtml}</p>

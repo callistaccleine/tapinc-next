@@ -671,7 +671,7 @@ export function PhysicalCardDesigner({
   const [activeElementIds, setActiveElementIds] = useState<string[]>([]);
   const [selectedElementSide, setSelectedElementSide] = useState<CardSide>("front");
   const [selectedPreset, setSelectedPreset] = useState<TextContentKey>("headline");
-  const [customText, setCustomText] = useState("TapInk");
+  const [customText, setCustomText] = useState("TapINK");
   const pixelRatio = displayedWidth > 0 ? cardWidthPx / displayedWidth : 1;
   const cardElements = cardDesign.elements ?? [];
   const [showGuidesOverlay, setShowGuidesOverlay] = useState(true);

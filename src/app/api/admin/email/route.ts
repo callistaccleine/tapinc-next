@@ -49,8 +49,8 @@ export async function POST(req: Request) {
       <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
       <div style="font-family:Arial, sans-serif;color:#374151;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <img src="https://tapink.com.au/images/tapink_logo.png" alt="TapInk" style="height:32px;">
-          <span style="font-weight:700;font-size:16px;">TapInk</span>
+          <img src="https://tapink.com.au/images/tapink_logo.png" alt="TapINK" style="height:32px;">
+          <span style="font-weight:700;font-size:16px;">TapINK</span>
         </div>
         <p style="margin:0 0 4px;font-size:13px;">NFC Cards & Digital Identities</p>
         <p style="margin:0;font-size:12px;color:#6b7280;">hello@tapink.com.au • tapink.com.au</p>
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       to: targetRecipients,
       subject,
       html: `<div>${htmlBody}${brandFooter}</div>`,
-      text: `${message}\n\n--\nTapInk\nhello@tapink.com.au • tapink.com.au`,
+      text: `${message}\n\n--\nTapINK\nhello@tapink.com.au • tapink.com.au`,
     });
 
     return NextResponse.json({ success: true, count: targetRecipients.length, info: `Sent to ${targetRecipients.length} recipient(s)` });

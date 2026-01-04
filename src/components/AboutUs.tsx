@@ -31,7 +31,7 @@ export default function AboutUs() {
     {
       title: "Every Tap Counts",
       description:
-        "With TapInk, you don't just share. You keep connections flowing with every tap. Whether it's networking, social sharing, events or product engagement, every interaction becomes a lasting digital experience.",
+        "With TapINK, you don't just share. You keep connections flowing with every tap. Whether it's networking, social sharing, events or product engagement, every interaction becomes a lasting digital experience.",
     },
   ];
 
@@ -48,10 +48,10 @@ export default function AboutUs() {
             Connections designed for the modern world.
           </h1>
           <p className={styles.heroSubtitle}>
-            TapInk is a digital-first company redefining how people connect in
+            TapINK is a digital-first company redefining how people connect in
             professional and social settings. By replacing traditional paper
             business cards with sleek NFC-enabled physical cards and dynamic
-            virtual profiles, TapInk makes sharing and saving contact
+            virtual profiles, TapINK makes sharing and saving contact
             information seamless, secure and sustainable.
           </p>
           <div className={styles.heroHighlights}>
@@ -80,7 +80,7 @@ export default function AboutUs() {
         >
           <div className={styles.partnersHeader}>
             <span>Trusted by teams who lead with design</span>
-            <h2>Brands tapping into TapInk</h2>
+            <h2>Brands tapping into TapINK</h2>
           </div>
           <div className={styles.partnersGrid}>
             {companyLogos.map((company, index) => (
