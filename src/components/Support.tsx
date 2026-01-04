@@ -9,12 +9,12 @@ export default function Support() {
 
   const faqs = [
     {
-      question: "How do I edit my TapInk profile?",
+      question: "How do I edit my TapINK profile?",
       answer:
         "You can log in to your dashboard and click on 'Edit Profile' to change your personal details, links, or design templates.",
     },
     {
-      question: "Can I use TapInk without a subscription?",
+      question: "Can I use TapINK without a subscription?",
       answer:
         "Yes! You can start with our free plan. Upgrade anytime for more advanced analytics and customisation features.",
     },
@@ -40,7 +40,7 @@ export default function Support() {
           <div className={styles.contactIntro}>
             <h1 className={styles.title}>Contact Us</h1>
             <p className={styles.subtitle}>
-              Need help using TapInk? Sign in so we can assist you better.  
+              Need help using TapINK? Sign in so we can assist you better.  
               If that's not possible, simply send us your request below.
             </p>
           </div>

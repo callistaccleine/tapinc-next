@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { BarChart3, ShoppingBag, User } from "lucide-react";
 import styles from "@/styles/DashboardSideBar.module.css";
 
 type TabKey = "profiles" | "analytics" | "orders";
@@ -12,10 +13,10 @@ interface DashboardNavProps {
   onDismiss: () => void;
 }
 
-const menuItems: { key: TabKey; label: string; icon: string }[] = [
-  { key: "profiles", label: "Profile", icon: "profile" },
-  { key: "analytics", label: "Analytics", icon: "analytics" },
-  { key: "orders", label: "Orders", icon: "orders" },
+const menuItems: { key: TabKey; label: string; Icon: typeof User }[] = [
+  { key: "profiles", label: "Profile", Icon: User },
+  { key: "analytics", label: "Analytics", Icon: BarChart3 },
+  { key: "orders", label: "Orders", Icon: ShoppingBag },
 ];
 
 export default function DashboardSideBar({
@@ -32,12 +33,12 @@ export default function DashboardSideBar({
             <div className={styles.brandLogo}>
               <Image
                 src="/images/Tapink-logo.png"
-                alt="Tapink logo"
+                alt="TapINK logo"
                 width={36}
                 height={36}
               />
             </div>
-            <span className={styles.brandName}>Tapink</span>
+            <span className={styles.brandName}>TapINK</span>
           </div>
           <button
             type="button"
@@ -50,7 +51,7 @@ export default function DashboardSideBar({
         </div>
 
         <ul className={styles.navList}>
-          {menuItems.map(({ key, label }) => (
+          {menuItems.map(({ key, label, Icon }) => (
             <li
               key={key}
               className={`${styles.navItem} ${activeTab === key ? styles.active : ""}`}
@@ -59,6 +60,9 @@ export default function DashboardSideBar({
                 onDismiss();
               }}
             >
+              <span className={styles.navIcon} aria-hidden="true">
+                <Icon size={18} strokeWidth={2} />
+              </span>
               <span className={styles.navLabel}>{label}</span>
               <span className={styles.navChevron}>›</span>
             </li>

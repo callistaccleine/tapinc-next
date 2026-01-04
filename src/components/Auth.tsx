@@ -128,10 +128,10 @@ export default function Auth() {
           <img
             className={styles.authArtImg}
             src="/images/Tapink-logo.png"
-            alt="TapInk"
+            alt="TapINK"
           />
           <div className={styles.authArtCaption}>
-            <h3>Seamlessly access your TapInk dashboard</h3>
+            <h3>Seamlessly access your TapINK dashboard</h3>
             <p>Login to manage your digital cards, monitor engagement, and grow your connections.</p>
             <div className={styles.authChips}>
               <span className={styles.chip}>Quick</span>

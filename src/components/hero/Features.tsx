@@ -16,7 +16,7 @@ export default function Features() {
     {
       id: 2,
       title: "Update Anytime",
-      text: "Update your TapInk profile at any time without needing to reprint cards or brochures.",
+      text: "Update your TapINK profile at any time without needing to reprint cards or brochures.",
       image: "/images/features/feature2.jpg",
     },
     {
@@ -34,7 +34,7 @@ export default function Features() {
     {
       id: 5,
       title: "Multiple Profiles",
-      text: "Create and switch between multiple profiles such as personal, professional or event-based, all from a single TapInk card.",
+      text: "Create and switch between multiple profiles such as personal, professional or event-based, all from a single TapINK card.",
       image: "/images/features/feature5.jpg",
     },
   ];

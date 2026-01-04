@@ -57,7 +57,7 @@ export default function Settings() {
         }
 
         setAccount({
-          name: resolvedName || "TapInk Member",
+          name: resolvedName || "TapINK Member",
           email: user.email ?? "",
         });
 
@@ -112,7 +112,7 @@ export default function Settings() {
       <section className={styles.card}>
         <header className={styles.cardHeader}>
           <h3>Account Settings</h3>
-          <span>Manage your TapInk account details.</span>
+          <span>Manage your TapINK account details.</span>
         </header>
         <div className={styles.fieldGroup}>
           <label htmlFor="account-name">

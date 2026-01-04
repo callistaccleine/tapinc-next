@@ -360,7 +360,7 @@ const handleSignup = async (e: React.FormEvent) => {
         <div className={styles.signupCard}>
           {!accountType ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <h1 className={styles.signupTitle}>How will you use TapInk?</h1>
+              <h1 className={styles.signupTitle}>How will you use TapINK?</h1>
               <p style={{ color: "#475467", marginBottom: 12, textAlign: "center" }}>
                 Choose an account type to tailor your onboarding experience.
               </p>
@@ -440,7 +440,7 @@ const handleSignup = async (e: React.FormEvent) => {
                     <input
                       className={`${styles.signupInput} ${styles.pill}`}
                       type="text"
-                      placeholder="TapInk"
+                      placeholder="TapINK"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       required
@@ -646,7 +646,7 @@ const handleSignup = async (e: React.FormEvent) => {
           <img
             className={styles.signupArtImg}
             src="/images/Tapink-logo.png"
-            alt="TapInk"
+            alt="TapINK"
           />
           <div className={styles.signupArtCaption}>
             <h3>Discovering the way to share your details</h3>

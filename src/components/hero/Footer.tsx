@@ -35,7 +35,7 @@ export default function Footer() {
 
             <div className={styles.footerColumn}>
               <h4>Company</h4>
-              <Link href="/about-us">About TapInk</Link>
+              <Link href="/about-us">About TapINK</Link>
               {/* <Link href="/careers">Careers</Link>
               <Link href="/press">Press Kit</Link> */}
               <Link href="/support">Contact Us</Link>
@@ -55,8 +55,8 @@ export default function Footer() {
         <div className={styles.footerContainer}>
           <div className={styles.bottomContent}>
             <div className={styles.footerBrand}>
-              <h2>TapInk</h2>
-              <p>© 2025 TapInk. All rights reserved.</p>
+              <h2>TapINK</h2>
+              <p>© 2025 TapINK. All rights reserved.</p>
             </div>
 
             <div className={styles.bottomLinks}>

@@ -38,11 +38,11 @@ export default function Define() {
   return (
     <section className={styles.aboutUsSection}>
       <motion.div {...fadeInProps} className={styles.tagline}>
-        Why TapInk?
+        Why TapINK?
       </motion.div>
 
       <motion.h2 {...fadeInProps} transition={{ ...fadeInProps.transition, delay: 0.1 }} className={styles.mainHeading}>
-        TapInk isn't just another NFC card. It's a smarter and more flexible way to connect.
+        TapINK isn't just another NFC card. It's a smarter and more flexible way to connect.
       </motion.h2>
 
       <motion.p
@@ -50,8 +50,8 @@ export default function Define() {
         transition={{ ...fadeInProps.transition, delay: 0.2 }}
         className={styles.subtext}
       >
-        While other companies limit you to a single use or static design, TapInk lets you do more with just one card.
-        You can create and manage multiple profiles for work, personal use, or events — all within the same TapInk card.
+        While other companies limit you to a single use or static design, TapINK lets you do more with just one card.
+        You can create and manage multiple profiles for work, personal use, or events — all within the same TapINK card.
         Switch between them anytime to match how and where you connect.
       </motion.p>
 
@@ -69,7 +69,7 @@ export default function Define() {
         <h3>The NFC Card That Does More</h3>
         <p>
           NFC (Near Field Communication) is a wireless technology that allows information to be exchanged instantly with a simple tap.
-          TapInk uses NFC to make sharing instant, effortless, and universal. Just tap your TapInk card, keyholder, or event card on a
+          TapINK uses NFC to make sharing instant, effortless, and universal. Just tap your TapINK card, keyholder, or event card on a
           compatible smartphone — your profile, website, contact details, or product information appear immediately.
         </p>
       </motion.div>

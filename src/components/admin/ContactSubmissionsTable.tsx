@@ -41,7 +41,7 @@ export default function ContactSubmissionsTable() {
   const previewText = useMemo(() => {
     const greeting = `Hi ${activeSubmission?.name || "there"},`;
     const body = (replyText || "").trim();
-    const signature = "Best regards,\nThe TapInk Team";
+    const signature = "Best regards,\nThe TapINK Team";
     return `${greeting}\n\n${body}\n\n${signature}`;
   }, [replyText, activeSubmission]);
   const pageSize = 10;
@@ -101,7 +101,7 @@ export default function ContactSubmissionsTable() {
     setActiveReplyId(id);
     const submission = submissions.find((s) => s.id === id);
     const defaultBody =
-      `Thank you for contacting TapInk. ` +
+      `Thank you for contacting TapINK. ` +
       `I appreciate the details you shared${submission?.category ? ` about "${submission.category}"` : ""}. ` +
       `Here is an update from our team:\n\n`;
     setReplyText(preset ?? defaultBody);
@@ -182,7 +182,7 @@ export default function ContactSubmissionsTable() {
       },
       ...replies.map((r: any) => ({
         sender: r.sender || "admin",
-        title: "TapInk Support",
+        title: "TapINK Support",
         body: r.body,
         sent_at: r.sent_at,
       })),
@@ -367,7 +367,7 @@ export default function ContactSubmissionsTable() {
                 <div key={idx} className={styles.threadItem}>
                   <div className={styles.threadMeta}>
                     <span className={styles.threadSender}>
-                      {item.sender === "user" ? item.title || "User" : "TapInk Support"}
+                      {item.sender === "user" ? item.title || "User" : "TapINK Support"}
                     </span>
                     <span className={styles.threadTime}>
                       {item.sent_at ? new Date(item.sent_at).toLocaleString() : ""}

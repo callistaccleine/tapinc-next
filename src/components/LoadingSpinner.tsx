@@ -18,7 +18,7 @@ export default function LoadingSpinner({ label = "Loading...", fullscreen = true
       aria-live="polite"
     >
       <div className={styles.spinnerCircle}>
-        <Image src="/images/Tapink-logo.png" alt="TapInk" width={48} height={48} />
+        <Image src="/images/Tapink-logo.png" alt="TapINK" width={48} height={48} />
       </div>
       {label && <p className={styles.spinnerLabel}>{label}</p>}
     </div>
