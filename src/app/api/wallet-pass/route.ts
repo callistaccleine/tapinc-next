@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
 import forge from "node-forge";
+import sharp from "sharp";
 
 type WalletPayload = {
   name: string;
@@ -50,6 +51,16 @@ const readLocalBuffer = async (filePath: string) => {
     return null;
   }
 };
+
+const resizeLogo = async (buffer: Buffer, size: number) =>
+  sharp(buffer)
+    .rotate()
+    .resize(size, size, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
 
 const isPem = (value: string) => value.includes("-----BEGIN");
 
@@ -218,7 +229,6 @@ export async function POST(req: Request) {
         passTypeIdentifier,
         organizationName: orgName,
         description: "TapINK Apple Wallet",
-        logoText: company,
         barcode: {
           message: barcodeMessage,
           format: "PKBarcodeFormatQR",
@@ -256,12 +266,14 @@ export async function POST(req: Request) {
       await pass.addBuffer("icon.png", iconBuffer);
       await pass.addBuffer("icon@2x.png", iconBuffer);
     }
-    if (logoBuffer) {
-      await pass.addBuffer("logo.png", logoBuffer);
-      await pass.addBuffer("logo@2x.png", logoBuffer);
-    } else if (defaultIconBuffer) {
-      await pass.addBuffer("logo.png", defaultIconBuffer);
-      await pass.addBuffer("logo@2x.png", defaultIconBuffer);
+    const logoSource = logoBuffer ?? defaultIconBuffer;
+    if (logoSource) {
+      const [logo1x, logo2x] = await Promise.all([
+        resizeLogo(logoSource, 40),
+        resizeLogo(logoSource, 80),
+      ]);
+      await pass.addBuffer("logo.png", logo1x);
+      await pass.addBuffer("logo@2x.png", logo2x);
     }
     if (stripBuffer) {
       await pass.addBuffer("strip.png", stripBuffer);

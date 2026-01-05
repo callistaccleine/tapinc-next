@@ -59,7 +59,6 @@ const AppleWalletPreview: React.FC<AppleWalletPreviewProps> = ({
               }}
             />
           )}
-          <div style={{ fontSize: 14, fontWeight: 600 }}>{company || "TapINK"}</div>
         </div>
 
         <div style={{ height: 6 }} />
