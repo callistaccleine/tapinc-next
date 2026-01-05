@@ -1,0 +1,13 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.tapink.wallet",
+  "teamIdentifier": "N4UB4344HA",
+  "organizationName": "TapINK",
+  "description": "TapINK Apple Wallet",
+  "serialNumber": "0000-0000",
+  "generic": {
+    "primaryFields": [],
+    "secondaryFields": [],
+    "auxiliaryFields": []
+  }
+}

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Palette, User } from "lucide-react";
 import ProfileQRCode from "@/components/ProfileQRCode";
 import VirtualPreview from "@/components/virtualcard_preview/VirtualPreview";
+import AppleWalletPreview from "@/components/AppleWalletPreview";
 import { CardData } from "@/types/CardData";
 import {
   PhysicalCardDesigner,
@@ -46,6 +47,11 @@ interface DesignDashboardProps {
 const MIN_LOGO_DPI = 299;
 const FALLBACK_LOGO_MIN_EDGE_PX = 900;
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+const DEFAULT_WALLET_DESIGN = {
+  backgroundColor: "#fff1e6",
+  textColor: "#111827",
+  accentColor: "#ff7a1c",
+};
 
 const clampLogoDpi = (value?: number | null) =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -131,6 +137,23 @@ const readImageDpi = async (file: File): Promise<number | null> => {
   return null;
 };
 
+const parseWalletDesign = (raw: any) => {
+  if (!raw) return DEFAULT_WALLET_DESIGN;
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return {
+      backgroundColor:
+        parsed.backgroundColor ?? parsed.background ?? DEFAULT_WALLET_DESIGN.backgroundColor,
+      textColor: parsed.textColor ?? parsed.text ?? DEFAULT_WALLET_DESIGN.textColor,
+      accentColor:
+        parsed.accentColor ?? parsed.label ?? DEFAULT_WALLET_DESIGN.accentColor,
+    };
+  } catch (error) {
+    console.warn("Failed to parse wallet design settings", error);
+    return DEFAULT_WALLET_DESIGN;
+  }
+};
+
 const getImageDimensions = (file: File): Promise<{ width: number; height: number }> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -189,6 +212,7 @@ const TAB_ICONS: Record<DesignTab, typeof User> = {
 const DESIGN_STEP_TABS = [
   { key: "virtual", label: "Virtual", step: 1 as const },
   { key: "physical", label: "Physical", step: 2 as const },
+  { key: "wallet", label: "Apple Wallet", step: 3 as const },
 ];
 
 export default function DesignDashboard({profile}: DesignDashboardProps) {
@@ -235,7 +259,13 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [defaultProfileId, setDefaultProfileId] = useState<string | null>(null);
   const [defaultDesignProfileId, setDefaultDesignProfileId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [designStep, setDesignStep] = useState<1 | 2>(1);
+  const [designStep, setDesignStep] = useState<1 | 2 | 3>(1);
+  const [walletBgColor, setWalletBgColor] = useState(DEFAULT_WALLET_DESIGN.backgroundColor);
+  const [walletTextColor, setWalletTextColor] = useState(DEFAULT_WALLET_DESIGN.textColor);
+  const [walletAccentColor, setWalletAccentColor] = useState(DEFAULT_WALLET_DESIGN.accentColor);
+  const [isWalletDownloading, setWalletDownloading] = useState(false);
+  const walletAutoSaveTimeout = useRef<number | null>(null);
+  const walletAutoSaveReady = useRef(false);
   const [pendingCrop, setPendingCrop] = useState<{
     file: File;
     fieldName: "profile_pic" | "header_banner" | "card_logo";
@@ -264,6 +294,111 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     setTimeout(() => {
       setNotification(null);
     }, 5000);
+  };
+
+  const selectedWalletLogo =
+    cardDesign.logoUrl ||
+    cardLogoItems.find((entry) => entry.type === "logo")?.url ||
+    profilePic ||
+    "/images/TAPINK_ICON_WHITE.png";
+
+  const walletSerialNumber = `${shareDesignProfileId ?? profile?.id ?? "0000 1111 2222"}`;
+  const walletPassPayload = {
+    name: `${firstname} ${surname}`.trim() || "Your Name",
+    company: company || "TapINK",
+    title: title || "Title",
+    barcodeMessage: profileUrl || "https://tapink.com.au",
+    serialNumber: walletSerialNumber,
+    logoUrl: selectedWalletLogo,
+    stripImageUrl: headerBanner || undefined,
+    colors: {
+      background: walletBgColor,
+      label: walletAccentColor,
+      text: walletTextColor,
+    },
+  };
+
+  const walletDesignPayload = {
+    backgroundColor: walletBgColor,
+    textColor: walletTextColor,
+    accentColor: walletAccentColor,
+  };
+
+  const saveWalletDesign = async () => {
+    await saveToDatabase({ digital_wallet: walletDesignPayload });
+  };
+
+  useEffect(() => {
+    if (loading || !profile?.id) return;
+    if (!walletAutoSaveReady.current) {
+      walletAutoSaveReady.current = true;
+      return;
+    }
+
+    if (walletAutoSaveTimeout.current) {
+      window.clearTimeout(walletAutoSaveTimeout.current);
+    }
+
+    walletAutoSaveTimeout.current = window.setTimeout(() => {
+      saveWalletDesign().catch((err) => {
+        console.error("Failed to auto-save wallet design", err);
+      });
+    }, 500);
+
+    return () => {
+      if (walletAutoSaveTimeout.current) {
+        window.clearTimeout(walletAutoSaveTimeout.current);
+      }
+    };
+  }, [walletBgColor, walletTextColor, walletAccentColor, loading, profile?.id]);
+
+  const handleWalletDownload = async () => {
+    try {
+      setWalletDownloading(true);
+      try {
+        await saveWalletDesign();
+      } catch (err) {
+        console.error("Failed to save wallet design", err);
+        showNotification("Failed to save wallet design.", "error");
+        return;
+      }
+      const response = await fetch("/api/wallet-pass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(walletPassPayload),
+      });
+
+      if (!response.ok) {
+        let text = "";
+        try {
+          text = await response.clone().text();
+          if (!text) {
+            const json = await response.clone().json();
+            text = json?.error || "";
+          }
+        } catch {
+          // ignore parse errors
+        }
+        showNotification(text || "Failed to generate wallet pass.", "error");
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "tapink-wallet.pkpass";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showNotification("Wallet pass downloaded.", "success");
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to generate wallet pass.", "error");
+    } finally {
+      setWalletDownloading(false);
+    }
   };
   
   const libraries: ("places")[] = ["places"];
@@ -400,6 +535,10 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setLinks(Array.isArray(loadedLinks) ? loadedLinks : []);
           setSocials(designData.socials || {});
           setAddress(designData.address || "");
+          const walletDesign = parseWalletDesign(designData.digital_wallet);
+          setWalletBgColor(walletDesign.backgroundColor);
+          setWalletTextColor(walletDesign.textColor);
+          setWalletAccentColor(walletDesign.accentColor);
         } else {
           setPreviewTemplate(templateOptions[0].file);
           setCardDesign({ ...DEFAULT_CARD_DESIGN });
@@ -1402,15 +1541,19 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                 padding: "6px 0",
               }}
             >
-              {[{ key: "virtual", label: "Virtual card" }, { key: "physical", label: "Physical card" }].map((step, idx) => {
-                const stepNumber = (idx + 1) as 1 | 2;
-                const isActive = designStep === stepNumber;
+              {[
+                { key: "virtual", label: "Virtual card" },
+                { key: "physical", label: "Physical card" },
+                { key: "wallet", label: "Apple Wallet" },
+              ].map((step, idx, arr) => {
+                const stepIndex = (idx + 1) as 1 | 2 | 3;
+                const isActive = designStep === stepIndex;
                 return (
                   <div key={step.key} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <button
                       type="button"
                       onClick={() => {
-                        setDesignStep(stepNumber);
+                        setDesignStep(stepIndex);
                         if (typeof window !== "undefined") {
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }
@@ -1455,7 +1598,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         {step.label}
                       </span>
                     </button>
-                    {idx < 1 && (
+                    {idx < arr.length - 1 && (
                       <div style={{ width: 50, height: 2, background: "#e2e8f0", borderRadius: 999 }} aria-hidden />
                     )}
                   </div>
@@ -1721,6 +1864,126 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                     onUploadLogo={(e, type) => Promise.resolve(handleFileUpload(e, 'card_logo', type ?? 'logo'))}
                     uploadingLogo={cardLogoUploading}
                   />
+                )}
+              </div>
+            )}
+
+            {designStep === 3 && (
+              <div>
+                <div style={{ marginBottom: "24px" }}>
+                  <h3 style={{ fontSize: "28px", fontWeight: 600, marginBottom: "8px", color: "black" }}>
+                    Apple Wallet Pass
+                  </h3>
+                  <p style={{ color: "#86868b", fontSize: "15px" }}>
+                    Personalize your Apple Wallet pass and download it straight to your device.
+                  </p>
+                </div>
+
+                {!isBasicInfoComplete() ? (
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e5e5",
+                      borderRadius: "16px",
+                      padding: "48px 24px",
+                      textAlign: "center",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+                    }}
+                  >
+                    <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "8px", color: "black" }}>
+                      Complete Your Basic Information First
+                    </h3>
+                    <p style={{ color: "#86868b", fontSize: "15px" }}>
+                      Please fill out Profile, Links, and Socials steps before creating a wallet pass.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "24px", alignItems: "start" }}>
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        padding: "16px",
+                        display: "grid",
+                        gap: 14,
+                      }}
+                    >
+                      <h4 style={{ margin: 0, fontSize: 15, color: "#0f172a" }}>Branding & Colours</h4>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <label style={{ fontSize: 12, color: "#475467", fontWeight: 600 }}>Background colour</label>
+                        <input
+                          type="color"
+                          value={walletBgColor}
+                          onChange={(e) => setWalletBgColor(e.target.value)}
+                          style={{ width: 64, height: 36, border: "1px solid #cbd5e1", borderRadius: 8, cursor: "pointer" }}
+                        />
+                      </div>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <label style={{ fontSize: 12, color: "#475467", fontWeight: 600 }}>Font colour</label>
+                        <input
+                          type="color"
+                          value={walletTextColor}
+                          onChange={(e) => setWalletTextColor(e.target.value)}
+                          style={{ width: 64, height: 36, border: "1px solid #cbd5e1", borderRadius: 8, cursor: "pointer" }}
+                        />
+                      </div>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <label style={{ fontSize: 12, color: "#475467", fontWeight: 600 }}>Accent colour</label>
+                        <input
+                          type="color"
+                          value={walletAccentColor}
+                          onChange={(e) => setWalletAccentColor(e.target.value)}
+                          style={{ width: 64, height: 36, border: "1px solid #cbd5e1", borderRadius: 8, cursor: "pointer" }}
+                        />
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
+                        Uses your profile name, company, and title. Banner/logo assets come from your profile media.
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <AppleWalletPreview
+                        name={walletPassPayload.name}
+                        company={walletPassPayload.company}
+                        title={walletPassPayload.title}
+                        barcodeMessage={walletPassPayload.barcodeMessage}
+                        serialNumber={walletPassPayload.serialNumber}
+                        stripImageUrl={walletPassPayload.stripImageUrl}
+                        logoUrl={walletPassPayload.logoUrl}
+                        backgroundColor={walletPassPayload.colors.background}
+                        textColor={walletPassPayload.colors.text}
+                        labelColor={walletPassPayload.colors.label}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleWalletDownload}
+                        disabled={isWalletDownloading}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 10,
+                          padding: "12px 16px",
+                          borderRadius: 12,
+                          background: "linear-gradient(135deg, #000000, #111827)",
+                          color: "#ffffff",
+                          textDecoration: "none",
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          boxShadow: "0 12px 28px rgba(0,0,0,0.18)",
+                          border: "none",
+                          cursor: isWalletDownloading ? "not-allowed" : "pointer",
+                          opacity: isWalletDownloading ? 0.7 : 1,
+                        }}
+                      >
+                        <span style={{ fontSize: 18, lineHeight: 1 }}></span>
+                        <span>{isWalletDownloading ? "Generating..." : "Add to Apple Wallet"}</span>
+                      </button>
+                      <div style={{ maxWidth: 340, color: "#475467", fontSize: 14, lineHeight: 1.5 }}>
+                        Download the pass on your iPhone to add it to Apple Wallet.
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
