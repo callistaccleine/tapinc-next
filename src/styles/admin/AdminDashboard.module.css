@@ -109,3 +109,81 @@
 .table tr:hover {
   background: #f4f7fb;
 }
+
+.sidebarWrap {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 10;
+}
+
+.sidebarOverlay {
+  display: none;
+}
+
+.mobileMenuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 20px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+/* Tablet breakpoint */
+@media (max-width: 1024px) {
+  .adminDashboard {
+    flex-direction: column;
+  }
+
+  .sidebarWrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 30;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .sidebarOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 20;
+  }
+
+  .mainContent {
+    padding: 24px 16px;
+  }
+
+  .dashboardHeader {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .mobileMenuBtn {
+    display: inline-flex;
+  }
+}
+
+/* Mobile breakpoint */
+@media (max-width: 640px) {
+  .mainContent {
+    padding: 20px 14px;
+  }
+
+  .dashboardHeader h2 {
+    font-size: 22px;
+  }
+}

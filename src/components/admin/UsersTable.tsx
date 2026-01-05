@@ -7,6 +7,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 interface SupabaseUser {
   id: string;
   email: string | null;
+  phone?: string | null;
   user_metadata?: Record<string, any>;
   created_at: string;
 }
@@ -19,6 +20,8 @@ export default function UsersTable() {
     "newest"
   );
   const [page, setPage] = useState(1);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const pageSize = 10;
 
   useEffect(() => {
@@ -82,6 +85,33 @@ export default function UsersTable() {
   const end = start + pageSize;
   const pageRows = filtered.slice(start, end);
 
+  const handleSendCode = async (user: SupabaseUser) => {
+    const phone = user.phone || (user.user_metadata?.phone as string | undefined);
+    if (!phone) {
+      setToast("User has no phone number on record.");
+      return;
+    }
+    try {
+      setSendingId(user.id);
+      setToast(null);
+      const res = await fetch("/api/admin/phone/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, userId: user.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send code");
+      }
+      setToast(`Code sent to ${phone}`);
+    } catch (err: any) {
+      console.error("Send code error:", err);
+      setToast(err.message || "Failed to send code");
+    } finally {
+      setSendingId(null);
+    }
+  };
+
   if (loading) return <LoadingSpinner label="Loading users..." fullscreen={false} />;
 
   if (filtered.length === 0)
@@ -125,9 +155,11 @@ export default function UsersTable() {
           <tr>
             <th>UID</th>
             <th>Email</th>
+            <th>Phone</th>
             <th>Display Name</th>
             <th>Role</th>
             <th>Created At</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
@@ -136,9 +168,19 @@ export default function UsersTable() {
             <tr key={user.id}>
               <td>{user.id}</td>
               <td>{user.email ?? "—"}</td>
+              <td>{user.phone || user.user_metadata?.phone || "—"}</td>
               <td>{user.user_metadata?.full_name || "—"}</td>
               <td>{user.user_metadata?.role || "—"}</td>
               <td>{new Date(user.created_at).toLocaleDateString()}</td>
+              <td>
+                <button
+                  className={styles.sendCodeBtn}
+                  onClick={() => handleSendCode(user)}
+                  disabled={sendingId === user.id}
+                >
+                  {sendingId === user.id ? "Sending..." : "Send code"}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -165,6 +207,7 @@ export default function UsersTable() {
           </button>
         </div>
       )}
+      {toast && <div className={styles.toast}>{toast}</div>}
     </div>
   );
 }

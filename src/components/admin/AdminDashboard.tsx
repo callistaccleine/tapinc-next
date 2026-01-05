@@ -146,6 +146,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTabState] = useState<TabKey>("auth");
   const [email, setEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -212,17 +213,31 @@ export default function AdminDashboard() {
 
   return (
     <div className={styles.adminDashboard}>
-      <AdminSidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => setActiveTabState(tab)}
-        primaryTabs={primaryTabs}
-        moreTabs={moreTabs}
-        email={email}
-        onLogout={handleLogout}
-      />
+      <div className={`${styles.sidebarWrap} ${sidebarOpen ? styles.sidebarOpen : ""}`}>
+        <AdminSidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTabState(tab);
+            setSidebarOpen(false);
+          }}
+          primaryTabs={primaryTabs}
+          moreTabs={moreTabs}
+          email={email}
+          onLogout={handleLogout}
+        />
+      </div>
+      {sidebarOpen && <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />}
 
       <main className={styles.mainContent}>
         <div className={styles.dashboardHeader}>
+          <button
+            className={styles.mobileMenuBtn}
+            type="button"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label="Toggle admin menu"
+          >
+            ☰
+          </button>
           <h2>Admin Dashboard</h2>
         </div>
 
