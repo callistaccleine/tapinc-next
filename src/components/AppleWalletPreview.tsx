@@ -29,10 +29,11 @@ const AppleWalletPreview: React.FC<AppleWalletPreviewProps> = ({
   labelColor,
 }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "stretch" }}>
       <div
         style={{
-          width: 320,
+          width: "100%",
+          maxWidth: 320,
           borderRadius: 18,
           overflow: "hidden",
           boxShadow: "0 16px 36px rgba(15,23,42,0.18)",

@@ -1898,7 +1898,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                     </p>
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: "24px", alignItems: "start" }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isSmallScreen ? "1fr" : "minmax(0,1fr) 340px",
+                      gap: isSmallScreen ? "16px" : "24px",
+                      alignItems: isSmallScreen ? "stretch" : "start",
+                    }}
+                  >
                     <div
                       style={{
                         background: "#f8fafc",
@@ -1941,7 +1948,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         Uses your profile name, company, and title. Banner/logo assets come from your profile media.
                       </p>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                        alignItems: isSmallScreen ? "stretch" : "flex-start",
+                      }}
+                    >
                       <AppleWalletPreview
                         name={walletPassPayload.name}
                         company={walletPassPayload.company}
@@ -1974,12 +1988,20 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                           border: "none",
                           cursor: isWalletDownloading ? "not-allowed" : "pointer",
                           opacity: isWalletDownloading ? 0.7 : 1,
+                          width: isSmallScreen ? "100%" : "auto",
                         }}
                       >
                         <span style={{ fontSize: 18, lineHeight: 1 }}></span>
                         <span>{isWalletDownloading ? "Generating..." : "Add to Apple Wallet"}</span>
                       </button>
-                      <div style={{ maxWidth: 340, color: "#475467", fontSize: 14, lineHeight: 1.5 }}>
+                      <div
+                        style={{
+                          maxWidth: isSmallScreen ? "100%" : 340,
+                          color: "#475467",
+                          fontSize: 14,
+                          lineHeight: 1.5,
+                        }}
+                      >
                         Download the pass on your iPhone to add it to Apple Wallet.
                       </div>
                     </div>
