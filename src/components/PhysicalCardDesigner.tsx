@@ -52,7 +52,38 @@ type FontOption =
   | "pacifio"
   | "brush"
   | "cursive"
+  | "system-ui"
+  | "georgia"
+  | "garamond"
+  | "palatino"
+  | "didot"
+  | "gillsans"
+  | "optima"
+  | "trebuchet"
+  | "verdana"
+  | "tahoma"
+  | "lucida"
+  | "lucida-console"
+  | "impact"
+  | "copperplate"
+  | "chalkboard"
+  | "comic-sans"
+  | "papyrus"
+  | "zapfino"
+  | "herculanum"
   | "poppins"
+  | "montserrat"
+  | "raleway"
+  | "lato"
+  | "nunito"
+  | "dmsans"
+  | "worksans"
+  | "firasans"
+  | "rubik"
+  | "oswald"
+  | "lora"
+  | "merriweather"
+  | "robotoslab"
   | "avenir"
   | "default";
 
@@ -71,7 +102,38 @@ const FONT_STACKS: Record<FontOption, string> = {
   pacifio: "'Pacifico'",
   brush: "'Brush Script MT'",
   cursive: "cursive",
+  "system-ui": "system-ui",
+  georgia: "Georgia",
+  garamond: "Garamond",
+  palatino: "'Palatino Linotype'",
+  didot: "Didot",
+  gillsans: "'Gill Sans'",
+  optima: "Optima",
+  trebuchet: "'Trebuchet MS'",
+  verdana: "Verdana",
+  tahoma: "Tahoma",
+  lucida: "'Lucida Sans'",
+  "lucida-console": "'Lucida Console'",
+  impact: "Impact",
+  copperplate: "Copperplate",
+  chalkboard: "Chalkboard",
+  "comic-sans": "'Comic Sans MS'",
+  papyrus: "Papyrus",
+  zapfino: "Zapfino",
+  herculanum: "Herculanum",
   poppins: "Poppins",
+  montserrat: "Montserrat",
+  raleway: "Raleway",
+  lato: "Lato",
+  nunito: "Nunito",
+  dmsans: "'DM Sans'",
+  worksans: "'Work Sans'",
+  firasans: "'Fira Sans'",
+  rubik: "Rubik",
+  oswald: "Oswald",
+  lora: "Lora",
+  merriweather: "Merriweather",
+  robotoslab: "'Roboto Slab'",
   avenir: "Avenir",
   default: "Manrope"
 };
@@ -99,7 +161,38 @@ const FONT_OPTIONS: { label: string; value: FontOption }[] = [
   { label: "Pacifico", value: "pacifio" },
   { label: "Brush", value: "brush" },
   { label: "Cursive", value: "cursive" },
+  { label: "System UI", value: "system-ui" },
+  { label: "Georgia", value: "georgia" },
+  { label: "Garamond", value: "garamond" },
+  { label: "Palatino", value: "palatino" },
+  { label: "Didot", value: "didot" },
+  { label: "Gill Sans", value: "gillsans" },
+  { label: "Optima", value: "optima" },
+  { label: "Trebuchet MS", value: "trebuchet" },
+  { label: "Verdana", value: "verdana" },
+  { label: "Tahoma", value: "tahoma" },
+  { label: "Lucida Sans", value: "lucida" },
+  { label: "Lucida Console", value: "lucida-console" },
+  { label: "Impact", value: "impact" },
+  { label: "Copperplate", value: "copperplate" },
+  { label: "Chalkboard", value: "chalkboard" },
+  { label: "Comic Sans", value: "comic-sans" },
+  { label: "Papyrus", value: "papyrus" },
+  { label: "Zapfino", value: "zapfino" },
+  { label: "Herculanum", value: "herculanum" },
   { label: "Poppins", value: "poppins" },
+  { label: "Montserrat", value: "montserrat" },
+  { label: "Raleway", value: "raleway" },
+  { label: "Lato", value: "lato" },
+  { label: "Nunito", value: "nunito" },
+  { label: "DM Sans", value: "dmsans" },
+  { label: "Work Sans", value: "worksans" },
+  { label: "Fira Sans", value: "firasans" },
+  { label: "Rubik", value: "rubik" },
+  { label: "Oswald", value: "oswald" },
+  { label: "Lora", value: "lora" },
+  { label: "Merriweather", value: "merriweather" },
+  { label: "Roboto Slab", value: "robotoslab" },
   { label: "Avenir", value: "avenir" },
   { label: "Default (Manrope)", value: "default" },
 ];
