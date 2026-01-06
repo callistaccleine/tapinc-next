@@ -22,10 +22,50 @@ export async function POST(request: Request) {
       );
     }
 
+    let resolvedProfileId: string | null = null;
+    const { data: profileRow, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("id", profileId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Failed to load profile for analytics:", profileError);
+      return NextResponse.json(
+        { error: "Failed to track analytics" },
+        { status: 500 }
+      );
+    }
+
+    if (profileRow) {
+      resolvedProfileId = profileRow.id;
+    } else {
+      const { data: designRow, error: designError } = await supabaseAdmin
+        .from("design_profile")
+        .select("profile_id")
+        .eq("id", profileId)
+        .maybeSingle();
+
+      if (designError) {
+        console.error("Failed to resolve design profile for analytics:", designError);
+        return NextResponse.json(
+          { error: "Failed to track analytics" },
+          { status: 500 }
+        );
+      }
+
+      resolvedProfileId = designRow?.profile_id ?? null;
+    }
+
+    if (!resolvedProfileId) {
+      console.warn("Analytics skipped: profile not found", { profileId });
+      return NextResponse.json({ skipped: true }, { status: 200 });
+    }
+
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from("analytics")
       .select("profile_views, new_connections")
-      .eq("profile_id", profileId)
+      .eq("profiles_id", resolvedProfileId)
       .maybeSingle();
 
     if (fetchError) {
@@ -46,7 +86,7 @@ export async function POST(request: Request) {
           profile_views: (existing.profile_views ?? 0) + incrementView,
           new_connections: (existing.new_connections ?? 0) + incrementConnection,
         })
-        .eq("profile_id", profileId);
+        .eq("profiles_id", resolvedProfileId);
 
       if (updateError) {
         console.error("Failed to update analytics:", updateError);
@@ -57,7 +97,7 @@ export async function POST(request: Request) {
       }
     } else {
       const { error: insertError } = await supabaseAdmin.from("analytics").insert({
-        profile_id: profileId,
+        profiles_id: resolvedProfileId,
         profile_views: incrementView,
         new_connections: incrementConnection,
       });

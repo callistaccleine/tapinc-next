@@ -10,8 +10,7 @@ interface Metrics {
 }
 
 type ProfileRow = { id: string };
-type DesignProfileRow = { id: string; profile_id: string };
-type AnalyticsRow = { profile_id: string; profile_views: number | null; new_connections: number | null };
+type AnalyticsRow = { profiles_id: string; profile_views: number | null; new_connections: number | null };
 
 const normalizeCategory = (value?: string | null) => (value ?? "").trim().toLowerCase();
 const UNLOCK_THRESHOLD = 15;
@@ -79,26 +78,13 @@ const Analytics: React.FC = () => {
 
         const profileIds = (profileRows as ProfileRow[] | null)?.map((row) => row.id) ?? [];
 
-        let designProfileIds: string[] = [];
-        if (profileIds.length) {
-          const { data: designProfiles, error: designError } = await supabase
-            .from("design_profile")
-            .select("id, profile_id")
-            .in("profile_id", profileIds);
-
-          if (designError) throw designError;
-
-          designProfileIds =
-            (designProfiles as DesignProfileRow[] | null)?.map((row) => row.id) ?? [];
-        }
-
         let aggregated = { profileViews: 0, newConnections: 0 };
 
-        if (designProfileIds.length) {
+        if (profileIds.length) {
           const { data: analyticsRows, error: analyticsError } = await supabase
             .from("analytics")
-            .select("profile_id, profile_views, new_connections")
-            .in("profile_id", designProfileIds);
+            .select("profiles_id, profile_views, new_connections")
+            .in("profiles_id", profileIds);
 
           if (analyticsError) throw analyticsError;
 

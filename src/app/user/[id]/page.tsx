@@ -80,6 +80,7 @@ export default function UserVirtualPage() {
   if (!profile) {
     return null;
   }
+  const analyticsProfileId = profile.profile_id ?? profile.id;
 
   return (
     <div
@@ -115,8 +116,8 @@ export default function UserVirtualPage() {
           profilePic: profile.profile_pic,
           template: profile.template || "",
         }}
-        profileId={profile.id}
-        trackAnalytics
+        profileId={analyticsProfileId}
+        trackAnalytics={Boolean(analyticsProfileId)}
       />
     </div>
   );
