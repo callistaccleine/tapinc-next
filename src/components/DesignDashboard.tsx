@@ -87,6 +87,7 @@ const DEFAULT_WALLET_DESIGN = {
   backgroundColor: "#000000",
   textColor: "#ffffff",
   accentColor: "#ff7a1c",
+  showProfilePic: false,
 };
 
 const clampLogoDpi = (value?: number | null) =>
@@ -183,6 +184,10 @@ const parseWalletDesign = (raw: any) => {
       textColor: parsed.textColor ?? parsed.text ?? DEFAULT_WALLET_DESIGN.textColor,
       accentColor:
         parsed.accentColor ?? parsed.label ?? DEFAULT_WALLET_DESIGN.accentColor,
+      showProfilePic:
+        typeof parsed.showProfilePic === "boolean"
+          ? parsed.showProfilePic
+          : DEFAULT_WALLET_DESIGN.showProfilePic,
     };
   } catch (error) {
     console.warn("Failed to parse wallet design settings", error);
@@ -299,6 +304,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [walletBgColor, setWalletBgColor] = useState(DEFAULT_WALLET_DESIGN.backgroundColor);
   const [walletTextColor, setWalletTextColor] = useState(DEFAULT_WALLET_DESIGN.textColor);
   const [walletAccentColor, setWalletAccentColor] = useState(DEFAULT_WALLET_DESIGN.accentColor);
+  const [walletShowProfilePic, setWalletShowProfilePic] = useState(DEFAULT_WALLET_DESIGN.showProfilePic);
   const [isWalletDownloading, setWalletDownloading] = useState(false);
   const walletAutoSaveTimeout = useRef<number | null>(null);
   const walletAutoSaveReady = useRef(false);
@@ -349,7 +355,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     barcodeMessage: profileUrl || "https://tapink.com.au",
     serialNumber: walletSerialNumber,
     logoUrl: selectedWalletLogo,
-    stripImageUrl: headerBanner || undefined,
+    profilePicUrl: walletShowProfilePic ? profilePic ?? undefined : undefined,
     colors: {
       background: walletBgColor,
       label: walletAccentColor,
@@ -361,6 +367,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     backgroundColor: walletBgColor,
     textColor: walletTextColor,
     accentColor: walletAccentColor,
+    showProfilePic: walletShowProfilePic,
   };
 
   const saveWalletDesign = async () => {
@@ -389,7 +396,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         window.clearTimeout(walletAutoSaveTimeout.current);
       }
     };
-  }, [walletBgColor, walletTextColor, walletAccentColor, loading, profile?.id]);
+  }, [walletBgColor, walletTextColor, walletAccentColor, walletShowProfilePic, loading, profile?.id]);
 
   useEffect(() => {
     if (loading || !profile?.id) return;
@@ -419,6 +426,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         backgroundColor: walletBgColor,
         textColor: walletTextColor,
         accentColor: walletAccentColor,
+        showProfilePic: walletShowProfilePic,
       },
     };
     const serialized = JSON.stringify(payload);
@@ -473,6 +481,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
     walletBgColor,
     walletTextColor,
     walletAccentColor,
+    walletShowProfilePic,
   ]);
 
   const handleWalletDownload = async () => {
@@ -662,6 +671,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setWalletBgColor(walletDesign.backgroundColor);
           setWalletTextColor(walletDesign.textColor);
           setWalletAccentColor(walletDesign.accentColor);
+          setWalletShowProfilePic(walletDesign.showProfilePic);
         } else {
           setPreviewTemplate(templateOptions[0].file);
           setTemplate(templateOptions[0].file);
@@ -2080,6 +2090,48 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                           style={{ width: 64, height: 36, border: "1px solid #cbd5e1", borderRadius: 8, cursor: "pointer" }}
                         />
                       </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          fontSize: 12,
+                          color: "#475467",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setWalletShowProfilePic((prev) => !prev)}
+                          aria-pressed={walletShowProfilePic}
+                          style={{
+                            width: 42,
+                            height: 24,
+                            borderRadius: 999,
+                            border: "none",
+                            padding: 0,
+                            cursor: "pointer",
+                            background: walletShowProfilePic ? "#ff7a1c" : "#cbd5e1",
+                            position: "relative",
+                            transition: "background 0.2s ease",
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: 2,
+                              left: walletShowProfilePic ? 20 : 2,
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              background: "#ffffff",
+                              boxShadow: "0 2px 6px rgba(15,23,42,0.2)",
+                              transition: "left 0.2s ease",
+                            }}
+                          />
+                        </button>
+                        <span>Show profile photo</span>
+                      </div>
                       <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
                         Uses your profile name, company, and title. Banner/logo assets come from your profile media.
                       </p>
@@ -2098,8 +2150,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         title={walletPassPayload.title}
                         barcodeMessage={walletPassPayload.barcodeMessage}
                         serialNumber={walletPassPayload.serialNumber}
-                        stripImageUrl={walletPassPayload.stripImageUrl}
                         logoUrl={walletPassPayload.logoUrl}
+                        profilePicUrl={walletPassPayload.profilePicUrl}
+                        showProfilePic={walletShowProfilePic}
                         backgroundColor={walletPassPayload.colors.background}
                         textColor={walletPassPayload.colors.text}
                         labelColor={walletPassPayload.colors.label}

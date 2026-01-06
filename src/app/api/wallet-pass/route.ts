@@ -13,6 +13,7 @@ type WalletPayload = {
   barcodeMessage: string;
   logoUrl?: string;
   stripImageUrl?: string;
+  profilePicUrl?: string;
   colors?: {
     background?: string;
     label?: string;
@@ -61,6 +62,20 @@ const resizeLogo = async (buffer: Buffer, size: number) =>
     })
     .png()
     .toBuffer();
+
+const renderCircularImage = async (buffer: Buffer, size: number) => {
+  const mask = Buffer.from(
+    `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/>
+    </svg>`
+  );
+  return sharp(buffer)
+    .rotate()
+    .resize(size, size, { fit: "cover" })
+    .composite([{ input: mask, blend: "dest-in" }])
+    .png()
+    .toBuffer();
+};
 
 const isPem = (value: string) => value.includes("-----BEGIN");
 
@@ -224,15 +239,16 @@ export async function POST(req: Request) {
       );
     }
  
-    const {
-      name,
-      company,
-      title,
-      barcodeMessage,
-      logoUrl,
-      stripImageUrl,
-      colors,
-    } = body;
+  const {
+    name,
+    company,
+    title,
+    barcodeMessage,
+    logoUrl,
+    stripImageUrl,
+    profilePicUrl,
+    colors,
+  } = body;
  
     const backgroundColor = hexToRgb(
       colors?.background ?? "#0c0d11",
@@ -335,9 +351,10 @@ export async function POST(req: Request) {
         altText: " ",
       });
  
-      const [logoBuffer, stripBuffer, defaultIconBuffer] = await Promise.all([
+      const [logoBuffer, stripBuffer, profilePicBuffer, defaultIconBuffer] = await Promise.all([
         fetchBuffer(logoUrl),
         fetchBuffer(stripImageUrl),
+        fetchBuffer(profilePicUrl),
         readLocalBuffer(DEFAULT_ICON_PATH),
       ]);
  
@@ -358,6 +375,14 @@ export async function POST(req: Request) {
       if (stripBuffer) {
         await pass.addBuffer("strip.png", stripBuffer);
         await pass.addBuffer("strip@2x.png", stripBuffer);
+      }
+      if (profilePicBuffer) {
+        const [thumb1x, thumb2x] = await Promise.all([
+          renderCircularImage(profilePicBuffer, 80),
+          renderCircularImage(profilePicBuffer, 160),
+        ]);
+        await pass.addBuffer("thumbnail.png", thumb1x);
+        await pass.addBuffer("thumbnail@2x.png", thumb2x);
       }
  
       const stream = pass.getAsStream();
