@@ -127,10 +127,14 @@ const extractP12Certificates = (buffer: Buffer, passphrase: string, label: strin
   }
 };
 
-export async function GET() {
+export async function GET(req: Request) {
+  console.warn("Wallet pass route called with unsupported method", {
+    method: req.method,
+    url: req.url,
+  });
   return NextResponse.json(
-    { error: "Method not allowed. Use POST." },
-    { status: 405, headers: { Allow: "POST" } }
+    { error: "Method not allowed. Use POST.", method: req.method, allowed: ["POST"] },
+    { status: 400, headers: { Allow: "POST" } }
   );
 }
 
@@ -151,7 +155,13 @@ export async function POST(req: Request) {
     hasSignerKey: !!process.env.PASSKIT_SIGNER_KEY_PATH,
   });
 
-  const body = (await req.json().catch(() => null)) as WalletPayload | null;
+  let body: WalletPayload | null = null;
+  let parseError: unknown = null;
+  try {
+    body = (await req.json()) as WalletPayload;
+  } catch (err) {
+    parseError = err;
+  }
 
   const certPath = process.env.PASSKIT_CERT_P12_PATH;
   const certPassword = process.env.PASSKIT_CERT_PASSWORD;
@@ -193,7 +203,15 @@ export async function POST(req: Request) {
   }
 
   if (!body) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    console.warn("Wallet pass invalid payload", {
+      method: req.method,
+      url: req.url,
+      error: parseError instanceof Error ? parseError.message : parseError,
+    });
+    return NextResponse.json(
+      { error: "Invalid payload", details: parseError ? "Invalid JSON body" : "Empty body" },
+      { status: 400 }
+    );
   }
 
   const {
