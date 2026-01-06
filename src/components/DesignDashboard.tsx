@@ -47,9 +47,45 @@ interface DesignDashboardProps {
 const MIN_LOGO_DPI = 299;
 const FALLBACK_LOGO_MIN_EDGE_PX = 900;
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+const formatPhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return hasPlus ? "+" : "";
+  if (hasPlus) {
+    if (digits.startsWith("61")) {
+      const country = "61";
+      const rest = digits.slice(2);
+      if (rest.startsWith("4")) {
+        const first = rest.slice(0, 3);
+        const remaining = rest.slice(3);
+        const restGroups = remaining.match(/.{1,3}/g) ?? [];
+        return `+${country} ${[first, ...restGroups].filter(Boolean).join(" ")}`.trim();
+      }
+      const groups = rest.match(/.{1,3}/g) ?? [];
+      return `+${country} ${groups.join(" ")}`.trim();
+    }
+    const groups = digits.match(/.{1,3}/g) ?? [];
+    return `+${groups.join(" ")}`;
+  }
+  if (digits.startsWith("0")) {
+    const first = digits.slice(0, 4);
+    const rest = digits.slice(4);
+    const restGroups = rest.match(/.{1,3}/g) ?? [];
+    return [first, ...restGroups].filter(Boolean).join(" ");
+  }
+  const groups = digits.match(/.{1,3}/g) ?? [];
+  return groups.join(" ");
+};
+const normalizePhoneForSave = (value: string) => {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return "";
+  return trimmed.startsWith("+") ? `+${digits}` : digits;
+};
 const DEFAULT_WALLET_DESIGN = {
-  backgroundColor: "#fff1e6",
-  textColor: "#111827",
+  backgroundColor: "#000000",
+  textColor: "#ffffff",
   accentColor: "#ff7a1c",
 };
 
@@ -266,6 +302,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [isWalletDownloading, setWalletDownloading] = useState(false);
   const walletAutoSaveTimeout = useRef<number | null>(null);
   const walletAutoSaveReady = useRef(false);
+  const autoSaveTimeout = useRef<number | null>(null);
+  const autoSaveReady = useRef(false);
+  const lastAutoSaved = useRef<string>("");
   const [pendingCrop, setPendingCrop] = useState<{
     file: File;
     fieldName: "profile_pic" | "header_banner" | "card_logo";
@@ -305,8 +344,8 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const walletSerialNumber = `${shareDesignProfileId ?? profile?.id ?? "0000 1111 2222"}`;
   const walletPassPayload = {
     name: `${firstname} ${surname}`.trim() || "Your Name",
-    company: company || "TapINK",
-    title: title || "Title",
+    company: company || "Your Company",
+    title: title || "Your Title",
     barcodeMessage: profileUrl || "https://tapink.com.au",
     serialNumber: walletSerialNumber,
     logoUrl: selectedWalletLogo,
@@ -351,6 +390,90 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       }
     };
   }, [walletBgColor, walletTextColor, walletAccentColor, loading, profile?.id]);
+
+  useEffect(() => {
+    if (loading || !profile?.id) return;
+
+    const templateToSave = template || previewTemplate || templateOptions[0].file;
+    const logosOnly = cardLogoItems.filter((entry) => entry.type === "logo");
+    const imagesOnly = cardLogoItems.filter((entry) => entry.type === "image");
+    const payload = {
+      firstname,
+      surname,
+      pronouns,
+      phone: normalizePhoneForSave(phone),
+      company,
+      title,
+      email,
+      bio,
+      profile_pic: profilePic,
+      header_banner: headerBanner,
+      address,
+      links,
+      socials,
+      template: templateToSave,
+      cardDesign: JSON.stringify(cardDesign),
+      physical_card_logo: logosOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
+      images: imagesOnly.map((entry) => `${entry.type}|${entry.url}`).join(","),
+      digital_wallet: {
+        backgroundColor: walletBgColor,
+        textColor: walletTextColor,
+        accentColor: walletAccentColor,
+      },
+    };
+    const serialized = JSON.stringify(payload);
+
+    if (!autoSaveReady.current) {
+      autoSaveReady.current = true;
+      lastAutoSaved.current = serialized;
+      return;
+    }
+
+    if (serialized === lastAutoSaved.current) return;
+
+    if (autoSaveTimeout.current) {
+      window.clearTimeout(autoSaveTimeout.current);
+    }
+
+    autoSaveTimeout.current = window.setTimeout(() => {
+      saveToDatabase(payload)
+        .then(() => {
+          lastAutoSaved.current = serialized;
+        })
+        .catch((err) => {
+          console.error("Auto-save failed:", err);
+        });
+    }, 800);
+
+    return () => {
+      if (autoSaveTimeout.current) {
+        window.clearTimeout(autoSaveTimeout.current);
+      }
+    };
+  }, [
+    loading,
+    profile?.id,
+    firstname,
+    surname,
+    pronouns,
+    phone,
+    company,
+    title,
+    email,
+    bio,
+    profilePic,
+    headerBanner,
+    address,
+    links,
+    socials,
+    template,
+    previewTemplate,
+    cardDesign,
+    cardLogoItems,
+    walletBgColor,
+    walletTextColor,
+    walletAccentColor,
+  ]);
 
   const handleWalletDownload = async () => {
     try {
@@ -480,7 +603,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setFirstName(designData.firstname || "");
           setSurname(designData.surname || "");
           setPronouns(designData.pronouns || "");
-          setPhone(designData.phone || "");
+          setPhone(formatPhoneInput(designData.phone || ""));
           setCompany(designData.company || "");
           setTitle(designData.title || "");
           setEmail(designData.email || user.email || "");
@@ -541,8 +664,8 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           setWalletAccentColor(walletDesign.accentColor);
         } else {
           setPreviewTemplate(templateOptions[0].file);
+          setTemplate(templateOptions[0].file);
           setCardDesign({ ...DEFAULT_CARD_DESIGN });
-          setCardLogoUrls([]);
           const profileFirst = profile?.firstname || profile?.first_name || "";
           const profileLast = profile?.surname || profile?.last_name || "";
           const profilePronouns = profile?.pronouns || "";
@@ -552,9 +675,53 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           if (profileFirst) setFirstName(profileFirst);
           if (profileLast) setSurname(profileLast);
           if (profilePronouns) setPronouns(profilePronouns);
-          if (profilePhone) setPhone(profilePhone);
+          if (profilePhone) setPhone(formatPhoneInput(profilePhone));
           if (profileCompany) setCompany(profileCompany);
           if (profileEmail) setEmail(profileEmail);
+
+          try {
+            const { data: userRow, error: userRowError } = await supabase
+              .from("users")
+              .select("email, full_name, role")
+              .eq("id", profile.id)
+              .maybeSingle();
+
+            if (userRowError) {
+              console.error("Error fetching user profile:", userRowError);
+            }
+
+            const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+            const metadataFullName = typeof metadata.full_name === "string" ? metadata.full_name : "";
+            const metadataPhone = typeof metadata.phone === "string" ? metadata.phone : "";
+            const fullName = (userRow?.full_name || metadataFullName || "").trim();
+            const nameParts = fullName.split(/\s+/).filter(Boolean);
+            const derivedFirst = nameParts[0] || "";
+            const derivedLast = nameParts.slice(1).join(" ");
+            const derivedCompany =
+              userRow?.role === "company" ? fullName : profileCompany;
+            const derivedEmail = userRow?.email || profileEmail || user.email || "";
+            const derivedPhone = metadataPhone || profilePhone;
+
+            if (!profileFirst && derivedFirst) setFirstName(derivedFirst);
+            if (!profileLast && derivedLast) setSurname(derivedLast);
+            if (!profileCompany && derivedCompany) setCompany(derivedCompany);
+            if (!profileEmail && derivedEmail) setEmail(derivedEmail);
+            if (!profilePhone && derivedPhone) setPhone(formatPhoneInput(derivedPhone));
+
+            const seedPayload = {
+              firstname: derivedFirst || profileFirst,
+              surname: derivedLast || profileLast,
+              company: derivedCompany || profileCompany,
+              email: derivedEmail,
+              phone: normalizePhoneForSave(derivedPhone || profilePhone),
+              template: templateOptions[0].file,
+            };
+            if (Object.values(seedPayload).some((value) => Boolean(value))) {
+              await saveToDatabase(seedPayload);
+            }
+          } catch (err) {
+            console.error("Failed to seed design profile:", err);
+          }
         }
 
         // Fill any missing fields from the signed-in profile/user (without overwriting saved data)
@@ -567,7 +734,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         if (!firstname && profileFirst) setFirstName(profileFirst);
         if (!surname && profileLast) setSurname(profileLast);
         if (!pronouns && profilePronouns) setPronouns(profilePronouns);
-        if (!phone && profilePhone) setPhone(profilePhone);
+        if (!phone && profilePhone) setPhone(formatPhoneInput(profilePhone));
         if (!company && profileCompany) setCompany(profileCompany);
         if (!email && profileEmail) setEmail(profileEmail);
 
@@ -711,38 +878,22 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         return;
       }
   
-      const { data: existing } = await supabase
-        .from("design_profile")
-        .select("id")
-        .eq("profile_id", profile.id)
-        .maybeSingle();
-  
-      let response;
-      if (existing) {
-        response = await supabase
-          .from("design_profile")
-          .update({
-            ...fields,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("profile_id", profile.id)
-          .select("*")
-          .single();
-      } else {
-        response = await supabase
-          .from("design_profile")
-          .insert({
-            profile_id: profile.id,
-            email: email || user.email || "",
-            ...fields,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .select("*")
-          .single();
+      const now = new Date().toISOString();
+      const payload: Record<string, any> = {
+        profile_id: profile.id,
+        email: email || user.email || "",
+        ...fields,
+        updated_at: now,
+      };
+      if (!designProfileId) {
+        payload.created_at = now;
       }
-  
-      const { data, error } = response;
+
+      const { data, error } = await supabase
+        .from("design_profile")
+        .upsert(payload, { onConflict: "profile_id" })
+        .select("*")
+        .single();
   
       if (error) {
         console.error("Supabase error:", error);
@@ -927,7 +1078,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         firstname,
         surname,
         pronouns,
-        phone,
+        phone: normalizePhoneForSave(phone),
         company,
         title,
         email,
@@ -1766,21 +1917,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                                   }`
                                 : 'Choose a template to activate your virtual card.'}
                             </div>
-                            <button
-                              onClick={saveTemplateTab}
-                              style={{
-                                background: 'linear-gradient(135deg,#ff8b37,#ff6a00)',
-                                color: '#ffffff',
-                                border: 'none',
-                                padding: '12px 24px',
-                                borderRadius: '10px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                boxShadow: '0 12px 24px rgba(255,106,0,0.25)',
-                              }}
-                            >
-                              {virtualActivated ? 'Update Template' : 'Save & Activate Virtual Card'}
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -2276,7 +2412,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   <input
                     type="text"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
                     style={{
                       padding: "12px 16px",
                       border: "1px solid #d2d2d7",
@@ -2364,22 +2500,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   />
                 </div>
 
-                <button
-                  onClick={saveProfileTab}
-                  style={{
-                    background: 'linear-gradient(135deg,#ff8b37,#ff6a00)',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    boxShadow: '0 12px 24px rgba(255,106,0,0.25)',
-                  }}
-                >
-                  Save Profile
-                </button>
               </div>
             )}
 
@@ -2511,24 +2631,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   ))}
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", marginTop: "8px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={saveLinksTab}
-                    style={{
-                      background: "linear-gradient(135deg,#ff8b37,#ff6a00)",
-                      color: "#ffffff",
-                      border: "none",
-                      padding: "10px 18px",
-                      borderRadius: "10px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      boxShadow: "0 10px 20px rgba(255,106,0,0.25)",
-                    }}
-                  >
-                    Save links
-                  </button>
-                </div>
               </div>
             )}
 
@@ -2602,21 +2704,6 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                   ))}
                 </div>
 
-                <button
-                  onClick={saveSocialsTab}
-                  style={{
-                    background: "#000000",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "12px 24px",
-                    borderRadius: "10px",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontSize: "15px",
-                  }}
-                >
-                  Save Socials
-                </button>
               </div>
             )}
           </div>
@@ -2893,7 +2980,4 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
       )}
     </div>
   );
-}
-function setCardLogoUrls(arg0: never[]) {
-  throw new Error("Function not implemented.");
 }

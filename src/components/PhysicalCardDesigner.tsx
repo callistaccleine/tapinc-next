@@ -18,6 +18,8 @@ const SAFE_MARGIN_MM = 4;
 const PREVIEW_MAX_WIDTH = 360;
 
 const mmToPx = (mm: number, dpi: number) => (mm * dpi) / 25.4;
+const DEFAULT_FONT_RATIO = (pt: number) =>
+  (pt / 72) * (25.4 / (CARD_MM_WIDTH + CARD_BLEED_MM * 2));
 
 export type CardResolution = "300" | "600" | "1200";
 export type CardOrientation = "landscape" | "portrait";
@@ -177,8 +179,8 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     type: "text",
     side: "front",
     x: 0.08,
-    y: 0.58,
-    fontSize: 0.50,
+    y: 0.50,
+    fontSize: DEFAULT_FONT_RATIO(30),
     textAlign: "left",
     contentKey: "headline",
   },
@@ -188,7 +190,7 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "front",
     x: 0.08,
     y: 0.75,
-    fontSize: 0.50,
+    fontSize: DEFAULT_FONT_RATIO(15),
     textAlign: "left",
     contentKey: "tagline",
   },
@@ -207,9 +209,10 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.12,
-    fontSize: 0.055,
+    fontSize: 0.05,
     textAlign: "left",
     contentKey: "name",
+    showIcon: true,
   },
   {
     id: "back-role",
@@ -217,9 +220,10 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.25,
-    fontSize: 0.055,
+    fontSize: 0.05,
     textAlign: "left",
     contentKey: "role",
+    showIcon: true,
   },
   {
     id: "back-phone",
@@ -227,9 +231,10 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.38,
-    fontSize: 0.055,
+    fontSize: 0.05,
     textAlign: "left",
     contentKey: "phone",
+    showIcon: true,
   },
   {
     id: "back-email",
@@ -237,29 +242,20 @@ const DEFAULT_CARD_ELEMENTS: CardElement[] = [
     side: "back",
     x: 0.08,
     y: 0.5,
-    fontSize: 0.055,
+    fontSize: 0.05,
     textAlign: "left",
     contentKey: "email",
+    showIcon: true,
   },
   {
     id: "back-qr",
     type: "qr",
     side: "back",
-    x: 0.6,
-    y: 0.16,
-    width: 0.28,
-    height: 0.28,
+    x: 0.77,
+    y: 0.62,
+    width: 0.18,
+    height: 0.18,
   },
-  {
-    id: "role",
-    type: "text",
-    side: "back",
-    x: 0.08,
-    y: 0.25,
-    fontSize: 0.055,
-    textAlign: "left",
-    contentKey: "role",
-  }
 ];
 
 const TEXT_PRESET_OPTIONS: { label: string; value: TextContentKey }[] = [
@@ -754,7 +750,7 @@ export function PhysicalCardDesigner({
         x: clamp(element.x ?? bounds.minX, bounds.minX, bounds.maxX),
         y: clamp(element.y ?? bounds.minY, bounds.minY, bounds.maxY),
         opacity: 1,
-        qrColor: element.qrColor ?? "#000000",
+        qrColor: element.qrColor ?? "#ffffff",
       };
     }
     const widthRatio = getElementWidth(element);
@@ -1218,7 +1214,16 @@ const renderElement = (element: CardElement) => {
               onLoad={handleImageLoad}
             />
           ) : (
-            <span style={{ fontSize: 12, color: cardDesign.textColor, opacity: 0.6 }}>
+            <span
+              style={{
+                fontSize: 12,
+                color: cardDesign.textColor,
+                opacity: 0.6,
+                width: "100%",
+                textAlign: "left",
+                paddingLeft: 6,
+              }}
+            >
               Upload a logo to display
             </span>
           )}
@@ -1406,7 +1411,7 @@ const renderElement = (element: CardElement) => {
           value={qrValue}
           size={qrRenderSize}
           bgColor="transparent"
-          fgColor={element.qrColor || cardDesign.textColor || "#000000"}
+          fgColor={element.qrColor || "#ffffff"}
           level="H"
           includeMargin={false}
           style={{ width: qrVisualSize, height: qrVisualSize }}
@@ -1708,6 +1713,7 @@ const renderElement = (element: CardElement) => {
         y: 0.16,
         width: 0.28,
         height: 0.28,
+        qrColor: "#ffffff",
       },
     ]);
   };
@@ -4879,35 +4885,17 @@ const renderElement = (element: CardElement) => {
         >
           <button
             type="button"
-            onClick={handleSaveDesign}
-            disabled={savingDesign}
-            style={{
-              padding: "12px 24px",
-              borderRadius: "12px",
-              border: "1px solid #d0d5dd",
-              fontWeight: 600,
-              cursor: savingDesign ? "wait" : "pointer",
-              background: "#ffffff",
-              color: "#0f172a",
-              minWidth: "140px",
-            }}
-          >
-            {savingDesign ? "Saving…" : "Save design"}
-          </button>
-
-          <button
-            type="button"
             onClick={handleSave}
-            disabled={saving || !physicalActivated}
+            disabled={saving}
             style={{
               padding: "12px 28px",
               borderRadius: "12px",
               border: "none",
               fontWeight: 700,
               cursor: saving ? "wait" : "pointer",
-              background: physicalActivated ? "linear-gradient(135deg,#ff8b37,#ff6a00)" : "#d0d5dd",
+              background: "linear-gradient(135deg,#ff8b37,#ff6a00)",
               color: "#ffffff",
-              boxShadow: physicalActivated ? "0 14px 28px rgba(255,106,0,0.25)" : "none",
+              boxShadow: "0 14px 28px rgba(255,106,0,0.25)",
               minWidth: "160px",
               transition: "all 0.2s ease",
               opacity: saving ? 0.85 : 1,

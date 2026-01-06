@@ -48,14 +48,14 @@ const AppleWalletPreview: React.FC<AppleWalletPreviewProps> = ({
             <img
               src={logoUrl}
               alt="TapINK logo"
-              style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }}
+              style={{ width: 40, height: 40, borderRadius: 0, objectFit: "contain" }}
             />
           ) : (
             <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
+                width: 40,
+                height: 40,
+                borderRadius: 0,
                 background: "rgba(0,0,0,0.12)",
               }}
             />
@@ -82,7 +82,7 @@ const AppleWalletPreview: React.FC<AppleWalletPreviewProps> = ({
               <div style={{ fontSize: 10, letterSpacing: "0.14em", color: labelColor, textTransform: "uppercase" }}>
                 Company
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{company || "Company"}</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{company || "Your Company"}</div>
             </div>
           </div>
         </div>
