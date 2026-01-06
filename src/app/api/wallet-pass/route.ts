@@ -127,7 +127,30 @@ const extractP12Certificates = (buffer: Buffer, passphrase: string, label: strin
   }
 };
 
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed. Use POST." },
+    { status: 405, headers: { Allow: "POST" } }
+  );
+}
+
 export async function POST(req: Request) {
+  console.log("=== POST /api/wallet-pass called ===");
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.url);
+  
+  // Log environment variables (without exposing sensitive data)
+  console.log("Environment check:", {
+    hasCertPath: !!process.env.PASSKIT_CERT_P12_PATH,
+    hasCertPassword: !!process.env.PASSKIT_CERT_PASSWORD,
+    hasWWDR: !!process.env.PASSKIT_WWDR_CERT_PATH,
+    hasTeamId: !!process.env.PASSKIT_TEAM_IDENTIFIER,
+    hasPassTypeId: !!process.env.PASSKIT_PASS_TYPE_IDENTIFIER,
+    hasOrgName: !!process.env.PASSKIT_ORGANIZATION_NAME,
+    hasSignerCert: !!process.env.PASSKIT_SIGNER_CERT_PATH,
+    hasSignerKey: !!process.env.PASSKIT_SIGNER_KEY_PATH,
+  });
+  
   const body = (await req.json().catch(() => null)) as WalletPayload | null;
 
   const certPath = process.env.PASSKIT_CERT_P12_PATH;
