@@ -150,7 +150,7 @@ export async function POST(req: Request) {
     hasSignerCert: !!process.env.PASSKIT_SIGNER_CERT_PATH,
     hasSignerKey: !!process.env.PASSKIT_SIGNER_KEY_PATH,
   });
-  
+
   const body = (await req.json().catch(() => null)) as WalletPayload | null;
 
   const certPath = process.env.PASSKIT_CERT_P12_PATH;
@@ -276,6 +276,7 @@ export async function POST(req: Request) {
       message: barcodeMessage,
       format: "PKBarcodeFormatQR",
       messageEncoding: "iso-8859-1",
+      altText: " ",
     });
 
     const [logoBuffer, stripBuffer, defaultIconBuffer] = await Promise.all([
