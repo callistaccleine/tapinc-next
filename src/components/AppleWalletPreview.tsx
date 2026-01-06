@@ -10,7 +10,8 @@ export interface AppleWalletPreviewProps {
   barcodeMessage: string;
   serialNumber: string;
   logoUrl?: string;
-  stripImageUrl?: string;
+  profilePicUrl?: string;
+  showProfilePic?: boolean;
   backgroundColor: string;
   textColor: string;
   labelColor: string;
@@ -23,7 +24,8 @@ const AppleWalletPreview: React.FC<AppleWalletPreviewProps> = ({
   barcodeMessage,
   serialNumber,
   logoUrl,
-  stripImageUrl,
+  profilePicUrl,
+  showProfilePic = false,
   backgroundColor,
   textColor,
   labelColor,
@@ -43,23 +45,40 @@ const AppleWalletPreview: React.FC<AppleWalletPreviewProps> = ({
           border: "1px solid rgba(15,23,42,0.1)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 10px" }}>
-          {logoUrl ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            padding: "14px 16px 10px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="TapINK logo"
+                style={{ width: 40, height: 40, borderRadius: 0, objectFit: "contain" }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 0,
+                  background: "rgba(0,0,0,0.12)",
+                }}
+              />
+            )}
+          </div>
+          {showProfilePic && profilePicUrl ? (
             <img
-              src={logoUrl}
-              alt="TapINK logo"
-              style={{ width: 40, height: 40, borderRadius: 0, objectFit: "contain" }}
+              src={profilePicUrl}
+              alt="Profile"
+              style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }}
             />
-          ) : (
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 0,
-                background: "rgba(0,0,0,0.12)",
-              }}
-            />
-          )}
+          ) : null}
         </div>
 
         <div style={{ height: 6 }} />
