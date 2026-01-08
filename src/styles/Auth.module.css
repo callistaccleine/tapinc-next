@@ -100,6 +100,33 @@
     display: flex;
     align-items: center;
   }
+
+  .forgotRow {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -6px;
+  }
+
+  .forgotLink {
+    border: 0;
+    background: transparent;
+    color: #4c57e8;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .forgotLink:hover {
+    color: #2f37bf;
+    text-decoration: underline;
+  }
+
+  .forgotLink:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
   
   .showPasswordBtn {
     position: absolute;
@@ -165,7 +192,14 @@
   .authMessage {
     margin-top: 10px;
     text-align: center;
+  }
+
+  .authMessageError {
     color: #dc2626;
+  }
+
+  .authMessageSuccess {
+    color: #16a34a;
   }
   
   /* ===== Right panel ===== */

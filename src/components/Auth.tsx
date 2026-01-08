@@ -12,12 +12,15 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"error" | "success" | "">("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
+    setMessageType("");
 
     // ✅ Step 1: Log in with Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -27,6 +30,7 @@ export default function Auth() {
 
     if (error) {
       setMessage(error.message || "Login failed.");
+      setMessageType("error");
       setIsLoading(false);
       return;
     }
@@ -34,6 +38,7 @@ export default function Auth() {
     const user = data?.user;
     if (!user) {
       setMessage("User not found.");
+      setMessageType("error");
       setIsLoading(false);
       return;
     }
@@ -48,6 +53,7 @@ export default function Auth() {
     if (profileError) {
       console.error("Error fetching role:", profileError);
       setMessage("Unable to fetch user role. Please try again.");
+      setMessageType("error");
       setIsLoading(false);
       return;
     }
@@ -60,6 +66,34 @@ export default function Auth() {
     }
 
     setIsLoading(false);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setMessage("Enter your email to reset your password.");
+      setMessageType("error");
+      return;
+    }
+
+    setIsResetting(true);
+    setMessage("");
+    setMessageType("");
+
+    const redirectTo = `${window.location.origin}/auth/reset`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (error) {
+      setMessage(error.message || "Unable to send reset email.");
+      setMessageType("error");
+      setIsResetting(false);
+      return;
+    }
+
+    setMessage("Check your email for a password reset link.");
+    setMessageType("success");
+    setIsResetting(false);
   };
 
   return (
@@ -101,6 +135,16 @@ export default function Auth() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
+            <div className={styles.forgotRow}>
+              <button
+                type="button"
+                className={styles.forgotLink}
+                onClick={handlePasswordReset}
+                disabled={isResetting}
+              >
+                {isResetting ? "Sending reset link..." : "Forgot password?"}
+              </button>
+            </div>
 
             <button type="submit" className={styles.btnDark} disabled={isLoading}>
               {isLoading ? "Logging in…" : "Log In"}
@@ -118,7 +162,17 @@ export default function Auth() {
             </button>
           </div>
 
-          {message && <p className={styles.authMessage}>{message}</p>}
+          {message && (
+            <p
+              className={`${styles.authMessage} ${
+                messageType === "success"
+                  ? styles.authMessageSuccess
+                  : styles.authMessageError
+              }`}
+            >
+              {message}
+            </p>
+          )}
         </div>
       </section>
 
