@@ -4,7 +4,22 @@ import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
 import forge from "node-forge";
-import sharp from "sharp";
+
+type SharpFactory = typeof import("sharp");
+
+let sharpModule: SharpFactory | null = null;
+
+const getSharp = async (): Promise<SharpFactory> => {
+  if (sharpModule) {
+    return sharpModule;
+  }
+
+  const mod = (await import("sharp")) as unknown as {
+    default?: SharpFactory;
+  };
+  sharpModule = mod.default ?? (mod as unknown as SharpFactory);
+  return sharpModule;
+};
 
 type WalletPayload = {
   name: string;
@@ -53,8 +68,9 @@ const readLocalBuffer = async (filePath: string) => {
   }
 };
 
-const resizeLogo = async (buffer: Buffer, size: number) =>
-  sharp(buffer)
+const resizeLogo = async (buffer: Buffer, size: number) => {
+  const sharp = await getSharp();
+  return sharp(buffer)
     .rotate()
     .resize(size, size, {
       fit: "contain",
@@ -62,8 +78,10 @@ const resizeLogo = async (buffer: Buffer, size: number) =>
     })
     .png()
     .toBuffer();
+};
 
 const renderCircularImage = async (buffer: Buffer, size: number) => {
+  const sharp = await getSharp();
   const mask = Buffer.from(
     `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
       <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/>
@@ -149,9 +167,25 @@ export async function GET(req: Request) {
   });
   return NextResponse.json(
     { error: "Method not allowed. Use POST.", method: req.method, allowed: ["POST"] },
-    { status: 400, headers: { Allow: "POST" } }
+    { status: 405, headers: { Allow: "POST" } }
   );
 }
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get("origin") || "*";
+
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+      "Vary": "Origin",
+    },
+  });
+}
+
 
 export async function POST(req: Request) {
   console.log("=== POST /api/wallet-pass called ===");
@@ -397,6 +431,8 @@ export async function POST(req: Request) {
         headers: {
           "Content-Type": "application/vnd.apple.pkpass",
           "Content-Disposition": 'attachment; filename="tapink-wallet.pkpass"',
+          "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
+          "Vary": "Origin",
         },
       });
     } catch (err) {
