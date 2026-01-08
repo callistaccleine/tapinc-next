@@ -243,17 +243,16 @@ export async function POST(req: Request) {
       );
     }
  
-    const dynamicImport = new Function(
-      "specifier",
-      "return import(specifier);"
-    ) as (specifier: string) => Promise<any>;
     let passkit: any = null;
     try {
-      passkit = await dynamicImport("passkit-generator");
+      passkit = await import("passkit-generator");
     } catch (err) {
       console.error("passkit-generator not installed", err);
       return NextResponse.json(
-        { error: "Install passkit-generator to generate .pkpass files." },
+        {
+          error: "Unable to load passkit-generator.",
+          details: err instanceof Error ? err.message : "Unknown import error.",
+        },
         { status: 501 }
       );
     }
