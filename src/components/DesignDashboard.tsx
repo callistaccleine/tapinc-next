@@ -89,6 +89,60 @@ const DEFAULT_WALLET_DESIGN = {
   accentColor: "#ff7a1c",
   showProfilePic: false,
 };
+const SOCIAL_DOMAINS: Record<string, string[]> = {
+  X: ["x.com", "twitter.com"],
+  Instagram: ["instagram.com"],
+  Linkedin: ["linkedin.com"],
+  Facebook: ["facebook.com", "fb.com"],
+  Youtube: ["youtube.com", "youtu.be"],
+  Discord: ["discord.com", "discord.gg"],
+  Twitch: ["twitch.tv"],
+  Whatsapp: ["whatsapp.com", "wa.me"],
+  Github: ["github.com"],
+};
+const SOCIAL_EXAMPLES: Record<string, string> = {
+  X: "https://x.com/username",
+  Instagram: "https://instagram.com/username",
+  Linkedin: "https://linkedin.com/in/username",
+  Facebook: "https://facebook.com/username",
+  Youtube: "https://youtube.com/@channel",
+  Discord: "https://discord.gg/invite",
+  Twitch: "https://twitch.tv/username",
+  Whatsapp: "https://wa.me/1234567890",
+  Github: "https://github.com/username",
+};
+const normalizeSocialUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+const getHostname = (value: string) => {
+  try {
+    return new URL(value).hostname.replace(/^www\\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+};
+const validateSocialUrl = (platform: string, value: string) => {
+  if (!value) return "";
+  const normalized = normalizeSocialUrl(value);
+  const hostname = getHostname(normalized);
+  if (!hostname) return "Enter a valid URL.";
+  const allowedDomains = SOCIAL_DOMAINS[platform] || [];
+  const matches = allowedDomains.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+  );
+  if (!matches) {
+    const example = SOCIAL_EXAMPLES[platform];
+    return example
+      ? `That does not look like a ${platform} URL. Example: ${example}`
+      : `That does not look like a ${platform} URL.`;
+  }
+  return "";
+};
 const CARD_EXPORT_BUCKET = "card-exports";
 const CARD_EXPORT_SIGNED_URL_TTL = 60 * 15;
 
@@ -277,6 +331,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
   const [socials, setSocials] = useState<Socials>({});
+  const [socialErrors, setSocialErrors] = useState<Record<string, string>>({});
   const [newLink, setNewLink] = useState<Link>({ title: "", url: "" });
   const [template, setTemplate] = useState("");
   const [cardDesign, setCardDesign] = useState<CardDesignSettings>({ ...DEFAULT_CARD_DESIGN });
@@ -1128,8 +1183,23 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
   
   const saveSocialsTab = async () => {
     try {
+      const validationErrors: Record<string, string> = {};
+      Object.entries(socials).forEach(([platform, url]) => {
+        const message = validateSocialUrl(platform, url);
+        if (message) {
+          validationErrors[platform] = message;
+        }
+      });
+
+      if (Object.keys(validationErrors).length > 0) {
+        setSocialErrors(validationErrors);
+        showNotification("Please fix the highlighted social links before saving.", "error");
+        return;
+      }
+
       await saveToDatabase({ socials });
       showNotification("Socials saved successfully!", "success");
+      setSocialErrors({});
     } catch (error) {
       showNotification("Failed to save socials", "error");
     }
@@ -2758,10 +2828,16 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                       onClick={() => {
                         if (socials[platform] === undefined) {
                           setSocials({ ...socials, [platform]: "" });
+                          setSocialErrors((prev) => ({ ...prev, [platform]: "" }));
                         } else {
                           const updated = { ...socials };
                           delete updated[platform];
                           setSocials(updated);
+                          setSocialErrors((prev) => {
+                            const next = { ...prev };
+                            delete next[platform];
+                            return next;
+                          });
                         }
                       }}
                       style={{
@@ -2795,24 +2871,28 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
                         placeholder={`Enter your ${platform} URL`}
                         value={url}
                         onChange={(e) => {
-                          const inputUrl = e.target.value.trim();
-                          let normalizedUrl = inputUrl;
-
-                          if (inputUrl && !inputUrl.startsWith("http://") && !inputUrl.startsWith("https://")) {
-                            normalizedUrl = `https://www.${inputUrl}`;
-                          }
-
+                          const inputUrl = e.target.value;
+                          const normalizedUrl = normalizeSocialUrl(inputUrl);
+                          const errorMessage = validateSocialUrl(platform, normalizedUrl);
                           setSocials({ ...socials, [platform]: normalizedUrl });
+                          setSocialErrors((prev) => ({ ...prev, [platform]: errorMessage }));
                         }}
                         style={{
                           padding: "12px 16px",
-                          border: "1px solid #d2d2d7",
+                          border: socialErrors[platform]
+                            ? "1px solid #ef4444"
+                            : "1px solid #d2d2d7",
                           borderRadius: "10px",
                           width: "100%",
                           color: "black",
                           fontSize: "15px",
                         }}
                       />
+                      {socialErrors[platform] && (
+                        <p style={{ margin: "6px 0 0", color: "#ef4444", fontSize: "12px" }}>
+                          {socialErrors[platform]}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
