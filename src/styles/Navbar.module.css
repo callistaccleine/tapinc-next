@@ -55,12 +55,22 @@
   padding: 0;
 }
 
+.mobileOnly {
+  display: none;
+}
+
 .navbarRight {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 1rem;
   z-index: 21;
+}
+
+.authActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .cartIconButton {
@@ -163,6 +173,23 @@
   font-weight: 500;
   transition: all 0.3s ease;
   white-space: nowrap;
+  text-decoration: none;
+}
+
+.navbarLogin {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 0.5rem 1.1rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.navbarLogin:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .navbarCta:hover {
@@ -275,6 +302,17 @@
   border-color: white;
 }
 
+.navbarLight .navbarLogin {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.navbarLight .navbarLogin:hover {
+  background: white;
+  color: #ff5c00;
+  border-color: white;
+}
+
 .navbarLight .navbarLinks a::after {
   background-color: white;
 }
@@ -293,6 +331,17 @@
 .navbarDark .navbarCta,
 .navbarDark .avatarProfile {
   color: #ff5c00;
+  border-color: #ff5c00;
+}
+
+.navbarDark .navbarLogin {
+  color: #ff5c00;
+  border-color: rgba(255, 92, 0, 0.5);
+}
+
+.navbarDark .navbarLogin:hover {
+  background: #ff5c00;
+  color: white;
   border-color: #ff5c00;
 }
 
@@ -404,7 +453,13 @@
 
   /* Keep CTA and avatar visible on mobile */
   .navbarCta {
+    display: none;
     padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .navbarLogin {
+    padding: 0.4rem 0.9rem;
     font-size: 0.9rem;
   }
 
@@ -420,6 +475,10 @@
   .navbarDark .navbarLinks a {
     color: #ff5c00;
     border-bottom-color: rgba(255, 92, 0, 0.1);
+  }
+
+  .mobileOnly {
+    display: block;
   }
   .navbarLinks.open {
     transform: translateX(0);
@@ -442,7 +501,13 @@
   }
 
   .navbarCta {
+    display: none;
     padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .navbarLogin {
+    padding: 0.35rem 0.75rem;
     font-size: 0.85rem;
   }
 
