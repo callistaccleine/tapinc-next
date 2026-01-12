@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       backImage,
       frontImageUrl,
       backImageUrl,
+      createdBy,
       resolution,
       widthPx,
       heightPx,
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
           width_px: widthPx,
           height_px: heightPx,
           status: "submitted",
+          created_by: createdBy ?? profileId ?? null,
         };
 
         const { data: workOrderRecord, error: workOrderError } = await adminClient

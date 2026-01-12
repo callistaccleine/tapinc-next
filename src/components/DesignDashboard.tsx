@@ -1301,6 +1301,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               designProfileId: currentDesignId,
               frontImageUrl,
               backImageUrl,
+              createdBy: user.id,
               resolution: exportPayload.resolution,
               widthPx: exportPayload.widthPx,
               heightPx: exportPayload.heightPx,
