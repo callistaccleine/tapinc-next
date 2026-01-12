@@ -102,6 +102,11 @@ export default function Navbar() {
         <li>
           <Link href="/support">Support</Link>
         </li>
+        {!user && (
+          <li className={styles.mobileOnly}>
+            <Link href="/signup">Register</Link>
+          </li>
+        )}
       </ul>
 
       {/* ✅ Right Section (CTA + User Dropdown + Menu Button) */}
@@ -157,9 +162,14 @@ export default function Navbar() {
             )}
           </div>
         ) : (
-          <Link href="/signup" className={styles.navbarCta}>
-            Register
-          </Link>
+          <div className={styles.authActions}>
+            <Link href="/auth" className={styles.navbarLogin}>
+              Login
+            </Link>
+            <Link href="/signup" className={styles.navbarCta}>
+              Register
+            </Link>
+          </div>
         )}
 
         {/* ✅ Menu Toggle */}
