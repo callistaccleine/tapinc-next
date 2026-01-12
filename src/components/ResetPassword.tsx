@@ -17,6 +17,23 @@ export default function ResetPassword() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"error" | "success" | "">("");
 
+  const passwordRules = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const isPasswordValid =
+    passwordRules.length &&
+    passwordRules.uppercase &&
+    passwordRules.lowercase &&
+    passwordRules.number &&
+    passwordRules.special;
+
+  const passwordsMatch = password.length > 0 && password === confirmPassword;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -55,13 +72,15 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 8) {
-      setMessage("Password must be at least 8 characters.");
+    if (!isPasswordValid) {
+      setMessage(
+        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character."
+      );
       setMessageType("error");
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (!passwordsMatch) {
       setMessage("Passwords do not match.");
       setMessageType("error");
       return;
@@ -83,6 +102,9 @@ export default function ResetPassword() {
   };
 
   const resetUnavailable = !isChecking && !canReset;
+  const showPasswordChecklist = password.length > 0;
+  const showPasswordMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
     <div className={styles.authSplit}>
@@ -117,6 +139,25 @@ export default function ResetPassword() {
                   {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
+              {showPasswordChecklist && (
+                <ul className={styles.passwordChecklist}>
+                  <li className={passwordRules.length ? styles.valid : styles.invalid}>
+                    {passwordRules.length ? "✓" : "✗"} At least 8 characters
+                  </li>
+                  <li className={passwordRules.uppercase ? styles.valid : styles.invalid}>
+                    {passwordRules.uppercase ? "✓" : "✗"} One uppercase letter
+                  </li>
+                  <li className={passwordRules.lowercase ? styles.valid : styles.invalid}>
+                    {passwordRules.lowercase ? "✓" : "✗"} One lowercase letter
+                  </li>
+                  <li className={passwordRules.number ? styles.valid : styles.invalid}>
+                    {passwordRules.number ? "✓" : "✗"} One number
+                  </li>
+                  <li className={passwordRules.special ? styles.valid : styles.invalid}>
+                    {passwordRules.special ? "✓" : "✗"} One special character
+                  </li>
+                </ul>
+              )}
 
               <label className={styles.authLabel}>Confirm password*</label>
               <input
@@ -128,11 +169,18 @@ export default function ResetPassword() {
                 required
                 disabled={resetUnavailable}
               />
+              {showPasswordMismatch && (
+                <p className={`${styles.authMessage} ${styles.authMessageError}`}>
+                  Passwords do not match.
+                </p>
+              )}
 
               <button
                 type="submit"
                 className={styles.btnDark}
-                disabled={isSaving || resetUnavailable}
+                disabled={
+                  isSaving || resetUnavailable || !isPasswordValid || !passwordsMatch
+                }
               >
                 {isSaving ? "Updating…" : "Update password"}
               </button>

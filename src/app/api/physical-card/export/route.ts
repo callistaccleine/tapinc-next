@@ -22,12 +22,40 @@ const dataUrlToBuffer = (dataUrl: string, label: string) => {
   return Buffer.from(match[2], "base64");
 };
 
+const fetchBuffer = async (url: string, label: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${label} from URL.`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+};
+
+const resolveImageBuffer = async (value: string, label: string) => {
+  if (value.startsWith("data:")) {
+    return dataUrlToBuffer(value, label);
+  }
+  return fetchBuffer(value, label);
+};
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
-    const { designProfileId, frontImage, backImage, resolution, widthPx, heightPx, designSettings } = payload;
+    const {
+      designProfileId,
+      frontImage,
+      backImage,
+      frontImageUrl,
+      backImageUrl,
+      resolution,
+      widthPx,
+      heightPx,
+      designSettings,
+    } = payload;
+    const frontSource = frontImageUrl || frontImage;
+    const backSource = backImageUrl || backImage;
 
-    if (!designProfileId || !frontImage || !backImage || !widthPx || !heightPx) {
+    if (!designProfileId || !frontSource || !backSource || !widthPx || !heightPx) {
       return jsonResponse({ error: "Missing required fields" }, 400);
     }
 
@@ -36,8 +64,8 @@ export async function POST(request: NextRequest) {
       return jsonResponse({ error: "Invalid resolution" }, 400);
     }
 
-    const frontBuffer = dataUrlToBuffer(frontImage, "frontImage");
-    const backBuffer = dataUrlToBuffer(backImage, "backImage");
+    const frontBuffer = await resolveImageBuffer(frontSource, "frontImage");
+    const backBuffer = await resolveImageBuffer(backSource, "backImage");
 
     const pdfDoc = await PDFDocument.create();
     const widthPoints = (widthPx / dpi) * 72;
