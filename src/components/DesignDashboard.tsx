@@ -89,6 +89,8 @@ const DEFAULT_WALLET_DESIGN = {
   accentColor: "#ff7a1c",
   showProfilePic: false,
 };
+const CARD_EXPORT_BUCKET = "card-exports";
+const CARD_EXPORT_SIGNED_URL_TTL = 60 * 15;
 
 const clampLogoDpi = (value?: number | null) =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -1233,6 +1235,63 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         currentDesignId
       ) {
         try {
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser();
+
+          if (userError || !user) {
+            showNotification("Card design saved, but exporting assets failed. Please sign in again.", "error");
+            return;
+          }
+
+          const uploadExportImage = async (dataUrl: string, label: string) => {
+            const response = await fetch(dataUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to read ${label} image data.`);
+            }
+            const blob = await response.blob();
+            const contentType = blob.type || "image/png";
+            const extension = contentType.includes("jpeg")
+              ? "jpg"
+              : contentType.includes("png")
+              ? "png"
+              : "png";
+            const fileName = `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+            const filePath = `${user.id}/${currentDesignId}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from(CARD_EXPORT_BUCKET)
+              .upload(filePath, blob, {
+                cacheControl: "3600",
+                contentType,
+                upsert: false,
+              });
+
+            if (uploadError) {
+              throw new Error(uploadError.message || "Upload failed.");
+            }
+
+            const { data: signedData, error: signedError } = await supabase.storage
+              .from(CARD_EXPORT_BUCKET)
+              .createSignedUrl(filePath, CARD_EXPORT_SIGNED_URL_TTL);
+
+            if (!signedError && signedData?.signedUrl) {
+              return signedData.signedUrl;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+              .from(CARD_EXPORT_BUCKET)
+              .getPublicUrl(filePath);
+
+            return publicUrlData.publicUrl;
+          };
+
+          const [frontImageUrl, backImageUrl] = await Promise.all([
+            uploadExportImage(exportPayload.frontImage, "front"),
+            uploadExportImage(exportPayload.backImage, "back"),
+          ]);
+
           const response = await fetch("/api/physical-card/export", {
             method: "POST",
             headers: {
@@ -1240,8 +1299,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             },
             body: JSON.stringify({
               designProfileId: currentDesignId,
-              frontImage: exportPayload.frontImage,
-              backImage: exportPayload.backImage,
+              frontImageUrl,
+              backImageUrl,
+              createdBy: user.id,
               resolution: exportPayload.resolution,
               widthPx: exportPayload.widthPx,
               heightPx: exportPayload.heightPx,
@@ -1253,7 +1313,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             const errorBody = await response.json().catch(() => null);
             console.error("Failed to export card assets:", errorBody);
             showNotification(
-              "Card design saved but exporting assets to Google Drive failed.",
+              "Card design saved, but asset export failed. Please try again.",
               "error"
             );
             return;
@@ -1262,7 +1322,7 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
         } catch (err) {
           console.error("Export error:", err);
           showNotification(
-            "Card design saved but exporting assets to Google Drive failed.",
+            "Card design saved, but exporting assets failed. Please try again.",
             "error"
           );
           return;
