@@ -196,6 +196,165 @@ const FONT_OPTIONS: { label: string; value: FontOption }[] = [
   { label: "Avenir", value: "avenir" },
   { label: "Default (Manrope)", value: "default" },
 ];
+
+const CARD_DESIGN_FONT_OPTIONS: { label: string; value: FontOption }[] = [
+  { label: "Default (Manrope)", value: "default" },
+  { label: "SF Pro", value: "sfpro" },
+  { label: "Manrope", value: "manrope" },
+  { label: "Apple System", value: "-apple-system" },
+  { label: "Helvetica", value: "helveticas" },
+  { label: "Arial", value: "arial" },
+  { label: "Sans Serif", value: "serif" },
+  { label: "Playfair", value: "playfair" },
+  { label: "Times New Roman", value: "times" },
+  { label: "Serif", value: "serif" },
+  { label: "Monospace", value: "mono" },
+  { label: "Courier New", value: "courier" },
+  { label: "Pacifico", value: "pacifio" },
+  { label: "Brush", value: "brush" },
+  { label: "Cursive", value: "cursive" },
+  { label: "Poppins", value: "poppins" },
+  { label: "Avenir", value: "avenir" },
+];
+
+const resolveFontStack = (value?: FontOption) => FONT_STACKS[(value ?? "default") as FontOption];
+
+type FontSelectVariant = "light" | "dark";
+
+const FontFamilySelect = ({
+  value,
+  onChange,
+  options,
+  disabled,
+  variant = "light",
+}: {
+  value: FontOption;
+  onChange: (value: FontOption) => void;
+  options: { label: string; value: FontOption }[];
+  disabled?: boolean;
+  variant?: FontSelectVariant;
+}) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const activeOption = options.find((option) => option.value === value) ?? options[0];
+  const isDark = variant === "dark";
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (event: MouseEvent | TouchEvent) => {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (disabled && open) setOpen(false);
+  }, [disabled, open]);
+
+  return (
+    <div ref={wrapperRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "8px",
+          border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #d0d5dd",
+          background: isDark ? "rgba(255,255,255,0.05)" : "#ffffff",
+          color: isDark ? "#ffffff" : "#0f172a",
+          borderRadius: isDark ? "10px" : "8px",
+          padding: "8px 10px",
+          fontSize: isDark ? "12px" : "13px",
+          fontFamily: resolveFontStack(activeOption?.value ?? "default"),
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
+      >
+        <span style={{ flex: 1, textAlign: "left" }}>{activeOption?.label ?? "Select font"}</span>
+        <span
+          aria-hidden
+          style={{
+            width: 6,
+            height: 6,
+            borderRight: `2px solid ${isDark ? "#ffffff" : "#475467"}`,
+            borderBottom: `2px solid ${isDark ? "#ffffff" : "#475467"}`,
+            transform: open ? "rotate(-135deg)" : "rotate(45deg)",
+            marginLeft: "6px",
+          }}
+        />
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            maxHeight: 260,
+            overflowY: "auto",
+            background: isDark ? "#0f172a" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #d0d5dd",
+            borderRadius: "10px",
+            boxShadow: isDark ? "0 18px 36px rgba(0,0,0,0.35)" : "0 12px 24px rgba(15,23,42,0.12)",
+            zIndex: 30,
+          }}
+        >
+          {options.map((option) => {
+            const selected = option.value === value;
+            return (
+              <button
+                key={`${option.value}-${option.label}`}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 12px",
+                  background: selected
+                    ? isDark
+                      ? "rgba(255,255,255,0.12)"
+                      : "#f3f4f6"
+                    : "transparent",
+                  color: isDark ? "#e2e8f0" : "#0f172a",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: resolveFontStack(option.value),
+                  fontWeight: selected ? 600 : 400,
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 const MIN_RESIZABLE_RATIO = 0.08;
 const MAX_RESIZABLE_RATIO = 0.6;
 const MIN_FONT_RATIO = 0.01;
@@ -3121,29 +3280,18 @@ const renderElement = (element: CardElement) => {
                 </button>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Font family
-                  <select
-                    value={activeElement.fontFamily ?? cardDesign.fontFamily ?? "default"}
-                    onChange={(event) =>
+                  <FontFamilySelect
+                    value={(activeElement.fontFamily ?? cardDesign.fontFamily ?? "default") as FontOption}
+                    onChange={(next) =>
                       applyToSelection(
                         (el) => el.type === "text",
-                        (el) => ({ ...el, fontFamily: event.target.value as FontOption })
+                        (el) => ({ ...el, fontFamily: next })
                       )
                     }
+                    options={FONT_OPTIONS}
                     disabled={activeElement.locked}
-                    style={{
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      background: "rgba(255,255,255,0.05)",
-                      color: "#ffffff",
-                      borderRadius: "10px",
-                      padding: "8px 10px",
-                    }}
-                  >
-                    {FONT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    variant="dark"
+                  />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#cbd5e1" }}>
                   Text colour
@@ -3820,35 +3968,14 @@ const renderElement = (element: CardElement) => {
               }}
             />
             <span style={{ fontSize: "12px", color: "#6b7280", marginTop: "8px" }}>Font</span>
-            <select
-              value={cardDesign.fontFamily ?? "default"}
-              onChange={(event) => updateCardDesign({ fontFamily: event.target.value as FontOption })}
-              style={{
-                border: "1px solid #d0d5dd",
-                borderRadius: "8px",
-                padding: "8px 10px",
-                fontSize: "13px",
-                marginTop: "4px",
-              }}
-            >
-              <option value="sfpro">SF Pro</option>
-              <option value="manrope">Manrope</option>
-              <option value="-apple-system">Apple System</option>
-              <option value="helveticas">Helvetica</option>
-              <option value="arial">Arial</option>
-              <option value="serif">Sans Serif</option>
-              <option value="playfair">Playfair</option>
-              <option value="times">Times New Roman</option>
-              <option value="serif">Serif</option>
-              <option value="mono">Monospace</option>
-              <option value="courier">Courier New</option>
-              <option value="pacifio">Pacifio</option>
-              <option value="brush">Brush</option>
-              <option value="cursive">Cursive</option>
-              <option value="poppins">Poppins</option>
-              <option value="avenir">Avenir</option>
-
-            </select>
+            <div style={{ marginTop: "4px" }}>
+              <FontFamilySelect
+                value={(cardDesign.fontFamily ?? "default") as FontOption}
+                onChange={(next) => updateCardDesign({ fontFamily: next })}
+                options={CARD_DESIGN_FONT_OPTIONS}
+                variant="light"
+              />
+            </div>
           </label>
         </div>
 
