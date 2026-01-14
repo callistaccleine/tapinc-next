@@ -661,6 +661,9 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           .select("*")
           .eq("profile_id", profile.id)
           .single();
+        const hasDesignCoreFields = Boolean(
+          designData?.email || designData?.firstname || designData?.surname || designData?.phone
+        );
 
         if (designError && designError.code !== 'PGRST116') {
           console.error("Database error:", designError);
@@ -791,19 +794,21 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
           }
         }
 
-        // Fill any missing fields from the signed-in profile/user (without overwriting saved data)
-        const profileFirst = profile?.firstname || profile?.first_name || "";
-        const profileLast = profile?.surname || profile?.last_name || "";
-        const profilePronouns = profile?.pronouns || "";
-        const profilePhone = profile?.phone || "";
-        const profileCompany = profile?.company || "";
-        const profileEmail = profile?.email || user.email || "";
-        if (!firstname && profileFirst) setFirstName(profileFirst);
-        if (!surname && profileLast) setSurname(profileLast);
-        if (!pronouns && profilePronouns) setPronouns(profilePronouns);
-        if (!phone && profilePhone) setPhone(formatPhoneInput(profilePhone));
-        if (!company && profileCompany) setCompany(profileCompany);
-        if (!email && profileEmail) setEmail(profileEmail);
+        if (!hasDesignCoreFields) {
+          // Fill any missing fields from the signed-in profile/user only when core fields are empty.
+          const profileFirst = profile?.firstname || profile?.first_name || "";
+          const profileLast = profile?.surname || profile?.last_name || "";
+          const profilePronouns = profile?.pronouns || "";
+          const profilePhone = profile?.phone || "";
+          const profileCompany = profile?.company || "";
+          const profileEmail = profile?.email || user.email || "";
+          if (!firstname && profileFirst) setFirstName(profileFirst);
+          if (!surname && profileLast) setSurname(profileLast);
+          if (!pronouns && profilePronouns) setPronouns(profilePronouns);
+          if (!phone && profilePhone) setPhone(formatPhoneInput(profilePhone));
+          if (!company && profileCompany) setCompany(profileCompany);
+          if (!email && profileEmail) setEmail(profileEmail);
+        }
 
         // Load activation status from profiles table
         if (profile) {
