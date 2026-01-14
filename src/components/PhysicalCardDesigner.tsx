@@ -1296,46 +1296,56 @@ const renderElement = (element: CardElement) => {
       const fontWeight = element.fontWeight ?? DEFAULT_FONT_WEIGHT;
       const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
       const iconKey = element.contentKey && iconEligibleKeys.includes(element.contentKey) ? element.contentKey : null;
+      const textBounds = getBoundsForElement(element, widthRatio, heightRatio);
+      const alignTolerance = 0.002;
+      const isRightAligned = Math.abs((element.x ?? 0) - textBounds.maxX) <= alignTolerance;
+      const exportAlignRight = exporting && isRightAligned;
+      const rightInsetPx = contentOffsetX + (isCustomTextElement(element) ? 0 : safeXPx);
+      const textContainerStyle: CSSProperties = {
+        ...baseStyle,
+        display: "flex",
+        alignItems: "center",
+        ...(exportAlignRight ? { left: "auto", right: rightInsetPx } : null),
+      };
       return (
         <div
           key={element.id}
-          style={{
-            ...baseStyle,
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              textAlign === "right" ? "flex-end" : textAlign === "center" ? "center" : "flex-start",
-          }}
+          style={textContainerStyle}
           onPointerDown={(event) => handleElementPointerDown(event, element)}
         >
           <div
             style={{
               color: element.color || cardDesign.textColor,
               fontSize,
-              textAlign,
+              textAlign: exportAlignRight ? "right" : textAlign,
               fontWeight,
               fontStyle,
               lineHeight: 1.15,
               whiteSpace: "pre",
               fontFamily,
-              display: element.showIcon && iconKey ? "inline-flex" : "inline",
-              alignItems: "center",
-              gap: element.showIcon && iconKey ? Math.max(fontSize * 0.2, 6) : undefined,
               height: "100%",
+              width: "100%",
             }}
           >
-            {element.showIcon && iconKey && (
-              <span
-                aria-hidden="true"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: fontSize * 0.9,
-                  height: fontSize * 0.9,
-                  color: element.color || cardDesign.textColor,
-                }}
-              >
+            <span
+              style={{
+                display: element.showIcon && iconKey ? "inline-flex" : "inline",
+                alignItems: element.showIcon && iconKey ? "center" : undefined,
+                gap: element.showIcon && iconKey ? Math.max(fontSize * 0.2, 6) : undefined,
+              }}
+            >
+              {element.showIcon && iconKey && (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: fontSize * 0.9,
+                    height: fontSize * 0.9,
+                    color: element.color || cardDesign.textColor,
+                  }}
+                >
                 {iconKey === "phone" && (
                   <svg
                     width="100%"
@@ -1418,8 +1428,9 @@ const renderElement = (element: CardElement) => {
                   </svg>
                 )}
               </span>
-            )}
-            {getTextValue(element)}
+              )}
+              {getTextValue(element)}
+            </span>
           </div>
         </div>
       );
