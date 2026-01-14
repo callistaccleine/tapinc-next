@@ -389,6 +389,10 @@ const isCustomTextElement = (element: CardElement) =>
 
 const isBorderElement = (element: CardElement) => element.type === "border";
 const isShapeElement = (element: CardElement) => element.type === "shape";
+const canBleedCustomText = (element: CardElement) =>
+  isCustomTextElement(element) && !!element.allowFullBleed;
+const canElementBleedOutsideSafeArea = (element: CardElement) =>
+  isShapeElement(element) || canBleedCustomText(element);
 const iconEligibleKeys: TextContentKey[] = ["name", "title", "company", "role", "phone", "email"];
 const canShowIcon = (element: CardElement) =>
   element.type === "text" && !!element.contentKey && iconEligibleKeys.includes(element.contentKey);
@@ -416,6 +420,7 @@ export type CardElement = {
   fontWeight?: FontWeightOption;
   fontStyle?: FontStyleOption;
   shapeVariant?: "rectangle" | "circle" | "square" | "triangle";
+  allowFullBleed?: boolean;
   borderThickness?: number;
   borderStyle?: "solid" | "dashed" | "dotted";
   borderColor?: string;
@@ -879,7 +884,7 @@ export function PhysicalCardDesigner({
       };
     }
     const isImageNonLogo = element.type === "image" && getMediaType(element) !== "logo";
-    const allowFull = isCustomTextElement(element) || isShapeElement(element);
+    const allowFull = canElementBleedOutsideSafeArea(element);
     const minX = isImageNonLogo ? -bleedXRatio : allowFull ? 0 : safeXRatio;
     const maxX = isImageNonLogo
       ? Math.max(minX, 1 + bleedXRatio - widthRatio)
@@ -1297,15 +1302,14 @@ const renderElement = (element: CardElement) => {
       const fontStyle = element.fontStyle ?? DEFAULT_FONT_STYLE;
       const iconKey = element.contentKey && iconEligibleKeys.includes(element.contentKey) ? element.contentKey : null;
       const textBounds = getBoundsForElement(element, widthRatio, heightRatio);
-      const alignTolerance = 0.002;
-      const isRightAligned = Math.abs((element.x ?? 0) - textBounds.maxX) <= alignTolerance;
-      const exportAlignRight = exporting && isRightAligned;
-      const rightInsetPx = contentOffsetX + (isCustomTextElement(element) ? 0 : safeXPx);
+      const rightEdgeRatio = (element.x ?? textBounds.minX) + widthRatio;
+      const exportAlignRight = exporting && textAlign === "right";
+      const rightOffsetPx = bleedXPx + displayedWidth * Math.max(1 - rightEdgeRatio, 0);
       const textContainerStyle: CSSProperties = {
         ...baseStyle,
         display: "flex",
         alignItems: "center",
-        ...(exportAlignRight ? { left: "auto", right: rightInsetPx } : null),
+        ...(exportAlignRight ? { left: "auto", right: rightOffsetPx } : null),
       };
       return (
         <div
@@ -1783,7 +1787,7 @@ const renderElement = (element: CardElement) => {
   };
   const showPlacementWarning =
     !!activeElement &&
-    (isCustomTextElement(activeElement) || isShapeElement(activeElement)) &&
+    (isShapeElement(activeElement) || (isCustomTextElement(activeElement) && !canBleedCustomText(activeElement))) &&
     isOutsideSafeArea(activeElement);
   const guidesVisible = !previewMode && !exporting && (showGuidesOverlay || showGuidesHint);
   const cutLineVisible = guidesVisible || exporting;
@@ -2099,8 +2103,7 @@ const renderElement = (element: CardElement) => {
       const horizontalDelta = (() => {
         if (!options.horizontal) return 0;
         const allowBleedWidth = selected.every((el) => el.type === "image" && getMediaType(el) !== "logo");
-        const allowFullWidth =
-          allowBleedWidth || selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const allowFullWidth = allowBleedWidth || selected.every((el) => canElementBleedOutsideSafeArea(el));
         const marginX = allowBleedWidth ? -bleedXRatio : allowFullWidth ? 0 : safeXRatio;
         const availableWidth = allowBleedWidth
           ? Math.max(1 + bleedXRatio * 2, 0)
@@ -2132,8 +2135,7 @@ const renderElement = (element: CardElement) => {
       const verticalDelta = (() => {
         if (!options.vertical) return 0;
         const allowBleedHeight = selected.every((el) => el.type === "image" && getMediaType(el) !== "logo");
-        const allowFullHeight =
-          allowBleedHeight || selected.every((el) => isCustomTextElement(el) || isShapeElement(el));
+        const allowFullHeight = allowBleedHeight || selected.every((el) => canElementBleedOutsideSafeArea(el));
         const marginY = allowBleedHeight ? -bleedYRatio : allowFullHeight ? 0 : safeYRatio;
         const availableHeight = allowBleedHeight
           ? Math.max(1 + bleedYRatio * 2, 0)
@@ -2173,6 +2175,7 @@ const renderElement = (element: CardElement) => {
           ...element,
           x: (element.x ?? 0) + horizontalDelta,
           y: (element.y ?? 0) + verticalDelta,
+          ...(options.horizontal && element.type === "text" ? { textAlign: options.horizontal } : {}),
         };
       });
     });
@@ -2274,6 +2277,7 @@ const renderElement = (element: CardElement) => {
           if (options.horizontal === "left") next.x = bounds.minX;
           if (options.horizontal === "center") next.x = clamp((1 - widthRatio) / 2, bounds.minX, bounds.maxX);
           if (options.horizontal === "right") next.x = bounds.maxX;
+          if (element.type === "text") next.textAlign = options.horizontal;
         }
         if (options.vertical) {
           if (options.vertical === "top") next.y = bounds.minY;
@@ -2299,10 +2303,21 @@ const renderElement = (element: CardElement) => {
     setElements((prev) =>
       prev.map((element) =>
         element.id === id
-          ? {
-              ...element,
-              text: value,
-            }
+          ? (() => {
+              const next = {
+                ...element,
+                text: value,
+              };
+              if (next.type === "text" && next.textAlign === "right") {
+                const widthRatio = getElementWidth(next);
+                const heightRatio = getElementHeight(next);
+                const bounds = getBoundsForElement(next, widthRatio, heightRatio);
+                const alignTolerance = 0.002;
+                const isPinnedRight = Math.abs((next.x ?? 0) - bounds.maxX) <= alignTolerance;
+                return isPinnedRight ? { ...next, x: bounds.maxX } : next;
+              }
+              return next;
+            })()
           : element
       )
     );
@@ -2512,41 +2527,6 @@ const renderElement = (element: CardElement) => {
             <span>Safe area (keep text/logos inside)</span>
           </span>
         </div>
-        {showPlacementWarning && (
-          <div
-            style={{
-              marginTop: "4px",
-              padding: "8px 12px",
-              borderRadius: "12px",
-              background: "rgba(239,68,68,0.1)",
-              border: "1px solid rgba(239,68,68,0.25)",
-              color: "#ef4444",
-              fontSize: "12px",
-              fontWeight: 600,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              maxWidth: "100%",
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12" y2="17" />
-            </svg>
-            Danger zone: elements outside the safe area could be cut off during production.
-          </div>
-        )}
         {activeElement && toolbarPosition && (
           <div
             style={{
@@ -2958,7 +2938,9 @@ const renderElement = (element: CardElement) => {
                 <AlignIcon variant="bottom" />
               </button>
             </div>
-            {showPlacementWarning && (
+            {activeElement.type === "text" &&
+              isCustomTextElement(activeElement) &&
+              activeElement.allowFullBleed && (
               <div
                 style={{
                   marginTop: "6px",
@@ -2970,7 +2952,7 @@ const renderElement = (element: CardElement) => {
                   lineHeight: 1.4,
                 }}
               >
-                Placing items outside the safe area might lead to trimming when printed. Proceed carefully.
+                Custom text can sit outside the safe area. Anything outside might be trimmed during production.
               </div>
             )}
             {activeElement.type === "text" && canShowIcon(activeElement) && (
@@ -2988,6 +2970,23 @@ const renderElement = (element: CardElement) => {
                   style={{ width: "16px", height: "16px" }}
                 />
                 Show icon for this field
+              </label>
+            )}
+            {activeElement.type === "text" && isCustomTextElement(activeElement) && (
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#cbd5e1", marginTop: "6px" }}>
+                <input
+                  type="checkbox"
+                  checked={!!activeElement.allowFullBleed}
+                  disabled={activeElement.locked}
+                  onChange={(event) =>
+                    applyToSelection(
+                      (el) => isCustomTextElement(el),
+                      (el) => ({ ...el, allowFullBleed: event.target.checked })
+                    )
+                  }
+                  style={{ width: "16px", height: "16px" }}
+                />
+                Allow custom text outside the safe area
               </label>
             )}
             {activeElement.type === "shape" && (
