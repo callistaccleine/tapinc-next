@@ -1366,6 +1366,14 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
             uploadExportImage(exportPayload.frontImage, "front"),
             uploadExportImage(exportPayload.backImage, "back"),
           ]);
+          let reviewFrontImageUrl: string | undefined;
+          let reviewBackImageUrl: string | undefined;
+          if (exportPayload.reviewFrontImage && exportPayload.reviewBackImage) {
+            [reviewFrontImageUrl, reviewBackImageUrl] = await Promise.all([
+              uploadExportImage(exportPayload.reviewFrontImage, "front-review"),
+              uploadExportImage(exportPayload.reviewBackImage, "back-review"),
+            ]);
+          }
 
           const response = await fetch("/api/physical-card/export", {
             method: "POST",
@@ -1376,7 +1384,10 @@ export default function DesignDashboard({profile}: DesignDashboardProps) {
               designProfileId: currentDesignId,
               frontImageUrl,
               backImageUrl,
+              reviewFrontImageUrl,
+              reviewBackImageUrl,
               createdBy: user.id,
+              createdByEmail: user.email,
               resolution: exportPayload.resolution,
               widthPx: exportPayload.widthPx,
               heightPx: exportPayload.heightPx,

@@ -547,6 +547,8 @@ export type CardDesignSettings = {
 export type CardExportPayload = {
   frontImage: string;
   backImage: string;
+  reviewFrontImage?: string;
+  reviewBackImage?: string;
   resolution: CardResolution;
   widthPx: number;
   heightPx: number;
@@ -921,6 +923,8 @@ export function PhysicalCardDesigner({
   const [saving, setSaving] = useState(false);
   const [savingDesign, setSavingDesign] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [exportMode, setExportMode] = useState<"production" | "review" | null>(null);
   const [activeElementIds, setActiveElementIds] = useState<string[]>([]);
   const [selectedElementSide, setSelectedElementSide] = useState<CardSide>("front");
   const [selectedPreset, setSelectedPreset] = useState<TextContentKey>("headline");
@@ -1248,7 +1252,11 @@ export function PhysicalCardDesigner({
     setActiveElementIds([]);
   };
 
-const renderElement = (element: CardElement) => {
+  type RenderElementOptions = {
+    disableGuides?: boolean;
+    disablePointer?: boolean;
+  };
+  const renderElement = (element: CardElement, options?: RenderElementOptions) => {
   const isOnActiveSide = element.side === selectedElementSide;
   const isSelected = activeElementIds.length
     ? activeElementIds.includes(element.id)
@@ -1261,7 +1269,10 @@ const renderElement = (element: CardElement) => {
   const heightPx = heightRatio * displayedHeight;
     const left = contentOffsetX + (element.x ?? 0) * displayedWidth;
     const top = contentOffsetY + (element.y ?? 0) * displayedHeight;
-    const showGuides = !exporting && isOnActiveSide;
+    const showGuides = !exporting && isOnActiveSide && !options?.disableGuides;
+    const pointerDownHandler = options?.disablePointer
+      ? undefined
+      : (event: ReactPointerEvent<HTMLDivElement>) => handleElementPointerDown(event, element);
     const selectionBorder = showGuides
       ? isSelected
         ? `1px solid ${selectionHighlightColor}`
@@ -1291,6 +1302,7 @@ const renderElement = (element: CardElement) => {
       opacity: (element.opacity ?? 1) * (element.locked ? 0.6 : 1),
       transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
       transformOrigin: "center center",
+      pointerEvents: options?.disablePointer ? "none" : "auto",
     };
 
     if (element.type === "text") {
@@ -1315,7 +1327,7 @@ const renderElement = (element: CardElement) => {
         <div
           key={element.id}
           style={textContainerStyle}
-          onPointerDown={(event) => handleElementPointerDown(event, element)}
+          onPointerDown={pointerDownHandler}
         >
           <div
             style={{
@@ -1471,12 +1483,15 @@ const renderElement = (element: CardElement) => {
                 border: selectionDashedBorder,
                 borderRadius: 0,
               }}
-              onPointerDown={(event) => handleElementPointerDown(event, element)}
+              onPointerDown={pointerDownHandler}
             >
           {src ? (
             <img
               src={src}
               alt="Card image"
+              crossOrigin="anonymous"
+              loading="eager"
+              decoding="async"
               style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
               onLoad={handleImageLoad}
             />
@@ -1511,8 +1526,9 @@ const renderElement = (element: CardElement) => {
               width: widthPx,
               height: heightPx,
               cursor: showGuides ? "grab" : "default",
+              pointerEvents: options?.disablePointer ? "none" : "auto",
             }}
-            onPointerDown={(event) => handleElementPointerDown(event, element)}
+            onPointerDown={pointerDownHandler}
           >
             <div
               style={{
@@ -1539,7 +1555,7 @@ const renderElement = (element: CardElement) => {
             borderRadius: radius,
             border: selectionDashedBorder,
           }}
-          onPointerDown={(event) => handleElementPointerDown(event, element)}
+          onPointerDown={pointerDownHandler}
         />
       );
     }
@@ -1554,7 +1570,7 @@ const renderElement = (element: CardElement) => {
             borderRadius: "999px",
             border: selectionDashedBorder,
           }}
-          onPointerDown={(event) => handleElementPointerDown(event, element)}
+          onPointerDown={pointerDownHandler}
         />
       );
     }
@@ -1582,8 +1598,9 @@ const renderElement = (element: CardElement) => {
               height: Math.max(thicknessPx * 2, 12),
               background: "transparent",
               cursor: "pointer",
+              pointerEvents: options?.disablePointer ? "none" : "auto",
             }}
-            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+            onPointerDown={pointerDownHandler}
           />
           <div
             key={`${element.id}-hit-bottom`}
@@ -1595,8 +1612,9 @@ const renderElement = (element: CardElement) => {
               height: Math.max(thicknessPx * 2, 12),
               background: "transparent",
               cursor: "pointer",
+              pointerEvents: options?.disablePointer ? "none" : "auto",
             }}
-            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+            onPointerDown={pointerDownHandler}
           />
           <div
             key={`${element.id}-hit-left`}
@@ -1608,8 +1626,9 @@ const renderElement = (element: CardElement) => {
               height: Math.max(displayedHeight - Math.max(thicknessPx * 4, 24), 0),
               background: "transparent",
               cursor: "pointer",
+              pointerEvents: options?.disablePointer ? "none" : "auto",
             }}
-            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+            onPointerDown={pointerDownHandler}
           />
           <div
             key={`${element.id}-hit-right`}
@@ -1621,8 +1640,9 @@ const renderElement = (element: CardElement) => {
               height: Math.max(displayedHeight - Math.max(thicknessPx * 4, 24), 0),
               background: "transparent",
               cursor: "pointer",
+              pointerEvents: options?.disablePointer ? "none" : "auto",
             }}
-            onPointerDown={(event) => handleElementPointerDown(event as unknown as ReactPointerEvent<HTMLDivElement>, element)}
+            onPointerDown={pointerDownHandler}
           />
           <div
             key={element.id}
@@ -1672,7 +1692,7 @@ const renderElement = (element: CardElement) => {
           borderRadius: 0,
           boxSizing: "border-box",
         }}
-        onPointerDown={(event) => handleElementPointerDown(event, element)}
+        onPointerDown={pointerDownHandler}
       >
         <QRCodeCanvas
           value={qrValue}
@@ -1698,6 +1718,26 @@ const renderElement = (element: CardElement) => {
   const activeElements = useMemo(
     () => cardElements.filter((element) => activeElementIds.includes(element.id)),
     [cardElements, activeElementIds]
+  );
+  const modalPreviewScale = isCompactLayout ? 0.82 : 1;
+  const modalCardWidth = (displayedWidth + bleedXPx * 2) * modalPreviewScale;
+  const modalCardHeight = (displayedHeight + bleedYPx * 2) * modalPreviewScale;
+  const renderModalPreview = (side: CardSide, elements: CardElement[]) => (
+    <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <div style={{ position: "relative", width: modalCardWidth, height: modalCardHeight }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            transform: `scale(${modalPreviewScale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          {renderCard(side, null, elements, { previewOnly: true })}
+        </div>
+      </div>
+    </div>
   );
   const selectedElements = useMemo(
     () => cardElements.filter((element) => element.side === selectedElementSide),
@@ -1790,7 +1830,7 @@ const renderElement = (element: CardElement) => {
     (isShapeElement(activeElement) || (isCustomTextElement(activeElement) && !canBleedCustomText(activeElement))) &&
     isOutsideSafeArea(activeElement);
   const guidesVisible = !previewMode && !exporting && (showGuidesOverlay || showGuidesHint);
-  const cutLineVisible = guidesVisible || exporting;
+  const cutLineVisible = guidesVisible || (exporting && exportMode !== "review");
   const [imageAspectByUrl, setImageAspectByUrl] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -1859,30 +1899,88 @@ const renderElement = (element: CardElement) => {
     document.addEventListener("pointerdown", handleOutsideClick, true);
     return () => document.removeEventListener("pointerdown", handleOutsideClick, true);
   }, []);
+  useEffect(() => {
+    if (!showExportConfirm) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowExportConfirm(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showExportConfirm]);
+  const waitForImages = useCallback(async (node: HTMLElement) => {
+    const images = Array.from(node.querySelectorAll("img"));
+    if (!images.length) return;
+
+    const decodeImage = async (img: HTMLImageElement) => {
+      if (!img.decode) return;
+      try {
+        await img.decode();
+      } catch {
+        // Ignore decode errors; we'll still attempt export.
+      }
+    };
+
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) {
+          return decodeImage(img);
+        }
+
+        return new Promise<void>((resolve) => {
+          const handleDone = async () => {
+            img.removeEventListener("load", handleDone);
+            img.removeEventListener("error", handleDone);
+            await decodeImage(img);
+            resolve();
+          };
+
+          img.addEventListener("load", handleDone);
+          img.addEventListener("error", handleDone);
+        });
+      })
+    );
+  }, []);
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
     setExporting(true);
+    setExportMode("production");
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     try {
-      if (!frontRef.current || !backRef.current) {
+      const frontNode = frontRef.current;
+      const backNode = backRef.current;
+      if (!frontNode || !backNode) {
         throw new Error("Card preview not ready");
       }
 
-      const [frontImage, backImage] = await Promise.all([
-        toPng(frontRef.current, {
-          cacheBust: true,
-          pixelRatio,
-        }),
-        toPng(backRef.current, {
-          cacheBust: true,
-          pixelRatio,
-        }),
-      ]);
+      await Promise.all([waitForImages(frontNode), waitForImages(backNode)]);
+
+      const captureImages = async (mode: "production" | "review") => {
+        setExportMode(mode);
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+        const [frontImage, backImage] = await Promise.all([
+          toPng(frontNode, {
+            cacheBust: true,
+            pixelRatio,
+          }),
+          toPng(backNode, {
+            cacheBust: true,
+            pixelRatio,
+          }),
+        ]);
+        return { frontImage, backImage };
+      };
+
+      const productionImages = await captureImages("production");
+      const reviewImages = await captureImages("review");
 
       await onSave({
-        frontImage,
-        backImage,
+        frontImage: productionImages.frontImage,
+        backImage: productionImages.backImage,
+        reviewFrontImage: reviewImages.frontImage,
+        reviewBackImage: reviewImages.backImage,
         resolution: cardDesign.resolution,
         widthPx: Math.round(cardWidthPx),
         heightPx: Math.round(cardHeightPx),
@@ -1890,9 +1988,15 @@ const renderElement = (element: CardElement) => {
     } catch (error) {
       console.error("Failed to export card design", error);
     } finally {
+      setExportMode(null);
       setExporting(false);
       setSaving(false);
     }
+  };
+  const handleConfirmExport = async () => {
+    if (saving) return;
+    setShowExportConfirm(false);
+    await handleSave();
   };
 
   const handleSaveDesign = async () => {
@@ -2363,12 +2467,21 @@ const renderElement = (element: CardElement) => {
     );
   };
 
+  type RenderCardOptions = {
+    previewOnly?: boolean;
+  };
   const renderCard = (
     side: CardSide,
-    ref: RefObject<HTMLDivElement | null>,
-    elements: CardElement[]
+    ref: RefObject<HTMLDivElement | null> | null,
+    elements: CardElement[],
+    options?: RenderCardOptions
   ) => {
+    const previewOnly = options?.previewOnly;
     const cutLineColor = getCutLineColor(side);
+    const showCutLines = !previewOnly && cutLineVisible;
+    const showGuideLines = !previewOnly && guidesVisible;
+    const showGridOverlay = !previewOnly && showGrid && !previewMode && !exporting;
+    const elementOptions = previewOnly ? { disableGuides: true, disablePointer: true } : undefined;
     return (
     <div
       style={{
@@ -2381,12 +2494,13 @@ const renderElement = (element: CardElement) => {
         boxShadow: "0 22px 50px rgba(15,23,42,0.22)",
         position: "relative",
         overflow: "hidden",
+        pointerEvents: previewOnly ? "none" : "auto",
       }}
-      ref={ref}
+      ref={ref ?? undefined}
     >
-      {cutLineVisible && (
+      {showCutLines && (
         <>
-          {guidesVisible && (
+          {showGuideLines && (
             <div
               style={{
                 position: "absolute",
@@ -2415,7 +2529,7 @@ const renderElement = (element: CardElement) => {
               pointerEvents: "none",
             }}
           />
-          {guidesVisible && (
+          {showGuideLines && (
             <div
               style={{
                 position: "absolute",
@@ -2432,7 +2546,7 @@ const renderElement = (element: CardElement) => {
           )}
         </>
       )}
-      {showGrid && !previewMode && !exporting && (
+      {showGridOverlay && (
         <div
           style={{
             position: "absolute",
@@ -2450,7 +2564,7 @@ const renderElement = (element: CardElement) => {
           }}
         />
       )}
-      {elements.map((element) => renderElement(element))}
+      {elements.map((element) => renderElement(element, elementOptions))}
     </div>
   );
   };
@@ -4432,9 +4546,10 @@ const renderElement = (element: CardElement) => {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "10px 12px",
+                    alignItems: isCompactLayout ? "stretch" : "center",
+                    flexDirection: isCompactLayout ? "column" : "row",
+                    gap: isCompactLayout ? "14px" : "12px",
+                    padding: isCompactLayout ? "14px" : "10px 12px",
                     borderRadius: "10px",
                     background: "#ffffff",
                   }}
@@ -4459,7 +4574,7 @@ const renderElement = (element: CardElement) => {
                       />
                     )}
                     {element.type === "text" && (
-                      <label style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b7280" }}>
+                      <label style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", fontSize: isCompactLayout ? "13px" : "12px", color: "#475467" }}>
                         Text colour
                         <input
                           type="color"
@@ -4474,9 +4589,10 @@ const renderElement = (element: CardElement) => {
                           disabled={element.locked}
                           style={{
                             width: "100%",
-                            height: "32px",
-                            borderRadius: "8px",
+                            height: isCompactLayout ? "40px" : "32px",
+                            borderRadius: "10px",
                             border: "1px solid #d0d5dd",
+                            cursor: element.locked ? "not-allowed" : "pointer",
                           }}
                         />
                       </label>
@@ -4487,38 +4603,104 @@ const renderElement = (element: CardElement) => {
                           <span>Text size</span>
                           <span>{ratioToPt(element.fontSize ?? 0.05)} pt</span>
                         </div>
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                          <input
-                            type="range"
-                            min={minFontRatio}
-                            max={MAX_FONT_RATIO}
-                            step={0.001}
-                            value={element.fontSize ?? 0.05}
-                            onChange={(event) => {
-                              const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
-                              setElements((prev) =>
-                                prev.map((el) =>
-                                  el.id === element.id
-                                    ? {
-                                        ...el,
-                                        fontSize: next,
-                                      }
-                                    : el
-                                )
-                              );
-                            }}
-                            style={{ flex: 1 }}
-                            disabled={element.locked}
-                          />
-                          <a
-                            href="/help/physical-card-font-guide"
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ fontSize: "12px", color: "#ff7a00", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
-                          >
-                            Font guide
-                          </a>
-                        </div>
+                        {isCompactLayout ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <input
+                              type="range"
+                              min={minFontRatio}
+                              max={MAX_FONT_RATIO}
+                              step={0.001}
+                              value={element.fontSize ?? 0.05}
+                              onChange={(event) => {
+                                const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
+                                setElements((prev) =>
+                                  prev.map((el) =>
+                                    el.id === element.id
+                                      ? {
+                                          ...el,
+                                          fontSize: next,
+                                        }
+                                      : el
+                                  )
+                                );
+                              }}
+                              style={{ width: "100%" }}
+                              disabled={element.locked}
+                            />
+                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                              <a
+                                href="/help/physical-card-font-guide"
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#0f172a",
+                                  fontWeight: 600,
+                                  textDecoration: "none",
+                                  whiteSpace: "nowrap",
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: "999px",
+                                  padding: "8px 12px",
+                                  background: "#f8fafc",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  minHeight: "36px",
+                                }}
+                              >
+                                <span aria-hidden="true" style={{ fontSize: "12px" }}>Aa</span>
+                                Font guide
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <input
+                              type="range"
+                              min={minFontRatio}
+                              max={MAX_FONT_RATIO}
+                              step={0.001}
+                              value={element.fontSize ?? 0.05}
+                              onChange={(event) => {
+                                const next = clamp(parseFloat(event.target.value) || minFontRatio, minFontRatio, MAX_FONT_RATIO);
+                                setElements((prev) =>
+                                  prev.map((el) =>
+                                    el.id === element.id
+                                      ? {
+                                          ...el,
+                                          fontSize: next,
+                                        }
+                                      : el
+                                  )
+                                );
+                              }}
+                              style={{ flex: 1 }}
+                              disabled={element.locked}
+                            />
+                            <a
+                              href="/help/physical-card-font-guide"
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                fontSize: "12px",
+                                color: "#0f172a",
+                                fontWeight: 600,
+                                textDecoration: "none",
+                                whiteSpace: "nowrap",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "999px",
+                                padding: "6px 10px",
+                                background: "#f8fafc",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <span aria-hidden="true" style={{ fontSize: "12px" }}>Aa</span>
+                              Font guide
+                            </a>
+                          </div>
+                        )}
                       </div>
                     )}
                     {(element.type === "image" || element.type === "qr") && (
@@ -5047,16 +5229,31 @@ const renderElement = (element: CardElement) => {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: isCompactLayout ? "space-between" : "flex-end",
+                      gap: "8px",
+                      width: isCompactLayout ? "100%" : "auto",
+                      flexWrap: isCompactLayout ? "wrap" : "nowrap",
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => toggleLockElement(element.id)}
                       style={{
-                        border: "none",
-                        background: "transparent",
+                        border: "1px solid #e2e8f0",
+                        background: "#ffffff",
                         color: element.locked ? "#16a34a" : "#475467",
                         cursor: "pointer",
                         fontSize: "16px",
+                        width: isCompactLayout ? "48px" : "32px",
+                        height: isCompactLayout ? "44px" : "32px",
+                        borderRadius: "10px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       <svg
@@ -5089,11 +5286,17 @@ const renderElement = (element: CardElement) => {
                     type="button"
                     onClick={() => removeElement(element.id)}
                     style={{
-                      border: "none",
-                      background: "transparent",
-                      color: "#ff5c5c",
+                      border: "1px solid #fecaca",
+                      background: "#fef2f2",
+                      color: "#b91c1c",
                       cursor: "pointer",
                       fontSize: "13px",
+                      fontWeight: 600,
+                      padding: isCompactLayout ? "10px 16px" : "6px 10px",
+                      borderRadius: "10px",
+                      minHeight: isCompactLayout ? "44px" : "32px",
+                      width: isCompactLayout ? "100%" : "auto",
+                      flex: isCompactLayout ? "1 1 100%" : "0 0 auto",
                     }}
                   >
                     Remove
@@ -5115,7 +5318,7 @@ const renderElement = (element: CardElement) => {
         >
           <button
             type="button"
-            onClick={handleSave}
+            onClick={() => setShowExportConfirm(true)}
             disabled={saving}
             style={{
               padding: "12px 28px",
@@ -5138,6 +5341,130 @@ const renderElement = (element: CardElement) => {
           </span>
         </div>
       </div>
+      {showExportConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            zIndex: 9999,
+            overflowY: "auto",
+          }}
+          onClick={() => setShowExportConfirm(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "980px",
+              background: "#ffffff",
+              borderRadius: "20px",
+              padding: isCompactLayout ? "18px" : "24px",
+              boxShadow: "0 24px 60px rgba(15,23,42,0.25)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              maxHeight: isCompactLayout ? "calc(100vh - 32px)" : "calc(100vh - 48px)",
+              overflowY: "auto",
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: isCompactLayout ? "flex-start" : "center",
+                flexDirection: isCompactLayout ? "column" : "row",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#0f172a" }}>
+                  Export this design?
+                </h3>
+                <p style={{ margin: "6px 0 0", color: "#475467", fontSize: "14px" }}>
+                  Review the proof below. TapINK handles production after you approve.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close export confirmation"
+                onClick={() => setShowExportConfirm(false)}
+                style={{
+                  border: "none",
+                  background: "#f1f5f9",
+                  color: "#0f172a",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "999px",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: "16px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <span style={{ fontSize: "12px", letterSpacing: "0.12em", color: "#94a3b8" }}>FRONT</span>
+                {renderModalPreview("front", frontElements)}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <span style={{ fontSize: "12px", letterSpacing: "0.12em", color: "#94a3b8" }}>BACK</span>
+                {renderModalPreview("back", backElements)}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setShowExportConfirm(false)}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "999px",
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmExport}
+                disabled={saving}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "999px",
+                  border: "none",
+                  background: "linear-gradient(135deg,#ff8b37,#ff6a00)",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  cursor: saving ? "wait" : "pointer",
+                  opacity: saving ? 0.8 : 1,
+                }}
+              >
+                {saving ? "Exporting…" : "Yes, export"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
