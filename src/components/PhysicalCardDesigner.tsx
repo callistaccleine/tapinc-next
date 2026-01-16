@@ -1029,10 +1029,49 @@ export function PhysicalCardDesigner({
     };
   };
 
-  const setElements = (updater: (prev: CardElement[]) => CardElement[]) => {
-    const next = updater(cardDesign.elements ?? []).map(clampElementPosition);
+  const undoStackRef = useRef<CardElement[][]>([]);
+  const historyTimerRef = useRef<number | null>(null);
+  const restoringRef = useRef(false);
+  const [canUndo, setCanUndo] = useState(false);
+
+  const pushUndoSnapshot = (elements: CardElement[]) => {
+    undoStackRef.current.push(elements.map((element) => ({ ...element })));
+    if (undoStackRef.current.length > 40) {
+      undoStackRef.current.shift();
+    }
+    setCanUndo(undoStackRef.current.length > 0);
+  };
+
+  const setElements = (
+    updater: (prev: CardElement[]) => CardElement[],
+    options?: { skipHistory?: boolean }
+  ) => {
+    const prev = cardDesign.elements ?? [];
+    if (!options?.skipHistory && !restoringRef.current) {
+      if (!historyTimerRef.current) {
+        pushUndoSnapshot(prev);
+      }
+      if (historyTimerRef.current) {
+        window.clearTimeout(historyTimerRef.current);
+      }
+      historyTimerRef.current = window.setTimeout(() => {
+        historyTimerRef.current = null;
+      }, 700);
+    }
+    const next = updater(prev).map(clampElementPosition);
     updateCardDesign({ elements: next });
   };
+
+  const handleUndo = useCallback(() => {
+    const previous = undoStackRef.current.pop();
+    if (!previous) return;
+    setCanUndo(undoStackRef.current.length > 0);
+    restoringRef.current = true;
+    updateCardDesign({ elements: previous.map(clampElementPosition) });
+    window.requestAnimationFrame(() => {
+      restoringRef.current = false;
+    });
+  }, [clampElementPosition, updateCardDesign]);
 
   const measureTextWidthPx = (
     text: string,
@@ -1470,8 +1509,9 @@ export function PhysicalCardDesigner({
           Math.abs(heightRatio - defaultImageRatio) < 0.0001 ||
           Math.abs(heightRatio - widthRatio) < 0.0001;
         if (shouldAutoSetHeight && Math.abs(heightRatio - targetHeight) > 0.0001) {
-          setElements((prev) =>
-            prev.map((el) => (el.id === element.id ? { ...el, height: targetHeight } : el))
+          setElements(
+            (prev) => prev.map((el) => (el.id === element.id ? { ...el, height: targetHeight } : el)),
+            { skipHistory: true }
           );
         }
       };
@@ -1899,6 +1939,30 @@ export function PhysicalCardDesigner({
     document.addEventListener("pointerdown", handleOutsideClick, true);
     return () => document.removeEventListener("pointerdown", handleOutsideClick, true);
   }, []);
+  useEffect(() => {
+    return () => {
+      if (historyTimerRef.current) {
+        window.clearTimeout(historyTimerRef.current);
+      }
+    };
+  }, []);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isUndo = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey;
+      if (!isUndo) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.closest("input, textarea, select")) {
+        return;
+      }
+
+      event.preventDefault();
+      handleUndo();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo]);
   useEffect(() => {
     if (!showExportConfirm) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -2700,6 +2764,43 @@ export function PhysicalCardDesigner({
                 </span>
               </div>
               <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "rgba(255,255,255,0.08)",
+                    color: canUndo ? "#ffffff" : "rgba(255,255,255,0.45)",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: canUndo ? "pointer" : "not-allowed",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                  }}
+                  aria-label="Undo"
+                  title="Undo"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 14l-4-4 4-4" />
+                    <path d="M5 10h8a6 6 0 1 1 0 12h-1" />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   onClick={() => toggleLockElement(activeElement.id)}
@@ -4356,34 +4457,70 @@ export function PhysicalCardDesigner({
                 Add elements directly on the {selectedElementSide} preview to reposition them.
               </p>
             </div>
-            <div
-              style={{
-                padding: "4px",
-                borderRadius: "999px",
-                background: "#f5f5f7",
-                display: "inline-flex",
-                gap: "4px",
-              }}
-            >
-              {["front", "back"].map((side) => (
-                <button
-                  key={side}
-                  type="button"
-                  onClick={() => setSelectedElementSide(side as CardSide)}
-                  style={{
-                    border: "none",
-                    borderRadius: "999px",
-                    padding: "6px 16px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    background: selectedElementSide === side ? "#000000" : "transparent",
-                    color: selectedElementSide === side ? "#ffffff" : "#0f172a",
-                  }}
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={!canUndo}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "999px",
+                  padding: "6px 14px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: canUndo ? "pointer" : "not-allowed",
+                  background: "#ffffff",
+                  color: canUndo ? "#0f172a" : "#94a3b8",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
                 >
-                  {side === "front" ? "Front" : "Back"}
-                </button>
-              ))}
+                  <path d="M9 14l-4-4 4-4" />
+                  <path d="M5 10h8a6 6 0 1 1 0 12h-1" />
+                </svg>
+                Undo
+              </button>
+              <div
+                style={{
+                  padding: "4px",
+                  borderRadius: "999px",
+                  background: "#f5f5f7",
+                  display: "inline-flex",
+                  gap: "4px",
+                }}
+              >
+                {["front", "back"].map((side) => (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() => setSelectedElementSide(side as CardSide)}
+                    style={{
+                      border: "none",
+                      borderRadius: "999px",
+                      padding: "6px 16px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      background: selectedElementSide === side ? "#000000" : "transparent",
+                      color: selectedElementSide === side ? "#ffffff" : "#0f172a",
+                    }}
+                  >
+                    {side === "front" ? "Front" : "Back"}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
