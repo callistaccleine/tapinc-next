@@ -38,6 +38,29 @@ const resolveImageBuffer = async (value: string, label: string) => {
   return fetchBuffer(value, label);
 };
 
+const buildPdfBytes = async (
+  frontBuffer: Buffer,
+  backBuffer: Buffer,
+  dpi: number,
+  widthPx: number,
+  heightPx: number
+) => {
+  const pdfDoc = await PDFDocument.create();
+  const widthPoints = (widthPx / dpi) * 72;
+  const heightPoints = (heightPx / dpi) * 72;
+
+  const frontEmbedded = await pdfDoc.embedPng(frontBuffer);
+  const backEmbedded = await pdfDoc.embedPng(backBuffer);
+
+  const frontPage = pdfDoc.addPage([widthPoints, heightPoints]);
+  frontPage.drawImage(frontEmbedded, { x: 0, y: 0, width: widthPoints, height: heightPoints });
+
+  const backPage = pdfDoc.addPage([widthPoints, heightPoints]);
+  backPage.drawImage(backEmbedded, { x: 0, y: 0, width: widthPoints, height: heightPoints });
+
+  return pdfDoc.save();
+};
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
@@ -47,7 +70,12 @@ export async function POST(request: NextRequest) {
       backImage,
       frontImageUrl,
       backImageUrl,
+      reviewFrontImage,
+      reviewBackImage,
+      reviewFrontImageUrl,
+      reviewBackImageUrl,
       createdBy,
+      createdByEmail,
       resolution,
       widthPx,
       heightPx,
@@ -55,6 +83,8 @@ export async function POST(request: NextRequest) {
     } = payload;
     const frontSource = frontImageUrl || frontImage;
     const backSource = backImageUrl || backImage;
+    const reviewFrontSource = reviewFrontImageUrl || reviewFrontImage;
+    const reviewBackSource = reviewBackImageUrl || reviewBackImage;
 
     if (!designProfileId || !frontSource || !backSource || !widthPx || !heightPx) {
       return jsonResponse({ error: "Missing required fields" }, 400);
@@ -68,20 +98,17 @@ export async function POST(request: NextRequest) {
     const frontBuffer = await resolveImageBuffer(frontSource, "frontImage");
     const backBuffer = await resolveImageBuffer(backSource, "backImage");
 
-    const pdfDoc = await PDFDocument.create();
-    const widthPoints = (widthPx / dpi) * 72;
-    const heightPoints = (heightPx / dpi) * 72;
-
-    const frontEmbedded = await pdfDoc.embedPng(frontBuffer);
-    const backEmbedded = await pdfDoc.embedPng(backBuffer);
-
-    const frontPage = pdfDoc.addPage([widthPoints, heightPoints]);
-    frontPage.drawImage(frontEmbedded, { x: 0, y: 0, width: widthPoints, height: heightPoints });
-
-    const backPage = pdfDoc.addPage([widthPoints, heightPoints]);
-    backPage.drawImage(backEmbedded, { x: 0, y: 0, width: widthPoints, height: heightPoints });
-
-    const pdfBytes = await pdfDoc.save();
+    const pdfBytes = await buildPdfBytes(frontBuffer, backBuffer, dpi, widthPx, heightPx);
+    const reviewFrontBuffer = reviewFrontSource
+      ? await resolveImageBuffer(reviewFrontSource, "reviewFrontImage")
+      : null;
+    const reviewBackBuffer = reviewBackSource
+      ? await resolveImageBuffer(reviewBackSource, "reviewBackImage")
+      : null;
+    const reviewPdfBytes =
+      reviewFrontBuffer && reviewBackBuffer
+        ? await buildPdfBytes(reviewFrontBuffer, reviewBackBuffer, dpi, widthPx, heightPx)
+        : pdfBytes;
 
     const generatedAt = new Date();
     const zip = new JSZip();
@@ -121,6 +148,18 @@ export async function POST(request: NextRequest) {
         profileId = data?.profile_id ?? null;
       } catch (err) {
         console.error("Supabase profile lookup failed:", err);
+      }
+    }
+
+    let requesterEmail: string | null = createdByEmail ?? null;
+    if (adminClient && createdBy) {
+      try {
+        const { data, error } = await adminClient.auth.admin.getUserById(createdBy);
+        if (!error && data?.user?.email) {
+          requesterEmail = data.user.email;
+        }
+      } catch (err) {
+        console.error("Supabase user lookup failed:", err);
       }
     }
 
@@ -190,7 +229,7 @@ export async function POST(request: NextRequest) {
           .join("");
 
         const supportEmail = "hello@tapink.com.au";
-        const instructionsHtml = `
+        const internalInstructionsHtml = `
           <ol style="padding-left:20px;color:#374151;">
             <li>Review the attached PDF proof for front/back alignment.</li>
             <li>Download the ZIP for production-ready PNGs and metadata.</li>
@@ -198,24 +237,28 @@ export async function POST(request: NextRequest) {
           </ol>
         `;
 
+        const internalSubject = workOrderNumber
+          ? `Physical card design work order #${workOrderNumber} — ${designProfileId}`
+          : `Physical card design work order — ${designProfileId}`;
+
+        const internalHtml = `
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;">
+            <h2 style="margin-bottom:4px;">${workOrderHeading}</h2>
+            <p style="margin:0 0 16px;color:#4b5563;">A fresh design export is ready for production.</p>
+            <table style="border-collapse:collapse;border:1px solid #e5e7eb;margin-bottom:16px;min-width:320px;">
+              ${detailRowsHtml}
+            </table>
+            <h3 style="margin:0 0 8px;">Next steps</h3>
+            ${internalInstructionsHtml}
+            <p style="margin:16px 0 0;color:#4b5563;">Need help? Email <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+          </div>
+        `;
+
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: "sales@tapink.com.au",
-          subject: workOrderNumber
-            ? `Physical card design work order #${workOrderNumber} — ${designProfileId}`
-            : `Physical card design work order — ${designProfileId}`,
-          html: `
-            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;">
-              <h2 style="margin-bottom:4px;">${workOrderHeading}</h2>
-              <p style="margin:0 0 16px;color:#4b5563;">A fresh design export is ready for production.</p>
-              <table style="border-collapse:collapse;border:1px solid #e5e7eb;margin-bottom:16px;min-width:320px;">
-                ${detailRowsHtml}
-              </table>
-              <h3 style="margin:0 0 8px;">Next steps</h3>
-              ${instructionsHtml}
-              <p style="margin:16px 0 0;color:#4b5563;">Need help? Email <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
-            </div>
-          `,
+          subject: internalSubject,
+          html: internalHtml,
           attachments: [
             {
               filename: `${designProfileId}.pdf`,
@@ -229,6 +272,48 @@ export async function POST(request: NextRequest) {
             },
           ],
         });
+
+        if (requesterEmail) {
+          const userSubject = workOrderNumber
+            ? `Your physical card export is ready for review — #${workOrderNumber}`
+            : `Your physical card export is ready for review`;
+          const userHeading = "Your physical card export is ready";
+          const userInstructionsHtml = `
+            <ol style="padding-left:20px;color:#374151;">
+              <li>Review the attached PDF proof for layout, colours, and text.</li>
+              <li>Reply to this email if you'd like any changes.</li>
+            </ol>
+          `;
+
+          const userHtml = `
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;">
+              <h2 style="margin-bottom:4px;">${userHeading}</h2>
+              <p style="margin:0 0 16px;color:#4b5563;">
+                Thanks for exporting your design. This proof is for review only &mdash; TapINK handles production.
+              </p>
+              <table style="border-collapse:collapse;border:1px solid #e5e7eb;margin-bottom:16px;min-width:320px;">
+                ${detailRowsHtml}
+              </table>
+              <h3 style="margin:0 0 8px;">Review checklist</h3>
+              ${userInstructionsHtml}
+              <p style="margin:16px 0 0;color:#4b5563;">Questions? Email <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+            </div>
+          `;
+
+          await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: requesterEmail,
+            subject: userSubject,
+            html: userHtml,
+            attachments: [
+              {
+                filename: `${designProfileId}.pdf`,
+                content: Buffer.from(reviewPdfBytes),
+                contentType: "application/pdf",
+              },
+            ],
+          });
+        }
       } catch (emailError) {
         console.error("Email delivery failed:", emailError);
       }
